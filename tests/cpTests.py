@@ -34,9 +34,9 @@ class ifdh_cp_cases(unittest.TestCase):
         return count > 1
 
     def clean_dest(self):
-        os.system('srmrm -2 "srm://fg-bestman1.fnal.gov:10443/srm/v2/server?SFN=%s/test.txt" > /dev/null 2>&1' % self.data_dir)
-        os.system('srmrm -2 "srm://fg-bestman1.fnal.gov:10443/srm/v2/server?SFN=%s/f1" > /dev/null 2>&1' % self.data_dir)
-        os.system('srmrm -2 "srm://fg-bestman1.fnal.gov:10443/srm/v2/server?SFN=%s/f2" > /dev/null 2>&1' % self.data_dir)
+        os.system('test -d %s && rm -f %s/test.txt || srmrm -2 "srm://fg-bestman1.fnal.gov:10443/srm/v2/server?SFN=%s/test.txt" > /dev/null 2>&1' % self.data_dir)
+        os.system('test -d %s && rm -f %s/f1 || srmrm -2 "srm://fg-bestman1.fnal.gov:10443/srm/v2/server?SFN=%s/f1" > /dev/null 2>&1' % self.data_dir)
+        os.system('test -d %s && rm -f %s/f2 ||  srmrm -2 "srm://fg-bestman1.fnal.gov:10443/srm/v2/server?SFN=%s/f2" > /dev/null 2>&1' % self.data_dir)
 
     def make_test_txt(self):
         self.clean_dest();

@@ -20,12 +20,12 @@ class ifdh_cp_cases(unittest.TestCase):
 
         if 1: return
 
-        f = os.popen('srmls "srm://fg-bestman1.fnal.gov:10443/srm/v2/server?SFN=%s" 2>&1' % self.data_dir, "r")
+        f = os.popen('srmls -2 "srm://fg-bestman1.fnal.gov:10443/srm/v2/server?SFN=%s" 2>&1' % self.data_dir, "r")
         print f.read()
         f.close()
 
     def check_data_f1_f2(self, char="f"):
-        f = os.popen('srmls "srm://fg-bestman1.fnal.gov:10443/srm/v2/server?SFN=%s" 2>&1' % self.data_dir, "r")
+        f = os.popen('srmls -2  "srm://fg-bestman1.fnal.gov:10443/srm/v2/server?SFN=%s" 2>&1' % self.data_dir, "r")
         count = 0
         for l in f.readlines():
             if l.endswith("/%s1\n" % char) or l.endswith("/%s2\n" % char):

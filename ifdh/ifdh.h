@@ -87,7 +87,7 @@ class ifdh {
         // end the process
         int endProcess(std::string projecturi, std::string processid);
         // say what the sam station knows about your process
-        std::string dumpProcess(std::string projecturi, std::string processid);
+        std::string dumpProject(std::string projecturi);
         // set process status
 	int setStatus(std::string projecturi, std::string processid, std::string status);
         // end the project

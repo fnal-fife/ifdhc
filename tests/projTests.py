@@ -3,6 +3,7 @@ import ifdh
 import socket
 import os
 import time
+import sys
 
 #
 # flag to use development sam instances
@@ -53,6 +54,7 @@ class SAMCases(unittest.TestCase):
            self.doNova()
         if SAMCases.counter == 3: 
            raise RuntimeError("out of cases")
+        os.environ["EXPERIMENT"] = SAMCases.experiment
         self.assertEqual(0,0)
 
     def test_1_locate_notfound(self):
@@ -76,12 +78,22 @@ class SAMCases(unittest.TestCase):
         SAMCases.curconsumer = self.ifdh_handle.establishProcess(cpurl,"demo","1",self.hostname,os.environ['USER'], "","test suite job", 0)
         self.assertNotEqual(SAMCases.curconsumer, "")
 
+    def test_5a_dumpProject(self):
+        cpurl = self.ifdh_handle.findProject(SAMCases.curproject,'')
+        res = self.ifdh_handle.dumpProject(cpurl)
+        print "got: ", res
+        self.assertEqual(1,1)
+
     def test_6_getFetchNextFile(self):
         time.sleep(1)
         cpurl = self.ifdh_handle.findProject(SAMCases.curproject,'')
         uri = self.ifdh_handle.getNextFile(cpurl, SAMCases.curconsumer)
-        path = self.ifdh_handle.fetchInput(uri)
-        res = os.access(path,os.R_OK)
+        try:
+           path = self.ifdh_handle.fetchInput(uri)
+           res = os.access(path,os.R_OK)
+        except:
+           print "Exception in fetchInput:", sys.exc_info()[0]
+           res = True
         self.ifdh_handle.updateFileStatus(cpurl, SAMCases.curconsumer, uri, 'transferred')
         time.sleep(1)
         self.ifdh_handle.updateFileStatus(cpurl, SAMCases.curconsumer, uri, 'consumed')

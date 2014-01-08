@@ -351,7 +351,7 @@ WebAPI::WebAPI(std::string url, int postflag, std::string postdata) throw(WebAPI
 
      if (_status != 200 and _status != 204) {
         std::stringstream message;
-        message << "Status: " << _status << "\n";
+        message << "\nHTTP-Status: " << _status << "\n";
         message << "Error text is:\n";
         while (_fromsite.getline(buf, 512).gcount() > 0) {
 	    message << buf << "\n";

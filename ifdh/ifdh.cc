@@ -367,22 +367,44 @@ string ifdh::getMetadata( string name) {
 //
 string 
 ifdh::dumpStation( string name, string what ) {
+  
+  if (name == "" && getenv("SAM_STATION"))
+      name = getenv("SAM_STATION}");
+
   return do_url_str(0,_baseuri.c_str(),"dumpStation", "", "station", name.c_str(), "dump", what.c_str(), "","");
 }
 
 // projects
 string ifdh::startProject( string name, string station,  string defname_or_id,  string user,  string group) {
+
+  if (name == "" && getenv("SAM_PROJECT"))
+      name = getenv("SAM_PROJECT}");
+
+  if (station == "" && getenv("SAM_STATIOn"))
+      station = getenv("SAM_STATION}");
+
   return do_url_str(1,_baseuri.c_str(),"startProject","","name",name.c_str(),"station",station.c_str(),"defname",defname_or_id.c_str(),"username",user.c_str(),"group",group.c_str(),"","");
 }
 
 string 
 ifdh::findProject( string name, string station){
-   return do_url_str(0,_baseuri.c_str(),"findProject","","name",name.c_str(),"station",station.c_str(),"","");
+   
+  if (name == "" && getenv("SAM_PROJECT"))
+      name = getenv("SAM_PROJECT}");
+
+  if (station == "" && getenv("SAM_STATIOn"))
+      station = getenv("SAM_STATION}");
+
+  return do_url_str(0,_baseuri.c_str(),"findProject","","name",name.c_str(),"station",station.c_str(),"","");
 }
 
 string 
 ifdh::establishProcess( string projecturi, string appname, string appversion, string location, string user, string appfamily , string description , int filelimit ) {
   char buf[64];
+
+  if (projecturi == "" && getenv("SAM_PROJECT") && getenv("SAM_STATION") ) {
+      projecturi = this->findProject("","");
+  }
 
   if (filelimit == -1) {
      filelimit = 0;
@@ -394,29 +416,47 @@ ifdh::establishProcess( string projecturi, string appname, string appversion, st
 }
 
 string ifdh::getNextFile(string projecturi, string processid){
+  if (projecturi == "" && getenv("SAM_PROJECT") && getenv("SAM_STATION") ) {
+      projecturi = this->findProject("","");
+  }
   return do_url_str(1,projecturi.c_str(),"processes",processid.c_str(),"getNextFile","","","");
 }
 
 string ifdh::updateFileStatus(string projecturi, string processid, string filename, string status){
+  if (projecturi == "" && getenv("SAM_PROJECT") && getenv("SAM_STATION") ) {
+      projecturi = this->findProject("","");
+  }
   return do_url_str(1,projecturi.c_str(),"processes",processid.c_str(),"updateFileStatus","","filename", filename.c_str(),"status", status.c_str(), "","");
 }
 
 int 
 ifdh::endProcess(string projecturi, string processid) {
+  if (projecturi == "" && getenv("SAM_PROJECT") && getenv("SAM_STATION") ) {
+      projecturi = this->findProject("","");
+  }
   cleanup();
   return do_url_int(1,projecturi.c_str(),"processes",processid.c_str(),"endProcess","","","");
 }
 
 string 
-ifdh::dumpProcess(string projecturi, string processid) {
-  return do_url_str(1,projecturi.c_str(),"processes",processid.c_str(),"dumpProcess","","","");
+ifdh::dumpProject(string projecturi) {
+  if (projecturi == "" && getenv("SAM_PROJECT") && getenv("SAM_STATION") ) {
+      projecturi = this->findProject("","");
+  }
+  return do_url_str(1,projecturi.c_str(),"dumpProject","","","");
 }
 
 int ifdh::setStatus(string projecturi, string processid, string status){
+  if (projecturi == "" && getenv("SAM_PROJECT") && getenv("SAM_STATION") ) {
+      projecturi = this->findProject("","");
+  }
   return do_url_int(1,projecturi.c_str(),"processes",processid.c_str(),"setStatus","","status",status.c_str(),"","");
 }
 
 int ifdh::endProject(string projecturi) {
+  if (projecturi == "" && getenv("SAM_PROJECT") && getenv("SAM_STATION") ) {
+      projecturi = this->findProject("","");
+  }
   return do_url_int(1,projecturi.c_str(),"endProject","","","");
 }
 

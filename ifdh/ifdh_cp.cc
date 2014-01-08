@@ -583,14 +583,17 @@ parse_ifdh_stage_via() {
 
 bool
 use_passive() {
-   // for now, we do not use passive mode here at fermilab,
-   // in favor of parallel mode, but we do use passive
-   // pretty much everywhere else.
+   return true;
+   
+   // I was thinking of something like: 
    if (host_matches("*.fnal.gov")) {
        return false;
    } else {
        return true;
    }
+   // but even that is wrong sometimes; we should just
+   // do passive mode because it works everywhere, and let
+   // people use IFDH_GRIDFTP_EXTRA to override it if needed.
 }
 
 string

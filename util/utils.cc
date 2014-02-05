@@ -33,19 +33,36 @@ char *getexperiment() {
          }
     }
     switch((int)getgid()){
+    case 9257:
+    case 9258:
+    case 9259:
+    case 9260:
+    case 9261:
+    case 9262:	
     case 9937:
+    case 9952:
        return "microboone";
     case 5314:
        return "auger";
+    case 9101:
+    case 9112:
+    case 9195:
+    case 9226:
+    case 9270:
+    case 9272:
     case 9914:
        return "mu2e";
+    case 9113:
     case 9950:
        return "gm2";
     case 5111:
        return "minos";
+    case 9209:
+       return "minosplus";
     case 1004:  // nova at smu
     case 9553:
        return "nova";
+    case 9253:
     case 9555:
        return "minerva";
     default:

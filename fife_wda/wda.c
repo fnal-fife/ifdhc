@@ -41,13 +41,11 @@ typedef struct {
 
 static int destroyHttpResponse(HttpResponse *response);
 static int initHttpResponse(HttpResponse *response);
-static HttpResponse get_http_response(const char *url, const char *headers[], size_t nheaders, int *status);
+static HttpResponse get_http_response(const char *url, const char *headers[], size_t nheaders, int timeout, int *status);
 
 
 #define PRINT_ALLOC_ERROR(a)   fprintf(stderr, "Not enough memory (%s returned NULL)" \
             " at %s:%d\n", #a, __FILE__, __LINE__)
-
-#define RETRY_TIMEOUT 5.0
 
 /*
  * Generates a random string of specified size
@@ -129,7 +127,7 @@ static size_t writeMemoryCallback(void *contents, size_t size, size_t nmemb, voi
  */
 void *getHTTP(const char *url, const char *headers[], size_t nheaders, size_t *length, int *status)
 {
-    HttpResponse response = get_http_response(url, headers, nheaders, status);
+    HttpResponse response = get_http_response(url, headers, nheaders, 0, status);
 
     *length = response.size;                // Return data length
     return (void *)response.memory;         // Return pointer to the buffer
@@ -139,10 +137,10 @@ void *getHTTP(const char *url, const char *headers[], size_t nheaders, size_t *l
 /*
  * Internal common function
  */
-static HttpResponse get_http_response(const char *url, const char *headers[], size_t nheaders, int *status)
+static HttpResponse get_http_response(const char *url, const char *headers[], size_t nheaders, int timeout, int *status)
 {
     CURL *curl_handle;
-    CURLcode ret;
+    CURLcode ret = CURLE_FAILED_INIT;
 
     HttpResponse response;
 
@@ -183,7 +181,8 @@ static HttpResponse get_http_response(const char *url, const char *headers[], si
 
         ret = curl_easy_setopt(curl_handle, CURLOPT_HTTPHEADER, headerlist);    /* Set extra headers            */
 
-        for (k = 1; (t1 - t0) < RETRY_TIMEOUT; k++) {
+        k = 0;
+        do {
             /* get it! */
             destroyHttpResponse(&response);
             initHttpResponse(&response);
@@ -200,14 +199,18 @@ static HttpResponse get_http_response(const char *url, const char *headers[], si
                     break;
                 } else {
                     //Failed
-                    //fprintf(stderr, "HTTP status code=%d: '%s'\n", response.http_code, response.memory);
+# if DEBUG
+                    fprintf(stderr, "HTTP status code=%d: '%s'\n", response.http_code, response.memory);
+# endif
                 }
             }
-            int d = 1 + ((double)random()/(double)RAND_MAX) * k;
+            int d = 1 + ((double)random()/(double)RAND_MAX) * (1 << k++);
             sleep(d);
             t1 = time(NULL);
-            //fprintf(stderr, "ret=%d, k=%d, d=%d, t0=%ld, t1=%ld\n", ret, k, d, t0, t1);
-                }
+# if DEBUG
+            fprintf(stderr, "ret=%d, k=%d, delay=%d, t0=%ld, t1=%ld to=%d\n", ret, k, d, t0, t1, timeout);
+# endif
+        } while ((t1 - t0) < timeout);
         /* cleanup curl stuff */
         curl_easy_cleanup(curl_handle);
         curl_slist_free_all(headerlist);                                        /* Free the custom headers      */
@@ -332,13 +335,13 @@ void postHTTP(const char *url, const char *headers[], size_t nheaders, const cha
  * It returns the structure which contains the array of rows as strings
  * along with its size.
  */
-static HttpResponse get_data_rows(const char *url, const char *headers[], size_t nheaders, int *status)
+static HttpResponse get_data_rows(const char *url, const char *headers[], size_t nheaders, int timeout, int *status)
 {
     int i, k;
     char *row;
     char *running;
 
-    HttpResponse response = get_http_response(url, headers, nheaders, status);
+    HttpResponse response = get_http_response(url, headers, nheaders, timeout, status);
 
 # if DEBUG
     fprintf(stderr, "get_data_rows: %lu bytes retrieved\n", (long)response.size);
@@ -485,7 +488,7 @@ static DataRec *parse_csv(const char *s)
 /*
  * Low level generic function which returns the whole dataset
  */
-Dataset getData(const char *url, const char *uagent, int *error)
+Dataset getDataWithTimeout(const char *url, const char *uagent, int timeout, int *error)
 {
     int err;
     HttpResponse *response;
@@ -504,7 +507,7 @@ Dataset getData(const char *url, const char *uagent, int *error)
         *error = errno;
         return NULL;
     }
-    *response = get_data_rows(url, headers, 1, &err);
+    *response = get_data_rows(url, headers, 1, timeout, &err);
     if (err) {
         *error = errno = ENODATA;
     }
@@ -521,6 +524,13 @@ Dataset getData(const char *url, const char *uagent, int *error)
     return (Dataset)response;
 }
 
+/*
+ * Low level generic function which returns the whole dataset. Uses default timeout for request
+ */
+Dataset getData(const char *url, const char *uagent, int *error)
+{
+    return getDataWithTimeout(url, uagent, 0, error);
+}
 
 int getNtuples(Dataset dataset)
 {

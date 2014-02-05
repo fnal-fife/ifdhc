@@ -12,7 +12,22 @@ cat >&2 <<EOF
 EOF
 }
 
-dest='./$f'
+case `df . | tail -1` in
+*/app) size=`echo "$@" | wc -w`
+         if [ $size -gt 10 ]
+         then
+             echo "Sorry, this utility won't copy large datasets to the /experiment/app areas" >& 2
+             exit 1
+         else
+             echo "Notice: copying data to /experiment/app areas is not recommended." >&2
+             echo "...but since it's only a few files, copying via /tmp"
+         fi
+         dest='/tmp/$f'
+         extra='; cp /tmp/$f ./$f; rm /tmp/$f'
+         ;;
+*)       dest='./$f'
+         extra=''
+esac
 
 while :
 do
@@ -48,10 +63,6 @@ x)  usage
 esac
 done
 
-# make sure we have a proxy
-voms-proxy-info -all | grep $EXPERIMENT > /dev/null || (
- kx509 && voms-proxy-init -noregen -voms fermilab:/fermilab/$EXPERIMENT/Role=Analysis)
-
 case x$EXPERIMENT in
 x) echo "Need EXPERIMENT set in the environment" >&2
    exit 1
@@ -59,25 +70,22 @@ x) echo "Need EXPERIMENT set in the environment" >&2
 *) ;;
 esac
 
-eloc='srm://fndca1.fnal.gov:8443/srm/managerv2?SFN=/pnfs/fnal.gov/usr/'
-
 for f in "$@"
 do
    flocs=`ifdh locateFile $f`
    eflocs=`echo "$flocs" | grep enstore: | head -1`
    bflocs=`echo "$flocs" | egrep '(_bluearc|data):' | head -1`
-   if [ x$bflocs != x ]
+   if [ x$eflocs != x ]
    then
-       echo "found file on bluearc"
-       src="`echo $bflocs |  perl -pe 's/.*(_bluearc|data)://;'`/$f"
-   else
        echo "found file on enstore, using dcache srm"
 
        src="`echo $eflocs |
-	      sed -e "s;enstore:/pnfs/;$eloc;" -e 's/(.*//'`/$f"
-
+	      sed -e "s/enstore://" -e 's/(.*//'`/$f"
+   else
+       echo "found file on bluearc"
+       src="`echo $bflocs |  perl -pe 's/.*(_bluearc|data)://;'`/$f"
    fi
-   eval "cmd='ifdh cp \"$src\"  \"$dest\"'"
+   eval "cmd='ifdh cp \"$src\"  \"$dest\" $extra'"
    echo "doing:"  $cmd
    eval $cmd
 done

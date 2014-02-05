@@ -36,6 +36,10 @@ std::string bestman_srm_uri = "srm://fg-bestman1.fnal.gov:10443/srm/v2/server?SF
 std::string bestman_ftp_uri = "gsiftp://fg-bestman1.fnal.gov:2811";
 std::string pnfs_srm_uri = "srm://fndca1.fnal.gov:8443/srm/managerv2?SFN=/pnfs/fnal.gov/usr/";
 std::string pnfs_gsiftp_uri = "gsiftp://fndca1.fnal.gov/";
+std::string pnfs_cdf_srm_uri = "srm://cdfdca1.fnal.gov:8443/srm/managerv2?SFN=/pnfs/fnal.gov/usr/";
+std::string pnfs_cdf_gsiftp_uri = "gsiftp://cdfdca1.fnal.gov/";
+std::string pnfs_d0_srm_uri = "srm://d0dca1.fnal.gov:8443/srm/managerv2?SFN=/pnfs/fnal.gov/usr/";
+std::string pnfs_d0_gsiftp_uri = "gsiftp://d0dca1.fnal.gov/";
 
 //
 // string constant for number of streams for gridftp, srmcp
@@ -307,6 +311,10 @@ std::string parent_dir(std::string path) {
    if (pos == path.length() - 1) {
        pos = path.rfind('/', pos - 1);
    }
+   // root of filesystem fix, return / for parent of /tmp ,etc.
+   if (0 == pos) { 
+      pos = 1;
+   }
    ifdh::_debug && cout << "parent of " << path << " is " << path.substr(0, pos ) << "\n";
    return path.substr(0, pos);
 }
@@ -392,11 +400,9 @@ ifdh::build_stage_list(std::vector<std::string> args, int curarg, char *stage_vi
    std::string stagefile("stage_");
    std::string ustring;
    std::string stage_location;
-   int status;
 
    // unique string for this stage out
    ustring = unique_string();
-   std::string mkdirstring("srmmkdir -2 ");
 
    // if we are told how to stage, use it, fall back to OSG_SITE_WRITE,
    //  or worst case, the bestman gateway.
@@ -418,19 +424,13 @@ ifdh::build_stage_list(std::vector<std::string> args, int curarg, char *stage_vi
 
    // make sure directory hierarchy is there..
    if (!have_stage_subdirs(base_uri + "/ifdh_stage")) {
-     
-       status = system( (mkdirstring +  base_uri + "/ifdh_stage >/dev/null 2>&1").c_str() );
-       if (WIFSIGNALED(status)) throw( std::logic_error("signalled while building copyback spool directories"));
-       status = system( (mkdirstring +  base_uri + "/ifdh_stage/queue >/dev/null 2>&1").c_str() );
-       if (WIFSIGNALED(status)) throw( std::logic_error("signalled while building copyback spool directories"));
-       status = system( (mkdirstring +  base_uri + "/ifdh_stage/lock >/dev/null 2>&1").c_str() );
-       if (WIFSIGNALED(status)) throw( std::logic_error("signalled while building copyback spool directories"));
-       status = system( (mkdirstring +  base_uri + "/ifdh_stage/data >/dev/null 2>&1").c_str() );
-       if (WIFSIGNALED(status)) throw( std::logic_error("signalled while building copyback spool directories"));
+       this->mkdir( base_uri + "/ifdh_stage", "");
+       this->mkdir( base_uri + "/ifdh_stage/queue" , "");
+       this->mkdir( base_uri + "/ifdh_stage/lock", "");
+       this->mkdir( base_uri + "/ifdh_stage/data", "");
    }
 
-   status = system( (mkdirstring +  base_uri + "/ifdh_stage/data/" + ustring + ">/dev/null 2>&1").c_str() );
-   if (WIFSIGNALED(status)) throw( std::logic_error("signalled while building copyback spool directories"));
+   this->mkdir( base_uri + "/ifdh_stage/data/" + ustring, "");
 
    // open our stageout queue file/copy back instructions
    fstream stageout(stagefile.c_str(), fstream::out);
@@ -480,11 +480,16 @@ check_grid_credentials() {
     FILE *pf = popen("voms-proxy-info -all 2>/dev/null", "r");
     bool found = false;
     std::string experiment(getexperiment());
+    
+    ifdh::_debug && std::cout << "check_grid_credentials:\n";
 
     while(fgets(buf,512,pf)) {
 	 std::string s(buf);
-	 if ( 0 == s.find("attribute ") && std::string::npos != s.find(experiment)) { 
+	 if ( 0 == s.find("attribute ") && std::string::npos != s.find("Role=") && std::string::npos == s.find("Role=NULL")) { 
 	     found = true;
+             if (std::string::npos ==  s.find(experiment)) {
+                 std::cerr << "Notice: Expected a certificate for " << experiment << " but found " << s ;
+             }
              ifdh::_debug && std::cout << "found: " << buf ;
 	 }
 	 // if it is expired, its like we don't have it...
@@ -495,6 +500,14 @@ check_grid_credentials() {
     }
     fclose(pf);
     return found;
+}
+
+//
+// check for kerberos credentials --  use klist -s
+// 
+bool
+have_kerberos_creds() {
+    return 0 == system("klist -5 -s || klist -s");
 }
 //
 // you call this if you need to do any kind of SRM or Gridftp
@@ -509,7 +522,7 @@ get_grid_credentials_if_needed() {
 
     ifdh::_debug && std::cout << "Checking for proxy cert...";
    
-    if (!check_grid_credentials()) {
+    if (!check_grid_credentials() && have_kerberos_creds()) {
         // if we don't have credentials, try our standard copy cache file
         proxyfileenv << "/tmp/x509up_cp" << getuid();
 	ifdh::_debug && std::cout << "no credentials, trying " << proxyfileenv.str() << "\n";
@@ -517,19 +530,30 @@ get_grid_credentials_if_needed() {
         ifdh::_debug && std::cout << "Now X509_USER_PROXY is: " << getenv("X509_USER_PROXY");
     }
 
-    if (!check_grid_credentials()) {
+    if (!check_grid_credentials() && have_kerberos_creds() ) {
         // if we still don't have credentials, try to get some from kx509
 	ifdh::_debug && std::cout << "trying to kx509/voms-proxy-init...\n " ;
 
         ifdh::_debug && system("echo X509_USER_PROXY is $X509_USER_PROXY");
 
-	cmd = "kx509 && voms-proxy-init -rfc -noregen -debug -voms ";
-	if (experiment != "lbne" && experiment != "dzero") {
+	cmd = "kx509 ";
+        if (ifdh::_debug) {
+            cmd += " >&2 ";
+        } else {
+            cmd += " >/dev/null 2>&1 ";
+        }
+        cmd += "&& voms-proxy-init -rfc -noregen -debug -voms ";
+	if (experiment != "lbne" && experiment != "dzero" && experiment != "cdf" ) {
 	   cmd += "fermilab:/fermilab/" + experiment + "/Role=Analysis";
 	} else {
-	   cmd += experiment + ":/" + experiment + "/Role=Analysis";
+	   cmd += experiment + ":/Role=Analysis";
 	}
-        cmd += " 2>/dev/null";
+        if (ifdh::_debug) {
+            cmd += " >&2";
+        } else {
+            cmd += " >/dev/null 2>&1";
+        }
+
 	ifdh::_debug && std::cout << "running: " << cmd << "\n";
 	system(cmd.c_str());
     }
@@ -599,23 +623,46 @@ use_passive() {
 string
 map_pnfs(string loc, int srmflag = 0) {
 
-            if (0L == loc.find("/pnfs/fnal.gov/usr/"))
-	        loc = loc.substr(19);
-            else if (0L == loc.find("/pnfs/usr/"))
-	        loc = loc.substr(10);
-            else if (0L == loc.find("/pnfs/fnal.gov/"))
-	        loc = loc.substr(15);
-            else
-	        loc = loc.substr(6);
-            if (srmflag) {
-               loc = pnfs_srm_uri + loc;
-            } else {
-                loc = loc.substr(loc.find("/",1)+1);
-	        loc = pnfs_gsiftp_uri + loc;
-            } 
-            ifdh::_debug && std::cout << "ending up with pnfs uri of " <<  loc << "\n";
+      bool cdfflag = false;
+      bool d0flag = false;
+      std::string srmuri, gsiftpuri;
+
+      if (0L == loc.find("/pnfs/fnal.gov/usr/")) {
+	  loc = loc.substr(19);
+      } else if (0L == loc.find("/pnfs/usr/")) {
+	  loc = loc.substr(10);
+      } else if (0L == loc.find("/pnfs/fnal.gov/")) {
+	  loc = loc.substr(15);
+      } else { // must have /pnfs/... to get here at all
+	  loc = loc.substr(6);
+      }
+
+      if (0L == loc.find("cdfen/")) 
+	    cdfflag = true;
+
+      if (0L == loc.find("d0en/")) 
+	    d0flag = true;
       
-            return loc;
+      if (cdfflag) {
+          srmuri = pnfs_cdf_srm_uri;
+          gsiftpuri = pnfs_cdf_gsiftp_uri;
+      } else if ( d0flag ) {
+          srmuri = pnfs_d0_srm_uri;
+          gsiftpuri = pnfs_d0_gsiftp_uri;
+      } else {
+          srmuri = pnfs_srm_uri;
+          gsiftpuri = pnfs_gsiftp_uri;
+      }
+
+      if (srmflag) {
+	 loc = srmuri + loc;
+      } else {
+	  loc = loc.substr(loc.find("/",1)+1);
+	  loc = gsiftpuri + loc;
+      } 
+
+      ifdh::_debug && std::cout << "ending up with pnfs uri of " <<  loc << "\n";
+      return loc;
 }
 int 
 ifdh::cp( std::vector<std::string> args ) {
@@ -695,10 +742,10 @@ ifdh::cp( std::vector<std::string> args ) {
 	   args[i] = cwd + "/" + args[i];
        }
        //
-       // for now, handle pnfs paths via gridftp
+       // for now, handle pnfs paths via gridftp, unless srm is specified
        // 
        if (0L == args[i].find("/pnfs/")) {
-            args[i] = map_pnfs(args[i]);
+            args[i] = map_pnfs(args[i],force[0]=='s');
        }
     }
 
@@ -1113,19 +1160,10 @@ ifdh::mv(vector<string> args) {
     return res;
 }
 
-vector<string>
-ifdh::ls(string loc, int recursion_depth, string force) {
-    vector<string> res;
-    /* XX this should be factored & shared with ifdh_cp... */
-    bool use_gridftp = false;
-    bool use_srm = false;
-    bool use_fs = false;
-    std::stringstream cmd;
-
-    if ( -1 == recursion_depth )
-        recursion_depth = 0;
-
+void
+pick_type( string &loc, string force, bool &use_fs, bool &use_gridftp, bool &use_srm) {
     if (force.find("--force=") == 0L) {
+        ifdh::_debug && std::cout << "force type: " << force[8] << "\n";
         switch(force[8]) {
         case 'e': case 'g': use_gridftp = true; break;
         case 's':           use_srm = true;     break;
@@ -1134,7 +1172,7 @@ ifdh::ls(string loc, int recursion_depth, string force) {
         }
     }
 
-    if (loc.find(':') > 2) {
+    if (loc.find(':') > 2 && loc.find(':') != string::npos) {
         if (loc.find("srm:") == 0) {
            use_srm = true;
         }
@@ -1145,7 +1183,22 @@ ifdh::ls(string loc, int recursion_depth, string force) {
            use_fs = true;
            loc = loc.substr(8);
         }
+    } else {
+        // no xyz: on front...
+        if ( loc.find("/pnfs") == 0 ) {
+            loc = map_pnfs(loc, use_srm);
+            use_gridftp = !use_srm;
+
+        } else if( use_gridftp )  {
+            loc = bestman_ftp_uri + loc;
+            ifdh::_debug && std::cout << "use_gridftp converting to: " << loc << "\n";
+        } else if( use_srm )  {
+            loc = bestman_srm_uri + loc;
+            ifdh::_debug && std::cout << "use_srm converting to: " << loc << "\n";
+        }
+
     }
+
     if (!(use_fs || use_gridftp || use_srm)) {
 
         // convert to absolute path
@@ -1157,7 +1210,7 @@ ifdh::ls(string loc, int recursion_depth, string force) {
         // if it's not visible, it's assumed to be either
         // dcache or bluearc...
         int r1 =  local_access(parent_dir(loc).c_str(), R_OK);
-        _debug && std::cout << "ifdh ls: local_access returns " << r1 <<"\n";
+        ifdh::_debug && std::cout << "ifdh ls: local_access returns " << r1 <<"\n";
         
         if (0 != r1 ) {
             use_srm = true;
@@ -1170,6 +1223,23 @@ ifdh::ls(string loc, int recursion_depth, string force) {
             use_fs = true;
         }
     }
+}
+
+vector<string>
+ifdh::ls(string loc, int recursion_depth, string force) {
+    vector<string> res;
+    /* XX this should be factored & shared with ifdh_cp... */
+    bool use_gridftp = false;
+    bool use_srm = false;
+    bool use_fs = false;
+    std::stringstream cmd;
+    std::string dir;
+
+    if ( -1 == recursion_depth )
+        recursion_depth = 0;
+
+    pick_type( loc, force, use_fs, use_gridftp, use_srm);
+
     if (use_srm || use_gridftp) {
         get_grid_credentials_if_needed();
     }
@@ -1187,6 +1257,7 @@ ifdh::ls(string loc, int recursion_depth, string force) {
            cmd << "-r ";
        }
        cmd << loc;
+       dir = loc.substr(loc.find("/",9));
     } else if (use_fs) {
        // find uses an off by one depth from srmls
        recursion_depth++;
@@ -1203,19 +1274,130 @@ ifdh::ls(string loc, int recursion_depth, string force) {
     while (!feof(pf) && !ferror(pf)) {
 	if (fgets(buf, 512, pf)) {
            string s(buf);
-           // trim leading stuff from srmls
-           size_t pos = s.find('/');
-           if (pos > 0 && pos != string::npos ) {
-               s = s.substr(pos);
-           }
+           _debug && std::cout << "before cleanup: |" << s <<  "|\n";
            // trim trailing newlines
            if ('\n' == s[s.size()-1]) {
                s = s.substr(0,s.size()-1);
            }
+           if ('\r' == s[s.size()-1]) {
+               s = s.substr(0,s.size()-1);
+           }
+           // trim leading stuff from srmls
+           if (use_srm) {
+	       size_t pos = s.find('/');
+	       if (pos > 0 && pos != string::npos ) {
+		   s = s.substr(pos);
+	       }
+               if (s == "")
+                   continue;
+           }
+           if (use_gridftp) {
+               // trim long listing bits, (8 columns) add slash if dir
+               size_t pos = 0;
+               for( int i = 0; i < 8; i++ ) {
+                   pos = s.find(" ",pos);
+                   pos = s.find_first_not_of(" ", pos);
+               }
+               if (s[0] == 'd') {
+                  s = s.substr(pos) + "/";
+                  ifdh::_debug && std::cout << "directory: " << s << "\n";
+               } else {
+                  s = s.substr(pos);
+               }
+               // only gridftp lists . and ..
+               if (s == "../" || s == "./" )
+                   continue;
+               s = dir + '/' + s;
+           } 
            res.push_back(s);
         }
     }
+    int status = pclose(pf);
+    if (WIFSIGNALED(status)) throw( std::logic_error("signalled while doing ls"));
+    if (WIFEXITED(status) && 0 != WEXITSTATUS(status)) throw( std::logic_error("ls failed."));
+ 
     return res;
 }
    
+int
+ifdh::mkdir(string loc, string force) {
+    bool use_gridftp = false;
+    bool use_srm = false;
+    bool use_fs = false;
+    std::stringstream cmd;
+
+    pick_type( loc, force, use_fs, use_gridftp, use_srm);
+
+    if (use_srm || use_gridftp) {
+        get_grid_credentials_if_needed();
+    }
+
+    if (use_fs)      cmd << "mkdir ";
+    if (use_gridftp) cmd << "uberftp -mkdir ";
+    if (use_srm)     cmd << "srmmkdir -2 ";
+
+    cmd << loc;
+
+    _debug && std::cout << "running: " << cmd.str();
+
+    int status = system(cmd.str().c_str());
+    if (WIFSIGNALED(status)) throw( std::logic_error("signalled while doing mkdir"));
+    if (WIFEXITED(status) && WEXITSTATUS(status) != 0) throw( std::logic_error("mkdir failed"));
+    return 0;
+}
+
+int
+ifdh::rm(string loc, string force) {
+    bool use_gridftp = false;
+    bool use_srm = false;
+    bool use_fs = false;
+    std::stringstream cmd;
+
+    pick_type( loc, force, use_fs, use_gridftp, use_srm);
+
+    if (use_srm || use_gridftp) {
+        get_grid_credentials_if_needed();
+    }
+
+    if (use_fs)      cmd << "rm ";
+    if (use_gridftp) cmd << "uberftp -rm ";
+    if (use_srm)     cmd << "srmrm -2 ";
+
+    cmd << loc;
+
+    _debug && std::cout << "running: " << cmd.str();
+
+    int status = system(cmd.str().c_str());
+    if (WIFSIGNALED(status)) throw( std::logic_error("signalled while doing rm"));
+    if (WIFEXITED(status) && WEXITSTATUS(status) != 0) throw( std::logic_error("rm failed"));
+    return 0;
+}
+
+int
+ifdh::rmdir(string loc, string force) {
+    bool use_gridftp = false;
+    bool use_srm = false;
+    bool use_fs = false;
+    std::stringstream cmd;
+
+    pick_type( loc, force, use_fs, use_gridftp, use_srm);
+
+    if (use_srm || use_gridftp) {
+        get_grid_credentials_if_needed();
+    }
+
+    if (use_fs)      cmd << "rmdir ";
+    if (use_gridftp) cmd << "uberftp -rmdir ";
+    if (use_srm)     cmd << "srmrmdir -2 ";
+
+    cmd << loc;
+
+    _debug && std::cout << "running: " << cmd.str();
+
+    int status = system(cmd.str().c_str());
+    if (WIFSIGNALED(status)) throw( std::logic_error("signalled while doing rmdir"));
+    if (WIFEXITED(status) && WEXITSTATUS(status) != 0) throw( std::logic_error("rmdir failed"));
+    return 0;
+}
+
 }

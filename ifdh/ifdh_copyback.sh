@@ -52,6 +52,12 @@ init() {
     IFDH_STAGE_VIA="${IFDH_STAGE_VIA:-$OSG_SITE_WRITE}"
     eval IFDH_STAGE_VIA=\""${IFDH_STAGE_VIA}"\"
 
+    case "$IFDH_STAGE_VIA" in
+    *=\>*) 
+        remap='case `hostname` in '`echo "$IFDH_STAGE_VIA" | sed -e 's/=>/)echo /g'`';; esac'
+        IFDH_STAGE_VIA=`eval "$remap"`
+    esac
+
     host=`hostname --fqdn`
     filelist=${TMPDIR:-/tmp}/filelist$$
     wprefix="${IFDH_STAGE_VIA}/${EXPERIMENT:-nova}/ifdh_stage"

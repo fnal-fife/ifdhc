@@ -15,8 +15,8 @@ int main(void)
     int i, j, k;
     int err;
 
-    const char *url = "http://dbweb0.fnal.gov:8088/ifbeam/data";
-//    const char *url = "http://dbweb3.fnal.gov:8080/ifbeam/data1";
+//    const char *url = "http://dbdata0.fnal.gov:8099/ifbeam/data";
+    const char *url = "http://dbweb4.fnal.gov:8088/ifbeam/data";
 
 
     Dataset ds;
@@ -26,14 +26,14 @@ int main(void)
     int len;
     int error;
     char ss[81920];
-    double dd[4096];
+    double dd[8192];
     
     setUserAgent("Test_ifbeam_1");                    // Set User-Agent header for HTTP request
     
     time_t t0 = time(NULL);
 //    ds = getBundleForInterval(url, "BNBShortTerm", t0-305, t0-300, &error);     // Get the data for bundle
 //    ds = getBundleForInterval(url, "Weather", t0-500, t0-300, &error);     // Get the data for bundle
-    ds = getBundleForInterval(url, "NuMI_Physics_1Hz", t0-320, t0-300, &error);     // Get the data for bundle
+    ds = getBundleForInterval(url, "NuMI_Physics_A9", t0-320, t0-300, &error);     // Get the data for bundle
      
     
     if (error) {																// Check for curl library errors
@@ -126,12 +126,12 @@ int main(void)
 
 //==============================================    
 
-	me = getMeasurement(ds, 0);
+	me = getMeasurement(ds, 1);
 	
 	if (me != NULL) {
 		fprintf(stderr, "clock=%ld\n", me->clock);
-		fprintf(stderr, "device=%s\n", me->device);
-		fprintf(stderr, "units=%s\n", me->units);
+		fprintf(stderr, "device='%s'\n", me->device);
+		fprintf(stderr, "units='%s'\n", me->units);
 		fprintf(stderr, "vector_size=%d\n", me->vector_size);
 		if (me->vector_size > 0) {
 			len = me->vector_size;
@@ -142,6 +142,7 @@ int main(void)
 		} else if (me->vector_size == 0) {
 			fprintf(stderr, "value=%f\n\n", me->value);
 		} else {
+	        fprintf(stderr, "Something is wrong with the measurement\n");
 	        perror("Something is wrong with the measurement");
 		}
     } else {

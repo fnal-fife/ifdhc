@@ -8,6 +8,8 @@
 #include <curl/curl.h>
 
 #include "ifbeam_c.h"
+
+#define IFB_RETRY_TIMEOUT 1200
 #define	MAX_VECTOR_SIZE	256
 
 #define MAX_UAGENT_SIZE 128
@@ -21,7 +23,7 @@ Dataset getBundleForTime(const char *url, const char *bundle, const double t, in
 
     snprintf(sbuf, sizeof (sbuf)-2, "%s/data?b=%s&t=%.3f&f=csv", url, bundle, t);
 
-    return getData(sbuf, g_uagent, error);
+    return getDataWithTimeout(sbuf, g_uagent, IFB_RETRY_TIMEOUT, error);
 }
 
 /*
@@ -33,7 +35,7 @@ Dataset getBundleForInterval(const char *url, const char *bundle, const double t
 
     snprintf(sbuf, sizeof (sbuf)-2, "%s/data?b=%s&t0=%.3f&t1=%.3f&f=csv", url, bundle, t0, t1);
 
-    return getData(sbuf, g_uagent, error);
+    return getDataWithTimeout(sbuf, g_uagent, IFB_RETRY_TIMEOUT, error);
 }
 
 
@@ -46,7 +48,7 @@ Dataset getEventVarForTime(const char *url, const char *event, const char *var, 
 
     snprintf(sbuf, sizeof (sbuf)-2, "%s/data?e=%s&v=%s&t=%.3f&f=csv", url, event, var, t);
 
-    return getData(sbuf, g_uagent, error);
+    return getDataWithTimeout(sbuf, g_uagent, IFB_RETRY_TIMEOUT, error);
 }
 
 
@@ -59,7 +61,7 @@ Dataset getEventVarForInterval(const char *url, const char *event, const char *v
 
     snprintf(sbuf, sizeof (sbuf)-2, "%s/data?e=%s&v=%s&t0=%.3f&t1=%.3f&f=csv", url, event, var, t0, t1);
 
-    return getData(sbuf, g_uagent, error);
+    return getDataWithTimeout(sbuf, g_uagent, IFB_RETRY_TIMEOUT, error);
 }
 
 /*

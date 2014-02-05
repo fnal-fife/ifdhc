@@ -38,3 +38,4 @@ distrib:
 	[ -d Linux* ] &&  tar czvf ifdhc.tar.gz Makefile Linux*/bin Linux*/lib/libifd* Linux*/lib/python inc/ifdh* inc/[uSW]* inc/num* util ifdh numsg tests ups || true
 	[ -d Linux* ] || tar czvf ifbeam.tar.gz Makefile ifbeam [uf]*/*.[ch]* [iuf]*/Makefile lib/libifb* inc/ifb* inc/[uwW]*  ups `test -r inc/IFBeam_service.h && echo inc/IFBeam_service.h lib/*Beam*`
 	[ -d Linux* ] &&  tar czvf ifbeam.tar.gz Makefile ifbeam [uf]*/*.[ch]* [iuf]*/Makefile Linux*/lib/libifb* inc/ifb* inc/[uwW]*  ups `test -r inc/IFBeam_service.h && echo inc/IFBeam_service.h Linux*/lib/*Beam*` || true
+

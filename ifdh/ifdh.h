@@ -100,7 +100,10 @@ class ifdh {
         int mv(std::vector<std::string> args);
 
         // Get a list of directory contents, or check existence of files
-        std::vector<std::string> ls( std::string loc, int recursion_depth, std::string force = "");
+        std::vector<std::string> ls( std::string loc, int recursion_depth, std::string force);
+        int mkdir(std::string loc, std::string force);
+        int rm(std::string loc, std::string force);
+        int rmdir(std::string loc, std::string force);
 };
 
 }

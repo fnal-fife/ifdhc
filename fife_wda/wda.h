@@ -31,10 +31,11 @@ void postHTTP(const char *url, const char *headers[], size_t nheaders, const cha
 void postHTTPsigned(const char *url, const char* password, const char *headers[], size_t nheaders, const char *data, size_t length, int *status);
 
 /*
- * Low level generic function which returns the whole dataset
+ * Low level generic functions which return the whole dataset
  */
 Dataset getData(const char *url, const char *uagent, int *error);
 
+Dataset getDataWithTimeout(const char *url, const char *uagent, int timeout, int *error);
 
 /*
  * Functions to work with the tuples in the dataset

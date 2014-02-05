@@ -49,7 +49,7 @@ class ifdh_lock_cases(unittest.TestCase):
     def start_copy(self, source="/dev/null"):
 
         if source == "/dev/null":
-            dest = "/dev/zero"
+            dest = "/grid/data/mengel/.empty"
         else:
             dest = "/dev/null"
 
@@ -59,7 +59,7 @@ class ifdh_lock_cases(unittest.TestCase):
     def get_lock_line(self):
         s = self.cp_p.readline()
         print "\nread line: ", s
-        while  s and (not ("LOCK -" in s) or ("already in progress" in s)):
+        while s != ""  and (not ("LOCK -" in s) or ("already in progress" in s)):
             s = self.cp_p.readline()
             print "\nread line: ", s
         return s
@@ -100,6 +100,7 @@ class ifdh_lock_cases(unittest.TestCase):
 
     def expect_lock_line(self,  what ):
         s = self.get_lock_line()
+        print "checking for '%s' in '%s'\n" % (what, s)
         self.assertTrue(what in s)
         return s
 
@@ -193,7 +194,7 @@ class ifdh_lock_cases(unittest.TestCase):
         print "found pid: ", pids
         print "trimmed pid: ", pids[7:14]
 
-        os.kill( int(pids[7:14]), 15)
+        os.kill( int(pids[7:14]), 9)
 
         time.sleep(1)
 

@@ -797,6 +797,7 @@ ifdh::cp( std::vector<std::string> args ) {
     bool use_cpn = true;
     bool use_dd = false;
     bool use_any_gridftp = false;
+    bool use_irods = false;
 
     char *stage_via = parse_ifdh_stage_via();
 
@@ -820,6 +821,11 @@ ifdh::cp( std::vector<std::string> args ) {
                 continue;
             }
 
+            if( args[i].find("i:") == 0)  { 
+               use_cpn = false; 
+               use_irods = true; 
+               break; 
+            }
             if( args[i].find("srm:") == 0)  { 
                use_cpn = false; 
                use_srm = true; 
@@ -870,6 +876,9 @@ ifdh::cp( std::vector<std::string> args ) {
 		break;
 	     }
 	 }
+     } else if (force[0] == 'i') {
+         use_cpn = false;
+         use_irods = true;
      } else if (force[0] == 'd') {
          use_cpn = false;
          use_dd = true;
@@ -895,7 +904,7 @@ ifdh::cp( std::vector<std::string> args ) {
 
      use_any_gridftp = use_any_gridftp || use_exp_gridftp || use_bst_gridftp;
 
-     if (use_any_gridftp || use_srm) {
+     if (use_any_gridftp || use_srm || use_irods ) {
 	get_grid_credentials_if_needed();
      }
 
@@ -952,7 +961,7 @@ ifdh::cp( std::vector<std::string> args ) {
      while( keep_going ) {
          stringstream cmd;
 
-         cmd << (use_dd ? "dd bs=512k " : use_cpn ? "cp "  : use_srm ? srm_copy_command  : use_any_gridftp ? "globus-url-copy -gridftp2 -nodcau -restart -stall-timeout 14400 " : "false" );
+         cmd << (use_dd ? "dd bs=512k " : use_cpn ? "cp "  : use_srm ? srm_copy_command  : use_any_gridftp ? "globus-url-copy -gridftp2 -nodcau -restart -stall-timeout 14400 " :  use_irods ? "icp " : "false" );
 
          if (use_any_gridftp) {
             if ( use_passive()) {
@@ -970,6 +979,9 @@ ifdh::cp( std::vector<std::string> args ) {
          }
          if (use_srm && getenv("IFDH_SRM_EXTRA")) {
             cmd << getenv("IFDH_SRM_EXTRA") << " ";
+         }
+         if (use_irods && getenv("IFDH_IRODS_EXTRA")) {
+            cmd << getenv("IFDH_IRODS_EXTRA") << " ";
          }
          if (use_any_gridftp && getenv("IFDH_GRIDFTP_EXTRA")) {
             cmd << getenv("IFDH_GRIDFTP_EXTRA") << " ";
@@ -1048,6 +1060,8 @@ ifdh::cp( std::vector<std::string> args ) {
                     cmd << args[curarg] << " ";
                 else
                     cmd << bestman_ftp_uri << args[curarg] << " ";
+            } else if ( use_irods) {
+	        cmd << args[curarg] << " ";
             }
             curarg++;
         }
@@ -1161,18 +1175,22 @@ ifdh::mv(vector<string> args) {
 }
 
 void
-pick_type( string &loc, string force, bool &use_fs, bool &use_gridftp, bool &use_srm) {
+pick_type( string &loc, string force, bool &use_fs, bool &use_gridftp, bool &use_srm, bool &use_irods) {
     if (force.find("--force=") == 0L) {
         ifdh::_debug && std::cout << "force type: " << force[8] << "\n";
         switch(force[8]) {
         case 'e': case 'g': use_gridftp = true; break;
         case 's':           use_srm = true;     break;
+        case 'i':           use_irods = true;     break;
         default:
         case 'c': case 'd': use_fs = true;      break;
         }
     }
 
     if (loc.find(':') > 2 && loc.find(':') != string::npos) {
+        if (loc.find("i:") == 0) {
+           use_irods = true;
+        }
         if (loc.find("srm:") == 0) {
            use_srm = true;
         }
@@ -1199,7 +1217,7 @@ pick_type( string &loc, string force, bool &use_fs, bool &use_gridftp, bool &use
 
     }
 
-    if (!(use_fs || use_gridftp || use_srm)) {
+    if (!(use_fs || use_gridftp || use_srm || use_irods)) {
 
         // convert to absolute path
         if (loc[0] != '/') {
@@ -1223,6 +1241,11 @@ pick_type( string &loc, string force, bool &use_fs, bool &use_gridftp, bool &use
             use_fs = true;
         }
     }
+    // not really part of picking, but everyone did it right afterwards,
+    // so just putting it in one place instead.
+    if (use_srm || use_gridftp || use_irods) {
+        get_grid_credentials_if_needed();
+    }
 }
 
 vector<string>
@@ -1232,17 +1255,15 @@ ifdh::ls(string loc, int recursion_depth, string force) {
     bool use_gridftp = false;
     bool use_srm = false;
     bool use_fs = false;
+    bool use_irods = false;
     std::stringstream cmd;
     std::string dir;
 
     if ( -1 == recursion_depth )
         recursion_depth = 0;
 
-    pick_type( loc, force, use_fs, use_gridftp, use_srm);
+    pick_type( loc, force, use_fs, use_gridftp, use_srm, use_irods);
 
-    if (use_srm || use_gridftp) {
-        get_grid_credentials_if_needed();
-    }
 
     if (use_srm) {
        setenv("SRM_JAVA_OPTIONS", "-Xmx2048m" ,0);
@@ -1251,6 +1272,13 @@ ifdh::ls(string loc, int recursion_depth, string force) {
            cmd << "--recursion_depth " << recursion_depth << " ";
        }
        cmd << loc;
+    } else if (use_irods) {
+       cmd << "ils  ";
+       if (recursion_depth > 1) {
+           cmd << "-r ";
+       }
+       cmd << loc;
+       dir = loc.substr(loc.find("/",4));
     } else if (use_gridftp) {
        cmd << "uberftp -ls ";
        if (recursion_depth > 1) {
@@ -1324,17 +1352,15 @@ ifdh::mkdir(string loc, string force) {
     bool use_gridftp = false;
     bool use_srm = false;
     bool use_fs = false;
+    bool use_irods = false;
     std::stringstream cmd;
 
-    pick_type( loc, force, use_fs, use_gridftp, use_srm);
-
-    if (use_srm || use_gridftp) {
-        get_grid_credentials_if_needed();
-    }
+    pick_type( loc, force, use_fs, use_gridftp, use_srm, use_irods);
 
     if (use_fs)      cmd << "mkdir ";
     if (use_gridftp) cmd << "uberftp -mkdir ";
     if (use_srm)     cmd << "srmmkdir -2 ";
+    if (use_irods)     cmd << "imkdir ";
 
     cmd << loc;
 
@@ -1351,17 +1377,15 @@ ifdh::rm(string loc, string force) {
     bool use_gridftp = false;
     bool use_srm = false;
     bool use_fs = false;
+    bool use_irods = false;
     std::stringstream cmd;
 
-    pick_type( loc, force, use_fs, use_gridftp, use_srm);
-
-    if (use_srm || use_gridftp) {
-        get_grid_credentials_if_needed();
-    }
+    pick_type( loc, force, use_fs, use_gridftp, use_srm, use_irods);
 
     if (use_fs)      cmd << "rm ";
     if (use_gridftp) cmd << "uberftp -rm ";
     if (use_srm)     cmd << "srmrm -2 ";
+    if (use_irods)   cmd << "irm ";
 
     cmd << loc;
 
@@ -1378,17 +1402,15 @@ ifdh::rmdir(string loc, string force) {
     bool use_gridftp = false;
     bool use_srm = false;
     bool use_fs = false;
+    bool use_irods = false;
     std::stringstream cmd;
 
-    pick_type( loc, force, use_fs, use_gridftp, use_srm);
-
-    if (use_srm || use_gridftp) {
-        get_grid_credentials_if_needed();
-    }
+    pick_type( loc, force, use_fs, use_gridftp, use_srm, use_irods);
 
     if (use_fs)      cmd << "rmdir ";
     if (use_gridftp) cmd << "uberftp -rmdir ";
     if (use_srm)     cmd << "srmrmdir -2 ";
+    if (use_irods)   cmd << "irm ";
 
     cmd << loc;
 

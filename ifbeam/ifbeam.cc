@@ -13,12 +13,40 @@
 #include <math.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include "../util/ifdh_version.h"
 
 namespace ifbeam_ns {
 
 int BeamFolder::_debug;
 
+static int
+round_down_to_nearest(int n, int modulus) {
+    if (n % modulus == 0) {
+       return n;
+    } else {
+       return n - n % modulus;
+    }
+}
+
+static int
+round_up_to_nearest(int n, int modulus) {
+    if (n % modulus == 0) {
+       return n;
+    } else {
+       return n - n % modulus + modulus;
+    }
+}
+
+
 BeamFolder::BeamFolder(std::string bundle_name, std::string url, double time_width) {
+    // round to "standardized" time_width for cacheability
+    if (time_width <= 600) {
+        time_width = round_up_to_nearest(time_width, 60);
+    } else if ( time_width <= 2700 ) {
+        time_width = round_up_to_nearest(time_width, 900);
+    } else {
+        time_width = round_up_to_nearest(time_width, 3600);
+    }
     _time_width = time_width;
     _bundle_name =  bundle_name;
     _url = url.length() > 0 ? url : "http://ifb-data.fnal.gov:8089/ifbeam";
@@ -31,6 +59,11 @@ BeamFolder::BeamFolder(std::string bundle_name, std::string url, double time_wid
     _values = 0;
     _cur_row = 0;
     _cur_row_num = -1;
+
+    // pass info about us down for UserAgent: string
+    std::stringstream uabuf;
+    uabuf << "ifdh/" << IFDH_VERSION << "/Experiment/ " << getexperiment();
+    setUserAgent( (char *) uabuf.str().c_str() );
 #endif
 }
 
@@ -46,6 +79,8 @@ BeamFolder::~BeamFolder() {
     ;
 #endif
 }
+
+
 void 
 BeamFolder::setValidWindow(double w) {
    _valid_window = w;
@@ -66,6 +101,14 @@ BeamFolder::FillCache(double when) throw(WebAPIException) {
         // we're already in the cache...
         return;
     }
+
+    // round to standard windows...
+    if (_time_width <= 600) 
+        when = round_down_to_nearest(when,60);
+    else if (_time_width <= 2700)
+        when = round_down_to_nearest(when,900);
+    else 
+        when = round_down_to_nearest(when,3600);
 
     // cache is flushed...
     _values.clear();
@@ -143,6 +186,15 @@ BeamFolder::slot_value(int n, int j) {
 void
 BeamFolder::FillCache(double when) throw(WebAPIException) {
     int err = 0;
+
+    // round to standard windows...
+    if (_time_width <= 600) 
+        when = round_down_to_nearest(when,60);
+    else if (_time_width <= 2700)
+        when = round_down_to_nearest(when,900);
+    else 
+        when = round_down_to_nearest(when,3600);
+
     time_t t0 = (time_t) when;
     time_t t1 = (time_t) (when + _time_width);
 
@@ -155,23 +207,13 @@ BeamFolder::FillCache(double when) throw(WebAPIException) {
         releaseDataset(_values);
     }
 
-    int status = -1;
-    int tries = 0;
-    long int delay;
 
-    srandom(getpid() * getppid());
+    //
+    // retries are now done in getBundleForInterval
+    //
+    _values = getBundleForInterval((_url + "/data").c_str(), _bundle_name.c_str(), t0, t1, &err);
 
-    while (status != 200 && tries < 9) {
-        _values = getBundleForInterval((_url + "/data").c_str(), _bundle_name.c_str(), t0, t1, &err);
-        status = getHTTPstatus(_values);
-        if ( status != 200 ) {
-            delay = random() % (5 * (1 << tries));
-            _debug && std::cout << "sleeping " << delay << " and retrying for status: " << status << " message: " << getHTTPmessage(_values) << "\n";
-            std::cerr << "sleeping " << delay << " and retrying for status: " << status << "\n";
-            sleep( delay );
-        }
-        tries++;
-    }
+    int status = getHTTPstatus(_values);
 
     if (status != 200) {
        char ebuf[80];
@@ -186,10 +228,9 @@ BeamFolder::FillCache(double when) throw(WebAPIException) {
 
     if (_n_values == 0 ) {
          std::stringstream tbuf; 
-         tbuf << when;
-         throw(WebAPIException("No data available for this time: ", tbuf.str() ));
+         tbuf << std::setw(9) << when << " url: " <<  _url;
+         throw(WebAPIException("No ifbeam data available for this time: ", tbuf.str() ));
     }
-
     
     // look for a values column, default to 3
     
@@ -558,19 +599,19 @@ main() {
     std::cout << std::setiosflags(std::ios::fixed);
  
   // test with someone who doesn't have any data, to check error timeouts
-  std::cout << "Trying a nonexistent location\n";
-  BeamFolder bfu("NuMI_Physics","http://bel-kwinith.fnal.gov/");
-  bfu.set_epsilon(.125);
-
-  try {
-    bfu.GetNamedData(nodatatime,"E:HP121@[1]",&ehmgpr,&t1);
-    std::cout << "got values " << ehmgpr <<  "for E:HP121[1]at time " << t1 << "\n";
-  } catch (WebAPIException &we) {
-       std::cout << "got exception:" << we.what() << "\n";
-  }
+ // std::cout << "Trying a nonexistent location\n";
+ // BeamFolder bfu("NuMI_Physics_A9","http://bel-kwinith.fnal.gov/");
+ // bfu.set_epsilon(.125);
+//
+ // try {
+  //  bfu.GetNamedData(nodatatime,"E:HP121@[1]",&ehmgpr,&t1);
+   // std::cout << "got values " << ehmgpr <<  "for E:HP121[1]at time " << t1 << "\n";
+ // } catch (WebAPIException &we) {
+  //     std::cout << "got exception:" << we.what() << "\n";
+  //}
 
   std::cout << "Trying the default location\n";
-  BeamFolder bf("NuMI_Physics");
+  BeamFolder bf("NuMI_Physics_A9");
   bf.set_epsilon(.125);
 
   try {
@@ -658,7 +699,7 @@ main() {
   std::vector<double> vals;
   int count = 0;
 
-  BeamFolderScanner bfs("DoNotDeleteList", 1334332800.4);
+  BeamFolderScanner bfs("NuMI_Physics_A9", 1334332800.4);
   while( bfs.NextDataRow( t, name, vals ) && count++ < 100 )  {
      
     std::cout << "got time "<< t << " name " << name << "values:" ;

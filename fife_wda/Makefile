@@ -25,7 +25,7 @@ $(LIB): $(OBJ) $(UTLOBJ)
 	ar qv $(LIB) $(OBJ) 
 
 wda_version.h: FORCE
-	echo '#define WDA_VERSION "'`git describe --tags --match 'wda*'`'"' >> $@
+	echo '#define WDA_VERSION "'`git describe --tags --match 'wda*'`'"' > $@
 
 FORCE:
 

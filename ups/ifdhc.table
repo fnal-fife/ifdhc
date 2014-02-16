@@ -5,7 +5,7 @@ Group:
 
   Flavor=ANY
   Qualifiers=python26
-  _fqdir=
+  _fq_subdir=
 
      Action=setupbuild
 
@@ -23,7 +23,7 @@ Group:
 
   Flavor=ANY
   Qualifiers=""
-  _fqdir=
+  _fq_subdir=
 
      Action=setupbuild
 

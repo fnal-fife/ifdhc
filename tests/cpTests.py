@@ -25,12 +25,14 @@ class ifdh_cp_cases(unittest.TestCase):
         f.close()
 
     def check_data_f1_f2(self, char="f"):
-        f = os.popen('srmls -2  "srm://fg-bestman1.fnal.gov:10443/srm/v2/server?SFN=%s" 2>&1' % self.data_dir, "r")
+        print "check_data"
+        print "=========="
         count = 0
-        for l in f.readlines():
-            if l.endswith("/%s1\n" % char) or l.endswith("/%s2\n" % char):
+        for l in self.ifdh_handle.ls(self.data_dir,1,''):
+            print l
+            if l.endswith("/%s1" % char) or l.endswith("/%s2" % char):
                 count = count + 1
-        f.close()
+        print "=========="
         return count > 1
 
     def clean_dest(self):
@@ -80,7 +82,7 @@ class ifdh_cp_cases(unittest.TestCase):
         line = f.readline()
         self.assertEqual(line,"\n")
 
-    def test_0_OuputFiles(self):
+    def test_0_OutputFiles(self):
         self.ifdh_handle.cleanup()
         self.ifdh_handle.addOutputFile('%s/a/f1' % self.work)
         self.ifdh_handle.addOutputFile('%s/a/f2' % self.work)
@@ -88,7 +90,7 @@ class ifdh_cp_cases(unittest.TestCase):
         self.ifdh_handle.cleanup()
         self.assertEqual(self.check_data_f1_f2(), True)
 
-    def test_0_OuputRenameFiles(self):
+    def test_0_OutputRenameFiles(self):
         self.ifdh_handle.cleanup()
         self.ifdh_handle.addOutputFile('%s/a/f1' % self.work)
         self.ifdh_handle.addOutputFile('%s/a/f2' % self.work)
@@ -96,22 +98,30 @@ class ifdh_cp_cases(unittest.TestCase):
         self.ifdh_handle.copyBackOutput(self.data_dir)
         self.ifdh_handle.cleanup()
 
-    def test_01_OuputRenameFiles(self):
+    def test_01_OutputRenameFiles(self):
         self.ifdh_handle.cleanup()
+        self.ifdh_handle.fetchInput('%s/a/f1' % self.work)
         self.ifdh_handle.addOutputFile('%s/a/f1' % self.work)
+        self.ifdh_handle.fetchInput('%s/a/f2' % self.work)
         self.ifdh_handle.addOutputFile('%s/a/f2' % self.work)
+        l1 = self.ifdh_handle.ls('%s/a' % self.work,1,"")
         self.ifdh_handle.renameOutput('s/f/g/')
+        l2 = self.ifdh_handle.ls('%s/a' % self.work,1,"")
         self.ifdh_handle.copyBackOutput(self.data_dir)
         self.ifdh_handle.cleanup()
+        self.assertEqual("%s/a/f1" % self.work in l1, True)
+        self.assertEqual("%s/a/g1" % self.work in l2, True)
+        self.assertEqual("%s/a/f2" % self.work in l1, True)
+        self.assertEqual("%s/a/g2" % self.work in l2, True)
 
-    def test_1_OuputFiles(self):
+    def test_1_OutputFiles(self):
         self.ifdh_handle.cleanup()
         self.ifdh_handle.addOutputFile('%s/a/f1' % self.work)
         self.ifdh_handle.addOutputFile('%s/a/f2' % self.work)
         self.ifdh_handle.copyBackOutput(self.work)
         self.ifdh_handle.cleanup()
 
-    def test_1_OuputRenameFiles(self):
+    def test_1_OutputRenameFiles(self):
         self.ifdh_handle.cleanup()
         self.ifdh_handle.addOutputFile('%s/a/f1' % self.work)
         self.ifdh_handle.addOutputFile('%s/a/f2' % self.work)
@@ -119,7 +129,7 @@ class ifdh_cp_cases(unittest.TestCase):
         self.ifdh_handle.copyBackOutput(self.work)
         self.ifdh_handle.cleanup()
 
-    def test_11_OuputRenameFiles(self):
+    def test_11_OutputRenameFiles(self):
         self.ifdh_handle.cleanup()
         self.ifdh_handle.addOutputFile('%s/a/f1' % self.work)
         self.ifdh_handle.addOutputFile('%s/a/f2' % self.work)

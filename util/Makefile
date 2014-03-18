@@ -15,8 +15,10 @@ all: $(GEN) $(OBJ) $(TST)
 clean:
 	rm -f $(OBJ) *.a
 
+# overwrite version.h with actual git version if git describe works
+# otherwise leave it (i.e. for exported code)
 ifdh_version.h: FORCE
-	echo '#define IFDH_VERSION "'`git describe --tags --match 'v*'`'"' > $@
+	echo '#define IFDH_VERSION "'`git describe --tags --match 'v*'`'"' > $@.new && mv $@.new $@ || true
 
 FORCE:
 

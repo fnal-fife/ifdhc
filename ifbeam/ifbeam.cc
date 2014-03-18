@@ -41,11 +41,11 @@ round_up_to_nearest(int n, int modulus) {
 BeamFolder::BeamFolder(std::string bundle_name, std::string url, double time_width) {
     // round to "standardized" time_width for cacheability
     if (time_width <= 600) {
-        time_width = round_up_to_nearest(time_width, 60);
+        time_width = round_up_to_nearest((int)time_width, 60);
     } else if ( time_width <= 2700 ) {
-        time_width = round_up_to_nearest(time_width, 900);
+        time_width = round_up_to_nearest((int)time_width, 900);
     } else {
-        time_width = round_up_to_nearest(time_width, 3600);
+        time_width = round_up_to_nearest((int)time_width, 3600);
     }
     _time_width = time_width;
     _bundle_name =  bundle_name;
@@ -104,11 +104,11 @@ BeamFolder::FillCache(double when) throw(WebAPIException) {
 
     // round to standard windows...
     if (_time_width <= 600) 
-        when = round_down_to_nearest(when,60);
+        when = round_down_to_nearest((int)when,60);
     else if (_time_width <= 2700)
-        when = round_down_to_nearest(when,900);
+        when = round_down_to_nearest((int)when,900);
     else 
-        when = round_down_to_nearest(when,3600);
+        when = round_down_to_nearest((int)when,3600);
 
     // cache is flushed...
     _values.clear();
@@ -189,11 +189,11 @@ BeamFolder::FillCache(double when) throw(WebAPIException) {
 
     // round to standard windows...
     if (_time_width <= 600) 
-        when = round_down_to_nearest(when,60);
+        when = round_down_to_nearest((int)when,60);
     else if (_time_width <= 2700)
-        when = round_down_to_nearest(when,900);
+        when = round_down_to_nearest((int)when,900);
     else 
-        when = round_down_to_nearest(when,3600);
+        when = round_down_to_nearest((int)when,3600);
 
     time_t t0 = (time_t) when;
     time_t t1 = (time_t) (when + _time_width);
@@ -226,7 +226,7 @@ BeamFolder::FillCache(double when) throw(WebAPIException) {
     _cache_end = when + _time_width;
     _n_values = getNtuples(_values) - 1;
 
-    if (_n_values == 0 ) {
+    if (_n_values <= 0 ) {
          std::stringstream tbuf; 
          tbuf << std::setw(9) << when << " url: " <<  _url;
          throw(WebAPIException("No ifbeam data available for this time: ", tbuf.str() ));
@@ -245,6 +245,9 @@ BeamFolder::FillCache(double when) throw(WebAPIException) {
             break;
         }
     }
+    // move _cache_end up to actual last time in buffer, so
+    // we move on to the next one if we hit it.
+    _cache_end = slot_time(_n_values-1);
 }
 
 Tuple

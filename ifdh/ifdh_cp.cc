@@ -678,6 +678,7 @@ ifdh::cp( std::vector<std::string> args ) {
     bool cleanup_stage = false;
     struct timeval time_before, time_after;
 
+
     if (_debug) {
          std::cout << "entering ifdh::cp( ";
          for( std::vector<std::string>::size_type i = 0; i < args.size(); i++ ) {
@@ -685,6 +686,8 @@ ifdh::cp( std::vector<std::string> args ) {
          }
     }
 
+    if (args.size() == 0)
+       return 0;
 
     if (getenv("IFDH_FORCE")) {
         force = getenv("IFDH_FORCE");
@@ -693,7 +696,7 @@ ifdh::cp( std::vector<std::string> args ) {
     //
     // parse arguments
     //
-    while (args[curarg][0] == '-') {
+    while (curarg < args.size() && args[curarg][0] == '-') {
 
         //
         // first any --long args

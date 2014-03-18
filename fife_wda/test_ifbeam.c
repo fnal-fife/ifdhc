@@ -44,9 +44,11 @@ int main(void)
 	}
 
 
+    fprintf(stderr, "#######Bundle for interval...\n");
     fprintf(stderr, "\nntuples=%d\n\n", getNtuples(ds));// Get the number of rows in the dataset
-# if 0   
-    for (i = 0; i < getNtuples(ds); i++) {
+# if 0
+//    for (i = 0; i < getNtuples(ds); i++) {
+    for (i = 0; i < 15; i++) {
 		tu = getTuple(ds, i);   	                          	// Returns NULL if out of range
 		len = getStringValue(tu, 0, ss, sizeof (ss), &err);   	// Returns string length
         fprintf(stderr, "[%d]: l=%d, s='%s'", i, len, ss);  	// Print the results
@@ -56,6 +58,7 @@ int main(void)
 # endif   
 //==============================================    
     
+    fprintf(stderr, "#######The first tuple...\n");
 //  tu = getTuple(ds, 1);                               // Returns NULL if out of range
     tu = getFirstTuple(ds);                             // Get the very first row - contains the column names
     // If we get the names print them
@@ -69,12 +72,12 @@ int main(void)
         }
         fprintf(stderr, "e=%s\n\n", strerror(err));                 // Was it OK?
     } 
-//    releaseTuple(tu);                                   // Do not forget to release the structure if you do not need it
 
 
 
 //==============================================    
 
+    fprintf(stderr, "#######The next tuple...\n");
     tu = getNextTuple(ds);                              // Get the next row, it contains the first data value in the dataset
 
     if (tu != NULL) {                                               // If everything is OK
@@ -91,25 +94,34 @@ int main(void)
     } else {
         fprintf(stderr, "No such tuple"); perror("...");
     }
-//    releaseTuple(tu);                                   // Do not forget to release the structure if you do not need it
     
     
     
 //==============================================    
     
-    tu = getTuple(ds, 1);                              // Get the row with double array 
+    fprintf(stderr, "#######The 5-th tuple, should be array...\n");
+    tu = getTuple(ds, 5);                              				// Get the row with double array 
 
     if (tu != NULL) {                                               // If everything is OK
         int nc = getNfields(tu);                                    // Get the number of columns in this row
+        for (i = 0; i < nc; i++) {                                  // Loop to get column data as a string
+            len = getStringValue(tu, i, ss, sizeof (ss), &err);     // Returns string length
+            fprintf(stderr, "[%d]: l=%d, s='%.25s'\n", i, len, ss); // Print the results
+        }
+        fprintf(stderr, "e=%s\n\n", strerror(err));                 // Was it OK?
+        
+        len = getStringValue(tu, 1, ss, sizeof (ss), &err);
+        fprintf(stderr, "name='%s'\n", ss); 
         fprintf(stderr, "ncols=%d\n", nc);
         
         // Get the first double
-        fprintf(stderr, "[3]: v=%f\n", getDoubleValue(tu, 3, &err));// Now extract the double value from the 3-rd column 
+        // Now extract the double value from the 3-rd column 
+        fprintf(stderr, "[3]: fval=%f\n", getDoubleValue(tu, 3, &err));
         fprintf(stderr, "e=%s\n\n", strerror(err));                 // Was it OK?
 
         // Get double array
         len = getDoubleArray(tu, 3, dd, 4096, &err);                // Now extract the double array from the 3-rd column
-        fprintf(stderr, "len=%d\n", len);                           // Print the length
+        fprintf(stderr, "Array len=%d\n", len);                     // Print the length
 
         for (i = 0; i < len; i++) {                                 // Print the results
             fprintf(stderr, "%f, ", dd[i]);
@@ -120,12 +132,12 @@ int main(void)
     } else {
         fprintf(stderr, "No such tuple"); perror("...");
     }
-//    releaseTuple(tu);                                               // Do not forget to release the structure if you do not need it
 
 
 
 //==============================================    
-
+# if 1
+    fprintf(stderr, "#######The first Measurement...\n");
 	me = getMeasurement(ds, 1);
 	
 	if (me != NULL) {
@@ -146,18 +158,21 @@ int main(void)
 	        perror("Something is wrong with the measurement");
 		}
     } else {
-//        fprintf(stderr, "No such measurement\n");
+        fprintf(stderr, "No such measurement\n");
         perror("No such measurement");
     }
-//	releaseMeasurement(me);
+    
+# endif    
 
+    fprintf(stderr, "#######Release dataset...\n");
     releaseDataset(ds);                                             // Release dataset to prevent memory leak!
 
 
 
-
+# if 1
 //==============================================    
 
+    fprintf(stderr, "\n\n\n#######Event for interval...\n");
     ds = getEventVarForInterval(url, "e,8f", "E:HMGPR", t0-305, t0-300, &error);     // Get the data for the variable in event
 //  ds = getEventVarForTime    (url, "e,8f", "E:HMGPR", t0-305,         &error);     // Get the data for the variable in event
     fprintf(stderr, "\nntuples=%d\n\n", getNtuples(ds));	// Get the number of rows in the dataset
@@ -200,6 +215,8 @@ int main(void)
 
     
     releaseDataset(ds);                                             // Release dataset to prevent memory leak!
+# endif    
+    
     return 0;
 }
 

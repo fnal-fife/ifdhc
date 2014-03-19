@@ -139,7 +139,7 @@ ifdh::fetchInput( string src_uri ) {
 
     std::vector<std::string> args;
 
-    if (0 == src_uri.find("xrootd:")) {
+    if (0 == src_uri.find("xrootd:") || 0 == src_uri.find("root:")) {
         // we don't do anything for xrootd, just pass
         // it back, and let the application layer open
         // it that way.
@@ -557,7 +557,7 @@ ifdh::renameOutput(std::string how) {
                 << "$pair[1] =~ " << how << ";"
                 << "rename(\"$dir/$pair[0]\", \"$dir/$pair[1]\");"
                 << "print STDERR \"renaming $dir/$pair[0] to $dir/$pair[1]\\n\";"
-                << "s{.*}{$dir/$pair[1] $dir/$pair[0]};"
+                << "s{.*}{$dir/$pair[1] $dir/$pair[1]};"
                 << "print STDERR \"result line: $_\";"
                 << "' " << outfiles_name;
         

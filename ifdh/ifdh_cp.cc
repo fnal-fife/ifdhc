@@ -1118,6 +1118,9 @@ ifdh::cp( std::vector<std::string> args ) {
         if (WIFSIGNALED(res)) throw( std::logic_error("signalled while running copyback"));
     }
 
+    // only report statistics if the copy succeeded!
+    if (rres == 0) {
+
     long int copysize;
     stringstream logmessage;
     // if we didn't get numbers from getrusage, try the sums of
@@ -1139,6 +1142,8 @@ ifdh::cp( std::vector<std::string> args ) {
     logmessage << "ifdh cp: transferred: " <<  copysize << " bytes in " <<  fdelta_t << " seconds \n";
     _debug && cerr << logmessage.str();
     this->log(logmessage.str());
+
+    }
 
    
     if (need_cpn_lock) {

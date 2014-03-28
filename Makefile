@@ -1,5 +1,5 @@
 
-SUBDIRS= util fife_wda numsg nucondb ifbeam ifdh
+SUBDIRS= util numsg ifdh
 
 all: 
 	for d in $(SUBDIRS); do ([ -d $$d ] && cd $$d && make $@); done

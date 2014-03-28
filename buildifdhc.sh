@@ -39,6 +39,6 @@ do
    cp $d/Makefile build/$d/Makefile
 done
 
-(cd build && make -f ../Makefile DESTDIR=../$fqdir all install-libs)
+(cd build && make -f ../Makefile DESTDIR=../$fqdir/ all install-libs)
 
 make install-headers

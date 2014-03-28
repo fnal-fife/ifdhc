@@ -30,12 +30,15 @@ export PYTHON_CONF=`echo $PYTHON_LIB/python*/config`
 fqdir="`ups flavor -4`-$qualdir"
 fqdir="`echo $fqdir | sed -e 's/[^A-Za-z0-9]/-/g'`" 
 
-for d in ifbeam ifdh nucondb numsg ups util fife_wda
+rm -rf build
+mkdir build
+mkdir $fqdir
+for d in util numsg ifdh
 do
-   mkdir -p $fqdir/$d
-   cp $d/Makefile $fqdir/$d/Makefile
+   mkdir -p build/$d
+   cp $d/Makefile build/$d/Makefile
 done
 
-(cd $fqdir && make -f ../Makefile all install-libs)
+(cd build && make -f ../Makefile DESTDIR=../$fqdir all install-libs)
 
 make install-headers

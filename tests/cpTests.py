@@ -36,9 +36,9 @@ class ifdh_cp_cases(unittest.TestCase):
         return count > 1
 
     def clean_dest(self):
-        os.system('test -d %s && rm -f %s/test.txt || srmrm -2 "srm://fg-bestman1.fnal.gov:10443/srm/v2/server?SFN=%s/test.txt" > /dev/null 2>&1' % self.data_dir)
-        os.system('test -d %s && rm -f %s/f1 || srmrm -2 "srm://fg-bestman1.fnal.gov:10443/srm/v2/server?SFN=%s/f1" > /dev/null 2>&1' % self.data_dir)
-        os.system('test -d %s && rm -f %s/f2 ||  srmrm -2 "srm://fg-bestman1.fnal.gov:10443/srm/v2/server?SFN=%s/f2" > /dev/null 2>&1' % self.data_dir)
+        os.system('test -d %s && rm -f %s/test.txt || srmrm -2 "srm://fg-bestman1.fnal.gov:10443/srm/v2/server?SFN=%s/test.txt" > /dev/null 2>&1' % (self.data_dir,self.data_dir,self.data_dir))
+        os.system('test -d %s && rm -f %s/f1 || srmrm -2 "srm://fg-bestman1.fnal.gov:10443/srm/v2/server?SFN=%s/f1" > /dev/null 2>&1' % (self.data_dir,self.data_dir,self.data_dir))
+        os.system('test -d %s && rm -f %s/f2 ||  srmrm -2 "srm://fg-bestman1.fnal.gov:10443/srm/v2/server?SFN=%s/f2" > /dev/null 2>&1' % (self.data_dir,self.data_dir,self.data_dir))
 
     def make_test_txt(self):
         self.clean_dest();
@@ -405,6 +405,36 @@ class ifdh_cp_cases(unittest.TestCase):
 
     def test_pnfs_ls_srm(self):
          list = self.ifdh_handle.ls('/pnfs/nova/scratch', 1, "--force=srm")
+         self.assertEqual(len(list) > 0, True)
+
+    def test_pnfs_mkdir_add(self):
+         dir = '/pnfs/nova/scratch/users/%s/%d' % (os.environ['USER'], os.getpid())
+         self.ifdh_handle.mkdir(dir,'')
+         self.ifdh_handle.cp( ['-D','%s/a/f1' % self.work, dir])
+         list = self.ifdh_handle.ls(dir + '/f1' , 1, "")
+         print "list is:", list
+         self.ifdh_handle.rm(dir + '/f1','')
+         self.ifdh_handle.rmdir(dir,'')
+         self.assertEqual(len(list) > 0, True)
+
+    def test_expgridftp_mkdir_add(self):
+         dir = '/grid/data/%s/%d' % (os.environ['USER'], os.getpid())
+         self.ifdh_handle.mkdir(dir, '--force=expgridftp')
+         self.ifdh_handle.cp( ['--force=expgridftp', '-D','%s/a/f1' % self.work, dir])
+         list = self.ifdh_handle.ls(dir + '/f1' , 1, "")
+         print "list is:", list
+         self.ifdh_handle.rm(dir + '/f1','--force=expgridftp')
+         self.ifdh_handle.rmdir(dir,'--force=expgridftp')
+         self.assertEqual(len(list) > 0, True)
+
+    def test_bestman_mkdir_add(self):
+         dir = '/grid/data/%s/%d' % (os.environ['USER'], os.getpid())
+         self.ifdh_handle.mkdir(dir, '--force=gridftp')
+         self.ifdh_handle.cp( ['--force=gridftp', '-D','%s/a/f1' % self.work, dir])
+         list = self.ifdh_handle.ls(dir + '/f1' , 1, "")
+         print "list is:", list
+         self.ifdh_handle.rm(dir + '/f1','--force=gridftp')
+         self.ifdh_handle.rmdir(dir,'--force=gridftp')
          self.assertEqual(len(list) > 0, True)
 
 def suite():

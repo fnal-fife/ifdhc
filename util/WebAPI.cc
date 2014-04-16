@@ -349,7 +349,7 @@ WebAPI::WebAPI(std::string url, int postflag, std::string postdata) throw(WebAPI
          }
      }
 
-     if (_status != 200 and _status != 204) {
+     if (_status <  200 || _status >  209) {
         std::stringstream message;
         message << "\nHTTP-Status: " << _status << "\n";
         message << "Error text is:\n";

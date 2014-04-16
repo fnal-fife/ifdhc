@@ -109,6 +109,10 @@ class SAMCases(unittest.TestCase):
         self.ifdh_handle.endProject(cpurl)
         SAMCases.curproject = None
 
+    def test_9_cleanup(self):
+        cpurl = self.ifdh_handle.cleanup()
+        SAMCases.curproject = None
+
 
 if __name__ == '__main__':
     unittest.main()

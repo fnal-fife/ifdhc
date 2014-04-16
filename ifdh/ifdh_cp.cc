@@ -26,6 +26,8 @@
 #include <unistd.h>
 #include <wait.h>
 #include <linux/nfs_fs.h>
+#include <ifaddrs.h>
+
 
 
 using namespace std;
@@ -187,8 +189,31 @@ public:
     lock() {
 	char buf[512];
 	FILE *pf;
+        int onsite = 0;
         int parent_pid;
         int status;
+        struct ifaddrs *ifap, *ifscan;
+
+        // check if we're onsite -- don't get locks if not 
+        // Just check for 131.225.* or 2620:6a:0:*
+        
+        if (0 == getifaddrs(&ifap)) {
+           ifdh::_debug && cerr << "Got addrs...\n";
+           for( ifscan = ifap; ifscan ; ifscan = ifscan->ifa_next) {
+               if( ifscan->ifa_addr->sa_family == AF_INET && ifscan->ifa_addr->sa_data[2] == (char)131  && ifscan->ifa_addr->sa_data[3] == (char)225) {
+                   ifdh::_debug && cerr << "Saw ipv4 for Fermilab: onsite\n";
+                   onsite = 1;
+               }
+               if( ifscan->ifa_addr->sa_family == AF_INET6 && ifscan->ifa_addr->sa_data[6] == 0x26  && ifscan->ifa_addr->sa_data[7] == 0x20 && ifscan->ifa_addr->sa_data[8] == 0x0 && ifscan->ifa_addr->sa_data[9] == 0x6a && ifscan->ifa_addr->sa_data[10] == 0x0 && ifscan->ifa_addr->sa_data[11] == 0x0 ) {
+                   ifdh::_debug && cerr << "Saw ipv6 for Fermilab: onsite\n";
+                   onsite = 1;
+               }
+           }
+           freeifaddrs(ifap);
+           if (!onsite) {
+              return;
+           }
+        }
 
         if (!getenv("CPN_DIR") || 0 != access(getenv("CPN_DIR"),R_OK)) {
             return;
@@ -1212,11 +1237,19 @@ pick_type( string &loc, string force, bool &use_fs, bool &use_gridftp, bool &use
     } else {
         // no xyz: on front...
         if ( loc.find("/pnfs") == 0 ) {
+            //use_gridftp = !use_srm;
+            use_srm = !use_gridftp;
             loc = map_pnfs(loc, use_srm);
-            use_gridftp = !use_srm;
 
         } else if( use_gridftp )  {
-            loc = bestman_ftp_uri + loc;
+            if (force.find("--force=") == 0L && force[8] == 'e') {
+                std::string gftpHost("gsiftp://if-gridftp-");
+                gftpHost.append(getexperiment());
+                gftpHost.append(".fnal.gov");
+                loc = gftpHost + loc;
+            } else {
+                loc = bestman_ftp_uri + loc;
+            }
             ifdh::_debug && std::cout << "use_gridftp converting to: " << loc << "\n";
         } else if( use_srm )  {
             loc = bestman_srm_uri + loc;

@@ -11,7 +11,7 @@ minervagpvm02*)
    export PYTHON_DIR
    DECLAREBITS="-4 -q python26"
    ;;
-novagpvm03*|fermicloud065*)
+novagpvm03*|fermicloud323*)
    export ARCH=-m32
    DECLAREBITS="-f `ups flavor | sed -e 's/64bit//'`"
    ;;

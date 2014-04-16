@@ -1,4 +1,4 @@
-hostlist="minervagpvm02 novagpvm02 novagpvm03 fermicloud050 fermicloud065 "
+hostlist="minervagpvm02 novagpvm02 novagpvm03 fermicloud050 fermicloud323 "
 
 cat <<'EOF'
 Build bits:
@@ -7,10 +7,15 @@ Build bits:
 mkdir /tmp/$USER$$
 cd /tmp/$USER$$
 setup git
+git clone ssh://p-ifdhc@cdcvs.fnal.gov/cvs/projects/ifdhc-libwda
 git clone ssh://p-ifdhc@cdcvs.fnal.gov/cvs/projects/ifdhc/ifdhc.git
-cd ifdhc
-. ups/build_node_setup.sh
-make all install
+git clone ssh://p-ifdhc@cdcvs.fnal.gov/cvs/projects/ifdhc-ifbeam
+git clone ssh://p-ifdhc@cdcvs.fnal.gov/cvs/projects/ifdhc-nucondb
+. ifdhc/ups/build_node_setup.sh
+(cd ifdhc && make all install)
+(cd ifdhc-libwda/src && make all install)
+(cd ifdhc-ifbeam/src && make all install)
+(cd ifdhc-nucondb/src && make all install)
 setup -. ifdhc
 python <<XXXX
 import ifdh

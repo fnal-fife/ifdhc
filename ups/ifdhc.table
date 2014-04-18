@@ -49,7 +49,7 @@ Group:
     _fq_subdir=/Linux-2-6-2-12-e5-debug
 
     Action=setupbuild
-       setupRequired( gcc v4_8_1 )
+       setupRequired( gcc v4_8_2 )
        setupRequired( python v2_7_5c )
 
   Flavor=Linux+2.6-2.5
@@ -57,7 +57,7 @@ Group:
     _fq_subdir=/Linux-2-6-2-5-e5-debug
 
     Action=setupbuild
-       setupRequired( gcc v4_8_1 )
+       setupRequired( gcc v4_8_2 )
        setupRequired( python v2_7_5c )
 
   Flavor=Linux64bit+2.6-2.12
@@ -65,7 +65,7 @@ Group:
     _fq_subdir=/Linux64bit-2-6-2-12-e5-debug
 
     Action=setupbuild
-       setupRequired( gcc v4_8_1 )
+       setupRequired( gcc v4_8_2 )
        setupRequired( python v2_7_5c )
 
   Flavor=Linux64bit+2.6-2.5
@@ -73,7 +73,7 @@ Group:
     _fq_subdir=/Linux64bit-2-6-2-5-e5-debug
 
     Action=setupbuild
-       setupRequired( gcc v4_8_1 )
+       setupRequired( gcc v4_8_2 )
        setupRequired( python v2_7_5c )
 
   Flavor=Linux+2.6-2.12
@@ -81,7 +81,7 @@ Group:
     _fq_subdir=/Linux-2-6-2-12-e5-prof
 
     Action=setupbuild
-       setupRequired( gcc v4_8_1 )
+       setupRequired( gcc v4_8_2 )
        setupRequired( python v2_7_5c )
 
   Flavor=Linux+2.6-2.5
@@ -89,7 +89,7 @@ Group:
     _fq_subdir=/Linux-2-6-2-5-e5-prof
 
     Action=setupbuild
-       setupRequired( gcc v4_8_1 )
+       setupRequired( gcc v4_8_2 )
        setupRequired( python v2_7_5c )
 
   Flavor=Linux64bit+2.6-2.12
@@ -97,7 +97,7 @@ Group:
     _fq_subdir=/Linux64bit-2-6-2-12-e5-prof
 
     Action=setupbuild
-       setupRequired( gcc v4_8_1 )
+       setupRequired( gcc v4_8_2 )
        setupRequired( python v2_7_5c )
 
   Flavor=Linux64bit+2.6-2.5
@@ -105,7 +105,7 @@ Group:
     _fq_subdir=/Linux64bit-2-6-2-5-e5-prof
 
     Action=setupbuild
-       setupRequired( gcc v4_8_1 )
+       setupRequired( gcc v4_8_2 )
        setupRequired( python v2_7_5c )
 
   Flavor=Linux+2.6-2.12
@@ -113,7 +113,7 @@ Group:
     _fq_subdir=/Linux-2-6-2-12-e5-debug
 
     Action=setupbuild
-       setupRequired( gcc v4_8_1 )
+       setupRequired( gcc v4_8_2 )
        setupRequired( python v2_7_5c )
 
   Flavor=Linux+2.6-2.5
@@ -121,7 +121,7 @@ Group:
     _fq_subdir=/Linux-2-6-2-5-e5-debug
 
     Action=setupbuild
-       setupRequired( gcc v4_8_1 )
+       setupRequired( gcc v4_8_2 )
        setupRequired( python v2_7_5c )
 
   Flavor=Linux64bit+2.6-2.12
@@ -129,7 +129,7 @@ Group:
     _fq_subdir=/Linux64bit-2-6-2-12-e5-debug
 
     Action=setupbuild
-       setupRequired( gcc v4_8_1 )
+       setupRequired( gcc v4_8_2 )
        setupRequired( python v2_7_5c )
 
   Flavor=Linux64bit+2.6-2.5
@@ -137,7 +137,7 @@ Group:
     _fq_subdir=/Linux64bit-2-6-2-5-e5-debug
 
     Action=setupbuild
-       setupRequired( gcc v4_8_1 )
+       setupRequired( gcc v4_8_2 )
        setupRequired( python v2_7_5c )
 
   Flavor=Linux+2.6-2.12
@@ -145,7 +145,7 @@ Group:
     _fq_subdir=/Linux-2-6-2-12-e5-prof
 
     Action=setupbuild
-       setupRequired( gcc v4_8_1 )
+       setupRequired( gcc v4_8_2 )
        setupRequired( python v2_7_5c )
 
   Flavor=Linux+2.6-2.5
@@ -153,7 +153,7 @@ Group:
     _fq_subdir=/Linux-2-6-2-5-e5-prof
 
     Action=setupbuild
-       setupRequired( gcc v4_8_1 )
+       setupRequired( gcc v4_8_2 )
        setupRequired( python v2_7_5c )
 
   Flavor=Linux64bit+2.6-2.12
@@ -161,7 +161,7 @@ Group:
     _fq_subdir=/Linux64bit-2-6-2-12-e5-prof
 
     Action=setupbuild
-       setupRequired( gcc v4_8_1 )
+       setupRequired( gcc v4_8_2 )
        setupRequired( python v2_7_5c )
 
   Flavor=Linux64bit+2.6-2.5
@@ -169,7 +169,7 @@ Group:
     _fq_subdir=/Linux64bit-2-6-2-5-e5-prof
 
     Action=setupbuild
-       setupRequired( gcc v4_8_1 )
+       setupRequired( gcc v4_8_2 )
        setupRequired( python v2_7_5c )
 
   Flavor=Linux+2.6-2.12
@@ -313,6 +313,7 @@ Common:
     PathPrepend(PATH           ,${UPS_PROD_DIR}${_fq_subdir}/bin)
     PathPrepend(PYTHONPATH     , ${UPS_PROD_DIR}${_fq_subdir}/lib/python)
     PathPrepend(LD_LIBRARY_PATH, ${UPS_PROD_DIR}${_fq_subdir}/lib)
+    ExeActionOptional(setupbuild)
     SetupOptional(cpn)
 
 End:

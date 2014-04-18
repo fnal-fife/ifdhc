@@ -46,7 +46,6 @@ std::string pnfs_d0_gsiftp_uri = "gsiftp://d0dca1.fnal.gov/";
 //
 // string constant for number of streams for gridftp, srmcp
 // 
-#define NSTREAMS "4"
 
 
 int
@@ -496,8 +495,7 @@ ifdh::build_stage_list(std::vector<std::string> args, int curarg, char *stage_vi
    return res;
 }
 
-const char *srm_copy_command = "lcg-cp  --sendreceive-timeout 4000 -b -D srmv2  -n " NSTREAMS " ";
-
+const char *srm_copy_command = "lcg-cp  --sendreceive-timeout 4000 -b -D srmv2 ";
 
 bool 
 check_grid_credentials() {

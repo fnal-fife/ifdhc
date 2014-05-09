@@ -113,6 +113,16 @@ class SAMCases(unittest.TestCase):
         cpurl = self.ifdh_handle.cleanup()
         SAMCases.curproject = None
 
+    def test_a_release_wrong_file(self):
+        self.test_4_startproject()
+        self.test_5_startclient()
+        time.sleep(1)
+        cpurl = self.ifdh_handle.findProject(SAMCases.curproject,'')
+        uri = self.ifdh_handle.getNextFile(cpurl, SAMCases.curconsumer)
+        self.ifdh_handle.updateFileStatus(cpurl, SAMCases.curconsumer, "wrongfile", 'consumed')
+        self.test_8_endProject()
+        self.test_9_cleanup()
+
 
 if __name__ == '__main__':
     unittest.main()

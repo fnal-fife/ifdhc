@@ -932,10 +932,6 @@ ifdh::cp( std::vector<std::string> args ) {
 
      use_any_gridftp = use_any_gridftp || use_exp_gridftp || use_bst_gridftp;
 
-     if (use_any_gridftp || use_srm || use_irods ) {
-	get_grid_credentials_if_needed();
-     }
-
      if (recursive && (use_srm || use_dd )) { 
         throw( std::logic_error("invalid use of -r with --force=srm or --force=dd"));
      }
@@ -977,6 +973,10 @@ ifdh::cp( std::vector<std::string> args ) {
 
      if (need_cpn_lock) {
          cpn.lock();
+     }
+
+     if (use_any_gridftp || use_srm || use_irods ) {
+	get_grid_credentials_if_needed();
      }
 
      gettimeofday(&time_before, 0);

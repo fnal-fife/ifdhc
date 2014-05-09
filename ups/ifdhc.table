@@ -31,13 +31,13 @@ Group:
   # had to add these to make upd happy . sigh.
 
   Flavor=ANY
-  Qualifiers=e2:debug
+  Qualifiers=e5:debug
 
   Flavor=ANY
   Qualifiers=e4:debug
 
   Flavor=ANY
-  Qualifiers=e2:prof
+  Qualifiers=e5:prof
 
   Flavor=ANY
   Qualifiers=e4:prof
@@ -45,132 +45,132 @@ Group:
   #============
 
   Flavor=Linux+2.6-2.12
-  Qualifiers=e2:debug
-    _fq_subdir=/Linux-2-6-2-12-e2-debug
+  Qualifiers=e5:debug
+    _fq_subdir=/Linux-2-6-2-12-e5-debug
 
     Action=setupbuild
-       setupRequired( gcc v4_7_1 )
-       setupRequired( python v2_7_3 -q gcc47 )
+       setupRequired( gcc v4_8_2 )
+       setupRequired( python v2_7_5c )
 
   Flavor=Linux+2.6-2.5
-  Qualifiers=e2:debug
-    _fq_subdir=/Linux-2-6-2-5-e2-debug
+  Qualifiers=e5:debug
+    _fq_subdir=/Linux-2-6-2-5-e5-debug
 
     Action=setupbuild
-       setupRequired( gcc v4_7_1 )
-       setupRequired( python v2_7_3 -q gcc47 )
+       setupRequired( gcc v4_8_2 )
+       setupRequired( python v2_7_5c )
 
   Flavor=Linux64bit+2.6-2.12
-  Qualifiers=e2:debug
-    _fq_subdir=/Linux64bit-2-6-2-12-e2-debug
+  Qualifiers=e5:debug
+    _fq_subdir=/Linux64bit-2-6-2-12-e5-debug
 
     Action=setupbuild
-       setupRequired( gcc v4_7_1 )
-       setupRequired( python v2_7_3 -q gcc47 )
+       setupRequired( gcc v4_8_2 )
+       setupRequired( python v2_7_5c )
 
   Flavor=Linux64bit+2.6-2.5
-  Qualifiers=e2:debug
-    _fq_subdir=/Linux64bit-2-6-2-5-e2-debug
+  Qualifiers=e5:debug
+    _fq_subdir=/Linux64bit-2-6-2-5-e5-debug
 
     Action=setupbuild
-       setupRequired( gcc v4_7_1 )
-       setupRequired( python v2_7_3 -q gcc47 )
+       setupRequired( gcc v4_8_2 )
+       setupRequired( python v2_7_5c )
 
   Flavor=Linux+2.6-2.12
-  Qualifiers=e2:prof
-    _fq_subdir=/Linux-2-6-2-12-e2-prof
+  Qualifiers=e5:prof
+    _fq_subdir=/Linux-2-6-2-12-e5-prof
 
     Action=setupbuild
-       setupRequired( gcc v4_7_1 )
-       setupRequired( python v2_7_3 -q gcc47 )
+       setupRequired( gcc v4_8_2 )
+       setupRequired( python v2_7_5c )
 
   Flavor=Linux+2.6-2.5
-  Qualifiers=e2:prof
-    _fq_subdir=/Linux-2-6-2-5-e2-prof
+  Qualifiers=e5:prof
+    _fq_subdir=/Linux-2-6-2-5-e5-prof
 
     Action=setupbuild
-       setupRequired( gcc v4_7_1 )
-       setupRequired( python v2_7_3 -q gcc47 )
+       setupRequired( gcc v4_8_2 )
+       setupRequired( python v2_7_5c )
 
   Flavor=Linux64bit+2.6-2.12
-  Qualifiers=e2:prof
-    _fq_subdir=/Linux64bit-2-6-2-12-e2-prof
+  Qualifiers=e5:prof
+    _fq_subdir=/Linux64bit-2-6-2-12-e5-prof
 
     Action=setupbuild
-       setupRequired( gcc v4_7_1 )
-       setupRequired( python v2_7_3 -q gcc47 )
+       setupRequired( gcc v4_8_2 )
+       setupRequired( python v2_7_5c )
 
   Flavor=Linux64bit+2.6-2.5
-  Qualifiers=e2:prof
-    _fq_subdir=/Linux64bit-2-6-2-5-e2-prof
+  Qualifiers=e5:prof
+    _fq_subdir=/Linux64bit-2-6-2-5-e5-prof
 
     Action=setupbuild
-       setupRequired( gcc v4_7_1 )
-       setupRequired( python v2_7_3 -q gcc47 )
+       setupRequired( gcc v4_8_2 )
+       setupRequired( python v2_7_5c )
 
   Flavor=Linux+2.6-2.12
-  Qualifiers=e2:debug:nu
-    _fq_subdir=/Linux-2-6-2-12-e2-debug
+  Qualifiers=e5:debug:nu
+    _fq_subdir=/Linux-2-6-2-12-e5-debug
 
     Action=setupbuild
-       setupRequired( gcc v4_7_1 )
-       setupRequired( python v2_7_3 -q gcc47 )
+       setupRequired( gcc v4_8_2 )
+       setupRequired( python v2_7_5c )
 
   Flavor=Linux+2.6-2.5
-  Qualifiers=e2:debug:nu
-    _fq_subdir=/Linux-2-6-2-5-e2-debug
+  Qualifiers=e5:debug:nu
+    _fq_subdir=/Linux-2-6-2-5-e5-debug
 
     Action=setupbuild
-       setupRequired( gcc v4_7_1 )
-       setupRequired( python v2_7_3 -q gcc47 )
+       setupRequired( gcc v4_8_2 )
+       setupRequired( python v2_7_5c )
 
   Flavor=Linux64bit+2.6-2.12
-  Qualifiers=e2:debug:nu
-    _fq_subdir=/Linux64bit-2-6-2-12-e2-debug
+  Qualifiers=e5:debug:nu
+    _fq_subdir=/Linux64bit-2-6-2-12-e5-debug
 
     Action=setupbuild
-       setupRequired( gcc v4_7_1 )
-       setupRequired( python v2_7_3 -q gcc47 )
+       setupRequired( gcc v4_8_2 )
+       setupRequired( python v2_7_5c )
 
   Flavor=Linux64bit+2.6-2.5
-  Qualifiers=e2:debug:nu
-    _fq_subdir=/Linux64bit-2-6-2-5-e2-debug
+  Qualifiers=e5:debug:nu
+    _fq_subdir=/Linux64bit-2-6-2-5-e5-debug
 
     Action=setupbuild
-       setupRequired( gcc v4_7_1 )
-       setupRequired( python v2_7_3 -q gcc47 )
+       setupRequired( gcc v4_8_2 )
+       setupRequired( python v2_7_5c )
 
   Flavor=Linux+2.6-2.12
-  Qualifiers=e2:prof:nu
-    _fq_subdir=/Linux-2-6-2-12-e2-prof
+  Qualifiers=e5:prof:nu
+    _fq_subdir=/Linux-2-6-2-12-e5-prof
 
     Action=setupbuild
-       setupRequired( gcc v4_7_1 )
-       setupRequired( python v2_7_3 -q gcc47 )
+       setupRequired( gcc v4_8_2 )
+       setupRequired( python v2_7_5c )
 
   Flavor=Linux+2.6-2.5
-  Qualifiers=e2:prof:nu
-    _fq_subdir=/Linux-2-6-2-5-e2-prof
+  Qualifiers=e5:prof:nu
+    _fq_subdir=/Linux-2-6-2-5-e5-prof
 
     Action=setupbuild
-       setupRequired( gcc v4_7_1 )
-       setupRequired( python v2_7_3 -q gcc47 )
+       setupRequired( gcc v4_8_2 )
+       setupRequired( python v2_7_5c )
 
   Flavor=Linux64bit+2.6-2.12
-  Qualifiers=e2:prof:nu
-    _fq_subdir=/Linux64bit-2-6-2-12-e2-prof
+  Qualifiers=e5:prof:nu
+    _fq_subdir=/Linux64bit-2-6-2-12-e5-prof
 
     Action=setupbuild
-       setupRequired( gcc v4_7_1 )
-       setupRequired( python v2_7_3 -q gcc47 )
+       setupRequired( gcc v4_8_2 )
+       setupRequired( python v2_7_5c )
 
   Flavor=Linux64bit+2.6-2.5
-  Qualifiers=e2:prof:nu
-    _fq_subdir=/Linux64bit-2-6-2-5-e2-prof
+  Qualifiers=e5:prof:nu
+    _fq_subdir=/Linux64bit-2-6-2-5-e5-prof
 
     Action=setupbuild
-       setupRequired( gcc v4_7_1 )
-       setupRequired( python v2_7_3 -q gcc47 )
+       setupRequired( gcc v4_8_2 )
+       setupRequired( python v2_7_5c )
 
   Flavor=Linux+2.6-2.12
   Qualifiers=e4:debug
@@ -313,6 +313,7 @@ Common:
     PathPrepend(PATH           ,${UPS_PROD_DIR}${_fq_subdir}/bin)
     PathPrepend(PYTHONPATH     , ${UPS_PROD_DIR}${_fq_subdir}/lib/python)
     PathPrepend(LD_LIBRARY_PATH, ${UPS_PROD_DIR}${_fq_subdir}/lib)
+    ExeActionOptional(setupbuild)
     SetupOptional(cpn)
 
 End:

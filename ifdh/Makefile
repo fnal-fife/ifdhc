@@ -34,7 +34,7 @@ ifdh_main.cc: h_to_main.sh ifdh.h
 
 ifdh: libifdh.so ifdh_main.o 
 	g++ $(ARCH) -o $@ ifdh_main.o $(ALL_OBJS)
-	./ifdh --help | perl -pe 's{\tifdh ([^ ]*) *(.*?) *$$}{* *ifdh* *$$1* _$$2_}; s{\t--}{** }' > ifdh.textile
+	./ifdh --help | perl -pe 's{\033\[.*?m}{}; s{\tifdh ([^ ]*) *(.*?) *$$}{* *ifdh* *$$1* _$$2_}; s{\t--}{** }' > ifdh.textile
 
 python/_ifdh.so: $(PYMOD_OBJS)
 	test -d python || mkdir python 

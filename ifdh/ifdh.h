@@ -28,10 +28,11 @@ class ifdh {
 
         // general file copy using cpn locks dd, gridftp, or srmcp
         // supports:
-        // * cp src1 dest1 [';' src2 dest2 [';'...]]
-        // * cp -r src1 dest1 [';' src2 dest2 [';'...]]
-        // * cp -D src1 src2 destdir1 [';' src3 src4 destdir2 [';'...]]
-        // * cp -f file_with_src_space_dest_lines
+        //
+        // * cp src1 dest1 [';' src2 dest2 [';'...]]                     -- basic source/dest filenames
+        // * cp -r src1 dest1 [';' src2 dest2 [';'...]]                  -- recursive directory copies
+        // * cp -D src1 src2 destdir1 [';' src3 src4 destdir2 [';'...]]  -- copies to dest. directory
+        // * cp -f file_with_src_space_dest_lines                        -- copies to a list file
         // * any of the above can take --force={cpn,gridftp,srmcp,expgridftp}
         // * any of the file/dest arguments can be URIs
         // ---
@@ -98,11 +99,13 @@ class ifdh {
         int renameOutput(std::string how);
         // general file rename using mvn or srmcp
         int mv(std::vector<std::string> args);
-
         // Get a list of directory contents, or check existence of files
         std::vector<std::string> ls( std::string loc, int recursion_depth, std::string force);
+        // make a directory (i.e. for file destination)
         int mkdir(std::string loc, std::string force);
+        // remove files
         int rm(std::string loc, std::string force);
+        // remove directories
         int rmdir(std::string loc, std::string force);
 };
 

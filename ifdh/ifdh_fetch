@@ -13,6 +13,8 @@ cat >&2 <<EOF
 EOF
 }
 
+cleanup=false
+
 case `df . | tail -1` in
 */app) size=`echo "$@" | wc -w`
          if [ $size -gt 10 ]
@@ -24,7 +26,8 @@ case `df . | tail -1` in
              echo "...but since it's only a few files, copying via /tmp"
          fi
          dest='/tmp/$f'
-         extra='; cp /tmp/$f ./$f; rm /tmp/$f'
+         extra=' ; /tmp/$f ./$f '
+         cleanup=true
          ;;
 *)       dest='./$f'
          extra=''
@@ -75,6 +78,8 @@ x) echo "Need EXPERIMENT set in the environment" >&2
 *) ;;
 esac
 
+sep=""
+
 for f in "$@"
 do
   
@@ -91,9 +96,8 @@ do
        echo "found file on bluearc"
        src="`echo $bflocs |  perl -pe 's/.*(_bluearc|data)://;'`/$f"
    fi
-   eval "cmd='ifdh cp \"$src\"  \"$dest\" $extra'"
-   echo "doing:"  $cmd
-   eval $cmd
+   eval args="\"$args $sep $src $dest  $extra\""
+   sep=";"
    nfiles=$((nfiles - 1))
    if [ $nfiles = 0 ]
    then
@@ -102,3 +106,11 @@ do
    fi
 done
 
+cmd="ifdh cp $args"
+echo "doing:"  $cmd
+$cmd
+
+if $cleanup
+then
+    (cd /tmp; rm -f "$@")
+fi

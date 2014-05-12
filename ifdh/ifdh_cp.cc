@@ -269,6 +269,9 @@ public:
         if (!getenv("CPN_DIR") || 0 != access(getenv("CPN_DIR"),R_OK)) {
             return;
         }
+        if (_heartbeat_pid < 0) {
+            return;
+        }
         kill(_heartbeat_pid, 9);
         waitpid(_heartbeat_pid, &res, 0);
         res2 = system("$CPN_DIR/bin/lock free");

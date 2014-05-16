@@ -83,18 +83,20 @@ sep=""
 for f in "$@"
 do
   
-   flocs=`ifdh locateFile $f`
-   eflocs=`echo "$flocs" | grep enstore: | head -1`
-   bflocs=`echo "$flocs" | egrep '(_bluearc|data):' | head -1`
+   flocs=`ifdh locateFile $f gsiftp`
+   eflocs=`echo "$flocs" | grep fndca1 | head -1`
+   bflocs=`echo "$flocs" | grep bestman | head -1`
    if [ x$eflocs != x ]
    then
-       echo "found file on enstore, using dcache srm"
-
-       src="`echo $eflocs |
-	      sed -e "s/enstore://" -e 's/(.*//'`/$f"
+       echo "found file on enstore, using dcache gridftp"
+       src="$eflocs"
+   elif [ x$bflocs != x ]
+   then
+       echo "found file on bluearc, using bestman gridftp"
+       src="$bflocs"
    else
-       echo "found file on bluearc"
-       src="`echo $bflocs |  perl -pe 's/.*(_bluearc|data)://;'`/$f"
+       echo "found file somewhere else"
+       src=`echo "$flocs" | head -1`
    fi
    eval args="\"$args $sep $src $dest  $extra\""
    sep=";"

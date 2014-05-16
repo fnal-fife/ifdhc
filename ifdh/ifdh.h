@@ -66,8 +66,8 @@ class ifdh {
         // give file list for dimension string
 	std::vector<std::string> translateConstraints( std::string dims);
 
-	// locate a file
-	std::vector<std::string> locateFile( std::string name);
+	// locate a file, with optional schema (gsiftp, etc.) 
+	std::vector<std::string> locateFile( std::string name, std::string schema = "");
         // get a files metadata
 	std::string getMetadata( std::string name);
 

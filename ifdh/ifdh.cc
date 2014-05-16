@@ -391,8 +391,12 @@ ifdh::translateConstraints( string dims) {
 
 // files
 vector<string> 
-ifdh::locateFile( string name) {
-  return do_url_lst(0,_baseuri.c_str(), "files", "name", name.c_str(), "locations", "", "" );  
+ifdh::locateFile( string name, string schema ) {
+  if (schema == "" ) {
+      return do_url_lst(0,_baseuri.c_str(), "files", "name", name.c_str(), "locations", "", "" );  
+  } else {
+      return do_url_lst(0,_baseuri.c_str(), "files", "name", name.c_str(), "locations", "url", "" , "schema", schema.c_str(), "", "");
+  }
 }
 
 string ifdh::getMetadata( string name) {

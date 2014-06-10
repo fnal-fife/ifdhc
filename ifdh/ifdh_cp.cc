@@ -971,11 +971,21 @@ ifdh::cp( std::vector<std::string> args ) {
 
      int error_expected;
      int keep_going = 1;
+ 
+     // get the proxy before we get the lock, so the
+     // lock file will have the username info right.
+     
+     if (use_any_gridftp || use_srm || use_irods ) {
+	get_grid_credentials_if_needed();
+     }
 
      if (need_cpn_lock) {
          cpn.lock();
      }
 
+     // this looks redudnant, but the proxy could have 
+     // expired while we were waiting for a lock...
+     //
      if (use_any_gridftp || use_srm || use_irods ) {
 	get_grid_credentials_if_needed();
      }

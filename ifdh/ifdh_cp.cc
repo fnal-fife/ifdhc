@@ -296,7 +296,7 @@ public:
     }
 };
 
-std::vector<std::string> expandfile( std::string fname ) {
+std::vector<std::string> expandfile( std::string fname, std::vector<std::string> oldargs, unsigned int oldcount) {
   std::vector<std::string> res;
   std::string line;
   size_t pos, pos2;
@@ -328,6 +328,9 @@ std::vector<std::string> expandfile( std::string fname ) {
   if ( !listf.eof() ) {
       std::string basemessage("error reading list of files file: ");
       throw( std::logic_error(basemessage += fname));
+  }
+  while (oldcount < oldargs.size()) {
+     res.push_back(oldargs[oldcount++]);
   }
  
   return res;
@@ -749,8 +752,13 @@ ifdh::cp( std::vector<std::string> args ) {
         // handle -f last, 'cause it rewrites arg list
         //
 	if (args[curarg].find('f') != std::string::npos) {
+	   args = expandfile(args[curarg + 1], args, curarg+2);
 	   curarg = 0;
-	   args = expandfile(args[curarg + 1]);
+           // cout << "after -f args is: ";
+           // for (unsigned int k = 0; k< args.size(); k++) {
+           //     cout << '"' << args[k] << '"' << ' ' ;
+           // }
+	   // cout << '\n';
            continue;
 	}
 
@@ -852,6 +860,7 @@ ifdh::cp( std::vector<std::string> args ) {
 
             if( args[i].find("i:") == 0)  { 
                use_cpn = false; 
+               use_srm = false;
                use_irods = true; 
                break; 
             }
@@ -863,8 +872,9 @@ ifdh::cp( std::vector<std::string> args ) {
 
             if( args[i].find("gsiftp:") == 0) {
                 use_cpn = false; 
+                use_srm = false;
 		if ( i == args.size() - 1 || args[i+1] == ";" ) {
-                    _debug && cout << "deciding to use bestman due to " << args[i] << " \n";
+                    _debug && cout << "deciding to use bestman gridftp due to " << args[i] << " \n";
                     // our destination is a specified gridftp server
                     // so use bestman for (input) rewrites
                     use_bst_gridftp = true; 
@@ -902,7 +912,9 @@ ifdh::cp( std::vector<std::string> args ) {
 		   use_srm = 1;
 	           _debug && cout << "deciding to use bestman to: " << args[i] << "\n";
 		}
-		break;
+                // don't break out here, go back around because 
+                // we might get a more specific behavior override 
+                // than this..
 	     }
 	 }
      } else if (force[0] == 'i') {

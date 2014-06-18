@@ -458,12 +458,18 @@ class ifdh_cp_cases(unittest.TestCase):
          self.assertEqual(len(list) > 0, True)
 
     def test_dcache_bluearc(self):
-         self.ifdh_handle.rm("/grid/data/mengel/foo.txt","")
+         try: 
+             self.ifdh_handle.rm("/grid/data/mengel/foo.txt","")
+         except:
+             pass
          res = self.ifdh_handle.cp(["/pnfs/nova/scratch/users/mengel/foo.txt", "/grid/data/mengel/foo.txt"])
          self.assertEqual(res == 0, True)
 
     def test_bluearc_dcache(self):
-         self.ifdh_handle.rm("/pnfs/nova/scratch/users/mengel/foo.txt","")
+         try: 
+             self.ifdh_handle.rm("/pnfs/nova/scratch/users/mengel/foo.txt","")
+         except:
+             pass
          res = self.ifdh_handle.cp(["/grid/data/mengel/foo.txt", "/pnfs/nova/scratch/users/mengel/foo.txt"])
          self.assertEqual(res == 0, True)
 

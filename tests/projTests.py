@@ -113,7 +113,7 @@ class SAMCases(unittest.TestCase):
         cpurl = self.ifdh_handle.cleanup()
         SAMCases.curproject = None
 
-    def test_a_release_wrong_file(self):
+    def xx_test_a_release_wrong_file(self):
         self.test_4_startproject()
         self.test_5_startclient()
         time.sleep(1)

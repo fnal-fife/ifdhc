@@ -49,9 +49,9 @@ class SAMCases(unittest.TestCase):
     def test_0_setexperiment(self):
         SAMCases.counter = SAMCases.counter + 1
         if SAMCases.counter == 1: 
-           self.doMinerva()
-        if SAMCases.counter == 2: 
            self.doNova()
+        if SAMCases.counter == 2: 
+           self.doMinerva()
         if SAMCases.counter == 3: 
            raise RuntimeError("out of cases")
         os.environ["EXPERIMENT"] = SAMCases.experiment

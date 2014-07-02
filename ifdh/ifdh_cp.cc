@@ -978,7 +978,7 @@ ifdh::cp( std::vector<std::string> args ) {
          cleanup_stage = true;
          curarg = 0;
          // workaround srmls heap limit hang problems
-         setenv("SRM_JAVA_OPTIONS", "-Xmx2048m" ,0);
+         setenv("SRM_JAVA_OPTIONS", "-Xmx1024m" ,0);
      }
 
      int error_expected;
@@ -1330,7 +1330,7 @@ ifdh::ls(string loc, int recursion_depth, string force) {
 
 
     if (use_srm) {
-       setenv("SRM_JAVA_OPTIONS", "-Xmx2048m" ,0);
+       setenv("SRM_JAVA_OPTIONS", "-Xmx1024m" ,0);
        cmd << "srmls -2 ";
        if (recursion_depth > 1) {
            cmd << "--recursion_depth " << recursion_depth << " ";

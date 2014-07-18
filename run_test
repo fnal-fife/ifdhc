@@ -1,0 +1,4 @@
+#!/bin/sh
+
+tests/test_suite_job.sh
+

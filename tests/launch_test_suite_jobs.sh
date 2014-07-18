@@ -2,7 +2,10 @@
 
 export TEST_USER=$USER
 
+rm -f /grid/data/$USER/f[12]
+
 # for site in FNAL_nova Wisconsin SMU Nebraska UCSD 
+# -g
 for site in FNAL_nova 
 do
     jobsub -g \

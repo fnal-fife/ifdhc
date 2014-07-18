@@ -39,7 +39,8 @@ echo "-------------"
 set -x
 exec 2>&1 
 
-ulimit -d 1024000 -m 2048000
+ulimit -s 512000 -d 512000 -m 1024000
+ulimit -a
 
 python projTests.py
 python cpTests.py

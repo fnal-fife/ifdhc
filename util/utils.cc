@@ -41,7 +41,7 @@ char *getexperiment() {
     case 9262:	
     case 9937:
     case 9952:
-       return "microboone";
+       return "uboone";
     case 5314:
        return "auger";
     case 9101:

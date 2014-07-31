@@ -50,7 +50,7 @@ Group:
 
     Action=setupbuild
        setupRequired( gcc v4_8_2 )
-       setupRequired( python v2_7_5c )
+       setupRequired( python v2_7_6 )
 
   Flavor=Linux+2.6-2.5
   Qualifiers=e5:debug
@@ -58,7 +58,7 @@ Group:
 
     Action=setupbuild
        setupRequired( gcc v4_8_2 )
-       setupRequired( python v2_7_5c )
+       setupRequired( python v2_7_6 )
 
   Flavor=Linux64bit+2.6-2.12
   Qualifiers=e5:debug
@@ -66,7 +66,7 @@ Group:
 
     Action=setupbuild
        setupRequired( gcc v4_8_2 )
-       setupRequired( python v2_7_5c )
+       setupRequired( python v2_7_6 )
 
   Flavor=Linux64bit+2.6-2.5
   Qualifiers=e5:debug
@@ -74,7 +74,7 @@ Group:
 
     Action=setupbuild
        setupRequired( gcc v4_8_2 )
-       setupRequired( python v2_7_5c )
+       setupRequired( python v2_7_6 )
 
   Flavor=Linux+2.6-2.12
   Qualifiers=e5:prof
@@ -82,7 +82,7 @@ Group:
 
     Action=setupbuild
        setupRequired( gcc v4_8_2 )
-       setupRequired( python v2_7_5c )
+       setupRequired( python v2_7_6 )
 
   Flavor=Linux+2.6-2.5
   Qualifiers=e5:prof
@@ -90,7 +90,7 @@ Group:
 
     Action=setupbuild
        setupRequired( gcc v4_8_2 )
-       setupRequired( python v2_7_5c )
+       setupRequired( python v2_7_6 )
 
   Flavor=Linux64bit+2.6-2.12
   Qualifiers=e5:prof
@@ -98,7 +98,7 @@ Group:
 
     Action=setupbuild
        setupRequired( gcc v4_8_2 )
-       setupRequired( python v2_7_5c )
+       setupRequired( python v2_7_6 )
 
   Flavor=Linux64bit+2.6-2.5
   Qualifiers=e5:prof
@@ -106,7 +106,7 @@ Group:
 
     Action=setupbuild
        setupRequired( gcc v4_8_2 )
-       setupRequired( python v2_7_5c )
+       setupRequired( python v2_7_6 )
 
   Flavor=Linux+2.6-2.12
   Qualifiers=e5:debug:nu
@@ -114,7 +114,7 @@ Group:
 
     Action=setupbuild
        setupRequired( gcc v4_8_2 )
-       setupRequired( python v2_7_5c )
+       setupRequired( python v2_7_6 )
 
   Flavor=Linux+2.6-2.5
   Qualifiers=e5:debug:nu
@@ -122,7 +122,7 @@ Group:
 
     Action=setupbuild
        setupRequired( gcc v4_8_2 )
-       setupRequired( python v2_7_5c )
+       setupRequired( python v2_7_6 )
 
   Flavor=Linux64bit+2.6-2.12
   Qualifiers=e5:debug:nu
@@ -130,7 +130,7 @@ Group:
 
     Action=setupbuild
        setupRequired( gcc v4_8_2 )
-       setupRequired( python v2_7_5c )
+       setupRequired( python v2_7_6 )
 
   Flavor=Linux64bit+2.6-2.5
   Qualifiers=e5:debug:nu
@@ -138,7 +138,7 @@ Group:
 
     Action=setupbuild
        setupRequired( gcc v4_8_2 )
-       setupRequired( python v2_7_5c )
+       setupRequired( python v2_7_6 )
 
   Flavor=Linux+2.6-2.12
   Qualifiers=e5:prof:nu
@@ -146,7 +146,7 @@ Group:
 
     Action=setupbuild
        setupRequired( gcc v4_8_2 )
-       setupRequired( python v2_7_5c )
+       setupRequired( python v2_7_6 )
 
   Flavor=Linux+2.6-2.5
   Qualifiers=e5:prof:nu
@@ -154,7 +154,7 @@ Group:
 
     Action=setupbuild
        setupRequired( gcc v4_8_2 )
-       setupRequired( python v2_7_5c )
+       setupRequired( python v2_7_6 )
 
   Flavor=Linux64bit+2.6-2.12
   Qualifiers=e5:prof:nu
@@ -162,7 +162,7 @@ Group:
 
     Action=setupbuild
        setupRequired( gcc v4_8_2 )
-       setupRequired( python v2_7_5c )
+       setupRequired( python v2_7_6 )
 
   Flavor=Linux64bit+2.6-2.5
   Qualifiers=e5:prof:nu
@@ -170,47 +170,47 @@ Group:
 
     Action=setupbuild
        setupRequired( gcc v4_8_2 )
+       setupRequired( python v2_7_6 )
+
+  Flavor=Linux+2.6-2.12
+  Qualifiers=e4:debug
+    _fq_subdir=/Linux-2-6-2-12-e4-debug
+
+    Action=setupbuild
+       setupRequired( gcc v4_8_1 )
+       setupRequired( python v2_7_5c )
+
+  Flavor=Linux+2.6-2.5
+  Qualifiers=e4:debug
+    _fq_subdir=/Linux-2-6-2-5-e4-debug
+
+    Action=setupbuild
+       setupRequired( gcc v4_8_1 )
+       setupRequired( python v2_7_5c )
+
+  Flavor=Linux64bit+2.6-2.12
+  Qualifiers=e4:debug
+    _fq_subdir=/Linux64bit-2-6-2-12-e4-debug
+
+    Action=setupbuild
+       setupRequired( gcc v4_8_1 )
+       setupRequired( python v2_7_5c )
+
+  Flavor=Linux64bit+2.6-2.5
+  Qualifiers=e4:debug
+    _fq_subdir=/Linux64bit-2-6-2-5-e4-debug
+
+    Action=setupbuild
+       setupRequired( gcc v4_8_1 )
        setupRequired( python v2_7_5c )
 
   Flavor=Linux+2.6-2.12
-  Qualifiers=e4:debug
-    _fq_subdir=/Linux-2-6-2-12-e4-debug
-
-    Action=setupbuild
-       setupRequired( gcc v4_8_1 )
-       setupRequired( python v2_7_5 )
-
-  Flavor=Linux+2.6-2.5
-  Qualifiers=e4:debug
-    _fq_subdir=/Linux-2-6-2-5-e4-debug
-
-    Action=setupbuild
-       setupRequired( gcc v4_8_1 )
-       setupRequired( python v2_7_5 )
-
-  Flavor=Linux64bit+2.6-2.12
-  Qualifiers=e4:debug
-    _fq_subdir=/Linux64bit-2-6-2-12-e4-debug
-
-    Action=setupbuild
-       setupRequired( gcc v4_8_1 )
-       setupRequired( python v2_7_5 )
-
-  Flavor=Linux64bit+2.6-2.5
-  Qualifiers=e4:debug
-    _fq_subdir=/Linux64bit-2-6-2-5-e4-debug
-
-    Action=setupbuild
-       setupRequired( gcc v4_8_1 )
-       setupRequired( python v2_7_5 )
-
-  Flavor=Linux+2.6-2.12
   Qualifiers=e4:prof
     _fq_subdir=/Linux-2-6-2-12-e4-prof
 
     Action=setupbuild
        setupRequired( gcc v4_8_1 )
-       setupRequired( python v2_7_5 )
+       setupRequired( python v2_7_5c )
 
   Flavor=Linux+2.6-2.5
   Qualifiers=e4:prof
@@ -218,7 +218,7 @@ Group:
 
     Action=setupbuild
        setupRequired( gcc v4_8_1 )
-       setupRequired( python v2_7_5 )
+       setupRequired( python v2_7_5c )
 
   Flavor=Linux64bit+2.6-2.12
   Qualifiers=e4:prof
@@ -226,7 +226,7 @@ Group:
 
     Action=setupbuild
        setupRequired( gcc v4_8_1 )
-       setupRequired( python v2_7_5 )
+       setupRequired( python v2_7_5c )
 
   Flavor=Linux64bit+2.6-2.5
   Qualifiers=e4:prof
@@ -234,7 +234,7 @@ Group:
 
     Action=setupbuild
        setupRequired( gcc v4_8_1 )
-       setupRequired( python v2_7_5 )
+       setupRequired( python v2_7_5c )
 
   Flavor=Linux+2.6-2.12
   Qualifiers=e4:debug:nu
@@ -242,7 +242,7 @@ Group:
 
     Action=setupbuild
        setupRequired( gcc v4_8_1 )
-       setupRequired( python v2_7_5 )
+       setupRequired( python v2_7_5c )
 
   Flavor=Linux+2.6-2.5
   Qualifiers=e4:debug:nu
@@ -250,7 +250,7 @@ Group:
 
     Action=setupbuild
        setupRequired( gcc v4_8_1 )
-       setupRequired( python v2_7_5 )
+       setupRequired( python v2_7_5c )
 
   Flavor=Linux64bit+2.6-2.12
   Qualifiers=e4:debug:nu
@@ -258,7 +258,7 @@ Group:
 
     Action=setupbuild
        setupRequired( gcc v4_8_1 )
-       setupRequired( python v2_7_5 )
+       setupRequired( python v2_7_5c )
 
   Flavor=Linux64bit+2.6-2.5
   Qualifiers=e4:debug:nu
@@ -266,7 +266,7 @@ Group:
 
     Action=setupbuild
        setupRequired( gcc v4_8_1 )
-       setupRequired( python v2_7_5 )
+       setupRequired( python v2_7_5c )
 
   Flavor=Linux+2.6-2.12
   Qualifiers=e4:prof:nu
@@ -274,7 +274,7 @@ Group:
 
     Action=setupbuild
        setupRequired( gcc v4_8_1 )
-       setupRequired( python v2_7_5 )
+       setupRequired( python v2_7_5c )
 
   Flavor=Linux+2.6-2.5
   Qualifiers=e4:prof:nu
@@ -282,7 +282,7 @@ Group:
 
     Action=setupbuild
        setupRequired( gcc v4_8_1 )
-       setupRequired( python v2_7_5 )
+       setupRequired( python v2_7_5c )
 
   Flavor=Linux64bit+2.6-2.12
   Qualifiers=e4:prof:nu
@@ -290,7 +290,7 @@ Group:
 
     Action=setupbuild
        setupRequired( gcc v4_8_1 )
-       setupRequired( python v2_7_5 )
+       setupRequired( python v2_7_5c )
 
   Flavor=Linux64bit+2.6-2.5
   Qualifiers=e4:prof:nu
@@ -298,7 +298,7 @@ Group:
 
     Action=setupbuild
        setupRequired( gcc v4_8_1 )
-       setupRequired( python v2_7_5 )
+       setupRequired( python v2_7_5c )
 
 Common:
 

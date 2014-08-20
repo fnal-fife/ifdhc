@@ -224,9 +224,9 @@ WebAPI::WebAPI(std::string url, int postflag, std::string postdata) throw(WebAPI
 
                 hostport << pu.host << ":" << pu.port;
 
-                _debug && std::cerr << "openssl"<< ' ' << "s_client"<< ' ' << "-connect"<< ' ' << hostport.str().c_str() << " -quiet";
+                _debug && std::cerr << "openssl"<< ' ' << "s_client"<< ' ' << " -CApath /etc/grid-security/certificates" << ' ' << "-connect"<< ' ' << hostport.str().c_str() << " -quiet"; 
                 if (proxy && _debug) {
-		    std::cout << " -cert "<< proxy << " -CAfile " << proxy ;
+		    std::cout << " -key " << proxy << " -cert "<< proxy << " -CAfile " << proxy ;
                 }
 
                 std::cout.flush();
@@ -242,9 +242,9 @@ WebAPI::WebAPI(std::string url, int postflag, std::string postdata) throw(WebAPI
 
                 // run openssl...
                 if (proxy) {
-                    execlp("openssl", "s_client", "-connect", hostport.str().c_str(), "-quiet",  "-cert", proxy, "-CAfile", proxy,  (char *)0);
+			    execlp("openssl", "s_client", "-CApath", "/etc/grid-security/certificates/",  "-connect", hostport.str().c_str(),  "-quiet",  "-cert", proxy, "-key", proxy, "-CAfile", proxy,  (char *)0);
                 } else {
-                    execlp("openssl", "s_client", "-connect", hostport.str().c_str(), "-quiet",  (char *)0);
+                    execlp("openssl", "s_client", "-CApath", "/etc/grid-security/certificates/", "-connect", hostport.str().c_str(),  "-quiet",  (char *)0);
                 }
                 exit(-1);
             } else {

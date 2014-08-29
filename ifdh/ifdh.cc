@@ -620,4 +620,26 @@ ifdh::renameOutput(std::string how) {
     return -1;
 }
 
+// mostly a little named pipe plumbing and a fork()...
+int
+ifdh::more(string loc) {
+    std::string where = localPath(loc);
+    const char *c_where = where.c_str();
+    int res2 ,res;
+    res  = mknod(c_where, 0600 | S_IFIFO, 0);
+    if (res == 0) {
+       res2 = fork();
+       if (res2 == 0) {
+            execlp( "more", "more", c_where,  NULL);
+       } else if (res2 > 0) {
+            this-> fetchInput(loc);
+            waitpid(res2, 0,0);
+            unlink(c_where);
+       } else {
+            return -1;
+       }
+    }
+    return res;
+}
+
 }

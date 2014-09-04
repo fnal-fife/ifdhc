@@ -1486,4 +1486,30 @@ ifdh::rmdir(string loc, string force) {
     return 0;
 }
 
+int
+ifdh::pin(string loc, long int secs) {
+    bool use_gridftp = false;
+    bool use_srm = false;
+    bool use_fs = false;
+    bool use_irods = false;
+    std::stringstream cmd;
+
+    // if it is not pnfs, ignore it.
+    if (loc.find("/pnfs") == string::npos) {
+        _debug && std::cout << "skiping pin of non pnfs " << loc << "\n";
+        return  0;
+    }
+
+    // we have to do this via srm for the moment
+    pick_type( loc, "--force=srm", use_fs, use_gridftp, use_srm, use_irods);
+
+    cmd << "srm-bring-online --lifetime=" << secs << " " << loc;
+    _debug && std::cout << "running: " << cmd.str();
+
+    int status = system(cmd.str().c_str());
+    if (WIFSIGNALED(status)) throw( std::logic_error("signalled while doing rmdir"));
+    if (WIFEXITED(status) && WEXITSTATUS(status) != 0) throw( std::logic_error("rmdir failed"));
+    return 0;
+}
+       
 }

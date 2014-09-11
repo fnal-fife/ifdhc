@@ -572,8 +572,10 @@ get_grid_credentials_if_needed() {
             cmd += " >/dev/null 2>&1 ";
         }
         cmd += "&& voms-proxy-init -rfc -noregen -debug -voms ";
-	if (experiment != "lbne" && experiment != "dzero" && experiment != "cdf" ) {
+	if (experiment != "lbne" && experiment != "dzero" && experiment != "cdf" && experiment != "lsst" ) {
 	   cmd += "fermilab:/fermilab/" + experiment + "/Role=Analysis";
+	} else if (experiment == "dzero" ) {
+	   cmd +=  experiment + ":/" + experiment  + "/users/Role=Analysis";
 	} else {
 	   cmd += experiment + ":/Role=Analysis";
 	}

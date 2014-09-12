@@ -250,7 +250,7 @@ public:
      
 	_heartbeat_pid = fork();
 	if (_heartbeat_pid == 0) {
-	    parent_pid = getppid();
+	    parent_pid = getpgrp();
 	    while( 0 == kill(parent_pid, 0) ) {
                 // touch our lockfile
 		if ( 0 != utimes(lockfilename.c_str(), NULL)) {
@@ -548,8 +548,12 @@ get_grid_credentials_if_needed() {
     std::string cmd;
     std::string experiment(getexperiment());
     std::stringstream proxyfileenv;
+    int res;
 
     ifdh::_debug && std::cout << "Checking for proxy cert...";
+
+    if( getenv("IFDH_NO_PROXY"))
+        return;
    
     if (!check_grid_credentials() && have_kerberos_creds()) {
         // if we don't have credentials, try our standard copy cache file
@@ -587,7 +591,15 @@ get_grid_credentials_if_needed() {
         }
 
 	ifdh::_debug && std::cout << "running: " << cmd << "\n";
-	system(cmd.c_str());
+	res = system(cmd.c_str());
+        // try a second time if it failed...
+        if (!WIFEXITED(res) || 0 != WEXITSTATUS(res)) {
+           sleep(1);
+	   res = system(cmd.c_str());
+        }
+        if (!WIFEXITED(res) ||  0 != WEXITSTATUS(res)) {
+            std::cerr << "Unable to get proxy cert.. later things may fail\n";
+        }
     }
 }
  

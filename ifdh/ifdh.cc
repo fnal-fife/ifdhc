@@ -91,7 +91,7 @@ string datadir() {
        getenv("TMPDIR")?getenv("TMPDIR"):
        "/var/tmp"
     )
-       << "/ifdh_" << getppid();
+       << "/ifdh_" << getuid() << "_" << getppid();
 
     if ( 0 != access(dirmaker.str().c_str(), W_OK) ) {
         res = mkdir(dirmaker.str().c_str(),0700);

@@ -86,12 +86,16 @@ string datadir() {
     string localpath;
     int res;
     
-    dirmaker << (
-       getenv("_CONDOR_SCRATCH_DIR")?getenv("_CONDOR_SCRATCH_DIR"):
-       getenv("TMPDIR")?getenv("TMPDIR"):
-       "/var/tmp"
-    )
+    if (getenv("IFDH_DATA_DIR")) {
+       dirmaker << getenv("IFDH_DATA_DIR");
+    } else { 
+	dirmaker << (
+	   getenv("_CONDOR_SCRATCH_DIR")?getenv("_CONDOR_SCRATCH_DIR"):
+	   getenv("TMPDIR")?getenv("TMPDIR"):
+           "/var/tmp"
+        )
        << "/ifdh_" << getuid() << "_" << getppid();
+    }
 
     if ( 0 != access(dirmaker.str().c_str(), W_OK) ) {
         res = mkdir(dirmaker.str().c_str(),0700);

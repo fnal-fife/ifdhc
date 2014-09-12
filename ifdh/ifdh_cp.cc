@@ -575,9 +575,10 @@ get_grid_credentials_if_needed() {
 	if (experiment != "lbne" && experiment != "dzero" && experiment != "cdf" && experiment != "lsst" ) {
 	   cmd += "fermilab:/fermilab/" + experiment + "/Role=Analysis";
 	} else if (experiment == "dzero" ) {
+           // dzero has an extra "users" component
 	   cmd +=  experiment + ":/" + experiment  + "/users/Role=Analysis";
 	} else {
-	   cmd += experiment + ":/Role=Analysis";
+	   cmd += experiment + ":/" + experiment + "/Role=Analysis";
 	}
         if (ifdh::_debug) {
             cmd += " >&2";

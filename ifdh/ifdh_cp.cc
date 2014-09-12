@@ -553,7 +553,7 @@ get_grid_credentials_if_needed() {
    
     if (!check_grid_credentials() && have_kerberos_creds()) {
         // if we don't have credentials, try our standard copy cache file
-        proxyfileenv << "/tmp/x509up_cp" << getuid();
+        proxyfileenv << datadir() << "/x509up_cp" << getuid();
 	ifdh::_debug && std::cout << "no credentials, trying " << proxyfileenv.str() << "\n";
         setenv("X509_USER_PROXY", proxyfileenv.str().c_str(),1);
         ifdh::_debug && std::cout << "Now X509_USER_PROXY is: " << getenv("X509_USER_PROXY");

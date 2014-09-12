@@ -116,9 +116,6 @@ ifdh::cleanup() {
     cmd = cmd + datadir();
     res = system(cmd.c_str());
     if (WIFSIGNALED(res)) throw( std::logic_error("signalled while removing cleanup files"));
-    cmd = "rm -f /tmp/x509up_cp$UID";
-    res = system(cmd.c_str());
-    if (WIFSIGNALED(res)) throw( std::logic_error("signalled while removing cleanup files"));
     return WEXITSTATUS(res);
 }
 // file io

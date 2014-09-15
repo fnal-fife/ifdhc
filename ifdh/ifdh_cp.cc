@@ -87,12 +87,12 @@ cache_stat(std::string s) {
 
 bool
 is_directory(std::string dirname) {
-    struct stat *sb = cache_stat(dirname);
-    if (!sb) {
+    struct stat *sbp = cache_stat(dirname);
+    if (!sbp) {
         return false;
     }
-    ifdh::_debug && std::cout << "is_directory(" << dirname << ") -> " <<  S_ISDIR(sb->st_mode);
-    return S_ISDIR(sb->st_mode) != 0;
+    ifdh::_debug && std::cout << "is_directory(" << dirname << ") -> " <<  S_ISDIR(sbp->st_mode);
+    return S_ISDIR(sbp->st_mode) != 0;
 }
 
 bool
@@ -720,6 +720,7 @@ ifdh::cp( std::vector<std::string> args ) {
     bool recursive = false;
     bool dest_is_dir = false;
     bool cleanup_stage = false;
+    bool no_zero_length = false;
     struct timeval time_before, time_after;
 
 
@@ -736,6 +737,9 @@ ifdh::cp( std::vector<std::string> args ) {
     if (getenv("IFDH_FORCE")) {
         force = getenv("IFDH_FORCE");
     }
+    if (getenv("IFDH_NO_ZERO_LENGTH")) {
+        no_zero_length = true;
+    }
 
     //
     // parse arguments
@@ -748,6 +752,11 @@ ifdh::cp( std::vector<std::string> args ) {
         if (args[curarg].substr(0,8) == "--force=") {
            force = args[curarg].substr(8,1);
            _debug && cout << "force option is " << args[curarg] << " char is " << force << "\n";
+           curarg++;
+           continue;
+        }
+        if (args[curarg] == "--no_zero_length") {
+           no_zero_length = true;
            curarg++;
            continue;
         }
@@ -1022,7 +1031,7 @@ ifdh::cp( std::vector<std::string> args ) {
      bool need_copyback = false;
 
      long int srcsize = 0, dstsize = 0;
-     struct stat statbuf;
+     struct stat *sbp;
 
      while( keep_going ) {
          stringstream cmd;
@@ -1062,6 +1071,16 @@ ifdh::cp( std::vector<std::string> args ) {
          }
 
          error_expected  = 0;
+
+         // check if source is local and zero length, and skip if 
+         // we were told to not copy empty files.
+	 if (no_zero_length && 0 == local_access(args[curarg].c_str(), R_OK) ) {
+	     sbp = cache_stat(args[curarg]);
+	     if (sbp && sbp->st_size == 0) {
+	 	std::cerr << "Not copying " << args[curarg] << " as it is zero length.\n";
+	 	continue;
+	     }
+	 }
 
          while (curarg < args.size() && args[curarg] != ";" ) {
 
@@ -1160,11 +1179,11 @@ ifdh::cp( std::vector<std::string> args ) {
     }
 
      for( curarg = 0 ; curarg < args.size(); curarg++ ) {
-	if (0 == stat(args[curarg].c_str(),&statbuf)) {
+	if (0 != (sbp =  cache_stat(args[curarg].c_str()))) {
 	    if (curarg == args.size() - 1 || args[curarg+1] == ";" ) {
-		dstsize += statbuf.st_size;
+		dstsize += sbp->st_size;
 	    } else {
-		srcsize += statbuf.st_size;
+		srcsize += sbp->st_size;
 	    }
 	}
      }

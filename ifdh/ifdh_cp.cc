@@ -799,7 +799,9 @@ ifdh::cp( std::vector<std::string> args ) {
     }
 
     for( std::vector<std::string>::size_type i = curarg; i < args.size(); i++ ) {
-       if (args[i][0] != ';' && args[i][0] != '/' && args[i].find("srm:") != 0 && args[i].find("gsiftp:") != 0) {
+
+       if (args[i][0] != ';' && args[i][0] != '/' && args[i].find("srm:") != 0 && args[i].find("gsiftp:") != 0 && args[i].find("-clued0:") == std::string::npos) {
+           _debug && std::cout << "adding cwd to " << args[i] << "\n";
 	   args[i] = cwd + "/" + args[i];
        }
        //
@@ -852,6 +854,7 @@ ifdh::cp( std::vector<std::string> args ) {
 
     // now decide local/remote
     // if anything is not local, use remote
+    bool clued0_hack = false;
     bool use_srm = false;
     bool use_exp_gridftp = false;
     bool use_bst_gridftp = false;
@@ -880,6 +883,21 @@ ifdh::cp( std::vector<std::string> args ) {
 
             if( args[i] == ";" ) {
                 continue;
+            }
+
+            if( args[i].find("-clued0:") != std::string::npos)  { 
+               // if we're given a foo-clued0:/path we're going
+               // to use rsync to copy it later, and we're going
+               // to use a per-host cpn lock group...
+               _debug && std::cout << "In clued0 hack case..\n";
+               std::string cpngroup("dzero/");
+               clued0_hack = true;
+               use_cpn = false; 
+               use_srm = false;
+ 	       need_cpn_lock = true;
+               cpngroup += args[i].substr(0,args[i].find(':'));
+               setenv("CPN_LOCK_GROUP", cpngroup.c_str(),0);
+               break;
             }
 
             if( args[i].find("i:") == 0)  { 
@@ -1036,7 +1054,7 @@ ifdh::cp( std::vector<std::string> args ) {
      while( keep_going ) {
          stringstream cmd;
 
-         cmd << (use_dd ? "dd bs=512k " : use_cpn ? "cp "  : use_srm ? srm_copy_command  : use_any_gridftp ? "globus-url-copy -gridftp2 -nodcau -restart -stall-timeout 14400 " :  use_irods ? "icp " : "false" );
+         cmd << (use_dd ? "dd bs=512k " : use_cpn ? "cp "  : use_srm ? srm_copy_command  : use_any_gridftp ? "globus-url-copy -gridftp2 -nodcau -restart -stall-timeout 14400 " :  use_irods ? "icp " :  clued0_hack ? "rsync " : "false" );
 
          if (use_any_gridftp) {
             if ( use_passive()) {
@@ -1112,7 +1130,7 @@ ifdh::cp( std::vector<std::string> args ) {
 		    args[curarg] += "/";
 	    }
 
-            if (use_cpn) { 
+            if (use_cpn || clued0_hack) { 
                 // no need to munge arguments, take them as is.
                 cmd << args[curarg] << " ";
             } else if (use_dd) {
@@ -1315,13 +1333,12 @@ pick_type( string &loc, string force, bool &use_fs, bool &use_gridftp, bool &use
 
     }
 
-    if (!(use_fs || use_gridftp || use_srm || use_irods)) {
+    if (!(use_fs || use_gridftp || use_srm || use_irods )) {
 
-        // convert to absolute path
         if (loc[0] != '/') {
            string cwd(get_current_dir_name());
            loc = cwd + '/' + loc;
-        }
+         }
 
         // if it's not visible, it's assumed to be either
         // dcache or bluearc...

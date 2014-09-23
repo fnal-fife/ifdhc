@@ -708,6 +708,19 @@ map_pnfs(string loc, int srmflag = 0) {
       ifdh::_debug && std::cout << "ending up with pnfs uri of " <<  loc << "\n";
       return loc;
 }
+
+bool
+is_dzero_node_path( std::string path ) {
+ // it could be a clued0 node, or it could be a d0srv node...
+ // and the d0srv is either at the front, or has user@ on the
+ // front of it...
+ return path.find("-clued0:") != std::string::npos || 
+      path.find("-clued0.fnal.gov:") != std::string::npos || 
+     (path.find("d0srv") == 0 && path.find(':') != std::string::npos) ||
+     (path.find("d0srv") == path.find("@") + 1 && 
+	path.find(':') != std::string::npos);
+}
+
 int 
 ifdh::cp( std::vector<std::string> args ) {
 
@@ -800,7 +813,7 @@ ifdh::cp( std::vector<std::string> args ) {
 
     for( std::vector<std::string>::size_type i = curarg; i < args.size(); i++ ) {
 
-       if (args[i][0] != ';' && args[i][0] != '/' && args[i].find("srm:") != 0 && args[i].find("gsiftp:") != 0 && args[i].find("-clued0:") == std::string::npos) {
+       if (args[i][0] != ';' && args[i][0] != '/' && args[i].find("srm:") != 0 && args[i].find("gsiftp:") != 0 && !is_dzero_node_path(args[i])) {
            _debug && std::cout << "adding cwd to " << args[i] << "\n";
 	   args[i] = cwd + "/" + args[i];
        }
@@ -885,7 +898,7 @@ ifdh::cp( std::vector<std::string> args ) {
                 continue;
             }
 
-            if( args[i].find("-clued0:") != std::string::npos)  { 
+            if( is_dzero_node_path(args[i]) )  { 
                // if we're given a foo-clued0:/path we're going
                // to use rsync to copy it later, and we're going
                // to use a per-host cpn lock group...
@@ -1130,9 +1143,17 @@ ifdh::cp( std::vector<std::string> args ) {
 		    args[curarg] += "/";
 	    }
 
-            if (use_cpn || clued0_hack) { 
+            if (use_cpn ) { 
                 // no need to munge arguments, take them as is.
                 cmd << args[curarg] << " ";
+            } else if (clued0_hack) { 
+                // stick in $GRID_USER@host:path if no user provided
+                // and we have $GRID_USER...
+                if ( is_dzero_node_path(args[curarg]) && args[curarg].find('@') == std::string::npos && getenv("GRID_USER")) {
+                    cmd <<  getenv("GRID_USER") << "@" << args[curarg] << " ";
+                } else {
+                   cmd << args[curarg] << " ";
+                }
             } else if (use_dd) {
                 if (curarg == args.size() - 1 || args[curarg+1] == ";" ){
                    cmd << "of=" << args[curarg] << " ";

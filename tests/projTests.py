@@ -119,7 +119,11 @@ class SAMCases(unittest.TestCase):
         time.sleep(1)
         cpurl = self.ifdh_handle.findProject(SAMCases.curproject,'')
         uri = self.ifdh_handle.getNextFile(cpurl, SAMCases.curconsumer)
-        self.ifdh_handle.updateFileStatus(cpurl, SAMCases.curconsumer, "wrongfile", 'consumed')
+        try:
+            self.ifdh_handle.updateFileStatus(cpurl, SAMCases.curconsumer, "wrongfile", 'consumed')
+        except:
+            # this should throw an exception!
+            self.assertEqual(0,0)
         self.test_8_endProject()
         self.test_9_cleanup()
 

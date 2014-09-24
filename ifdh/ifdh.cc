@@ -86,12 +86,16 @@ string datadir() {
     string localpath;
     int res;
     
-    dirmaker << (
-       getenv("_CONDOR_SCRATCH_DIR")?getenv("_CONDOR_SCRATCH_DIR"):
-       getenv("TMPDIR")?getenv("TMPDIR"):
-       "/var/tmp"
-    )
-       << "/ifdh_" << getppid();
+    if (getenv("IFDH_DATA_DIR")) {
+       dirmaker << getenv("IFDH_DATA_DIR");
+    } else { 
+	dirmaker << (
+	   getenv("_CONDOR_SCRATCH_DIR")?getenv("_CONDOR_SCRATCH_DIR"):
+	   getenv("TMPDIR")?getenv("TMPDIR"):
+           "/var/tmp"
+        )
+       << "/ifdh_" << getuid() << "_" << getppid();
+    }
 
     if ( 0 != access(dirmaker.str().c_str(), W_OK) ) {
         res = mkdir(dirmaker.str().c_str(),0700);
@@ -110,9 +114,6 @@ ifdh::cleanup() {
     int res;
     string cmd("rm -rf ");
     cmd = cmd + datadir();
-    res = system(cmd.c_str());
-    if (WIFSIGNALED(res)) throw( std::logic_error("signalled while removing cleanup files"));
-    cmd = "rm -f /tmp/x509up_cp$UID";
     res = system(cmd.c_str());
     if (WIFSIGNALED(res)) throw( std::logic_error("signalled while removing cleanup files"));
     return WEXITSTATUS(res);
@@ -618,6 +619,28 @@ ifdh::renameOutput(std::string how) {
         return rename(new_outfiles_name.c_str(), outfiles_name.c_str());
     }
     return -1;
+}
+
+// mostly a little named pipe plumbing and a fork()...
+int
+ifdh::more(string loc) {
+    std::string where = localPath(loc);
+    const char *c_where = where.c_str();
+    int res2 ,res;
+    res  = mknod(c_where, 0600 | S_IFIFO, 0);
+    if (res == 0) {
+       res2 = fork();
+       if (res2 == 0) {
+            execlp( "more", "more", c_where,  NULL);
+       } else if (res2 > 0) {
+            this-> fetchInput(loc);
+            waitpid(res2, 0,0);
+            unlink(c_where);
+       } else {
+            return -1;
+       }
+    }
+    return res;
 }
 
 }

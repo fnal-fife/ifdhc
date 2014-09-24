@@ -8,8 +8,8 @@ export EXPERIMENT=nova
 export IFDH_STAGE_VIA="srm://fndca1.fnal.gov:8443/srm/managerv2?SFN=/pnfs/fnal.gov/usr/nova/ifdh_stage/test_multi"
 export IFDH_DEBUG=1
 
-watch ps --forest &
-watchpid=$!
+#watch ps --forest &
+#watchpid=$!
 
 # cleanup  past attempts...
 for i in 1 2 3 4 5 
@@ -25,8 +25,11 @@ do
   cppid="$cppid $!"
 done
 
+sleep 10
+ifdh ls $IFDH_STAGE_VIA 5
+
 wait $cppid
-kill $watchpid
+#kill $watchpid
 
 assert() {
    test "$@" || echo "Failed."

@@ -80,7 +80,7 @@ class ifdh {
 	std::string findProject( std::string name, std::string station);
 
         // set yourself up as a file consumer process for a project
-	std::string establishProcess(std::string projecturi,  std::string appname, std::string appversion, std::string location, std::string user, std::string appfamily = "", std::string description = "", int filelimit = -1);
+	std::string establishProcess(std::string projecturi,  std::string appname, std::string appversion, std::string location, std::string user, std::string appfamily = "", std::string description = "", int filelimit = -1, std::string schemas = "");
         // get the next file location from a project
 	std::string getNextFile(std::string projecturi, std::string processid);
         // update the file status (use: transferred, skipped, or consumed)

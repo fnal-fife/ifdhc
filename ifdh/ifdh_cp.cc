@@ -714,11 +714,7 @@ is_dzero_node_path( std::string path ) {
  // it could be a clued0 node, or it could be a d0srv node...
  // and the d0srv is either at the front, or has user@ on the
  // front of it...
- return path.find("-clued0:") != std::string::npos || 
-      path.find("-clued0.fnal.gov:") != std::string::npos || 
-     (path.find("d0srv") == 0 && path.find(':') != std::string::npos) ||
-     (path.find("d0srv") == path.find("@") + 1 && 
-	path.find(':') != std::string::npos);
+ return path.find("D0:") == 0;
 }
 
 int 
@@ -1149,8 +1145,11 @@ ifdh::cp( std::vector<std::string> args ) {
             } else if (clued0_hack) { 
                 // stick in $GRID_USER@host:path if no user provided
                 // and we have $GRID_USER...
+
                 if ( is_dzero_node_path(args[curarg]) && args[curarg].find('@') == std::string::npos && getenv("GRID_USER")) {
-                    cmd <<  getenv("GRID_USER") << "@" << args[curarg] << " ";
+                    cmd <<  getenv("GRID_USER") << "@" << args[curarg].substr(3) << " ";
+                } else if (is_dzero_node_path(args[curarg]) ) {
+                   cmd << args[curarg].substr(3) << " ";
                 } else {
                    cmd << args[curarg] << " ";
                 }

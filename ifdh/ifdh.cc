@@ -439,7 +439,7 @@ ifdh::findProject( string name, string station){
 }
 
 string 
-ifdh::establishProcess( string projecturi, string appname, string appversion, string location, string user, string appfamily , string description , int filelimit ) {
+ifdh::establishProcess( string projecturi, string appname, string appversion, string location, string user, string appfamily , string description , int filelimit, string schemas ) {
   char buf[64];
 
   if (projecturi == "" && getenv("SAM_PROJECT") && getenv("SAM_STATION") ) {
@@ -456,7 +456,7 @@ ifdh::establishProcess( string projecturi, string appname, string appversion, st
 
   snprintf(buf, 64, "%d", filelimit); 
 
-  return do_url_str(1,projecturi.c_str(),"establishProcess", "", "appname", appname.c_str(), "appversion", appversion.c_str(), "deliverylocation", location.c_str(), "username", user.c_str(), "appfamily", appfamily.c_str(), "description", description.c_str(), "filelimit", buf, "", "");
+  return do_url_str(1,projecturi.c_str(),"establishProcess", "", "appname", appname.c_str(), "appversion", appversion.c_str(), "deliverylocation", location.c_str(), "username", user.c_str(), "appfamily", appfamily.c_str(), "description", description.c_str(), "filelimit", buf, "schemas", schemas.c_str(), "", "");
 }
 
 string ifdh::getNextFile(string projecturi, string processid){

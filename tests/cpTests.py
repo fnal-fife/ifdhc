@@ -59,8 +59,10 @@ class ifdh_cp_cases(unittest.TestCase):
         self.ifdh_handle = ifdh.ifdh(base_uri_fmt % ifdh_cp_cases.experiment)
         self.hostname = socket.gethostname()
         self.work="/tmp/work%d" % os.getpid()
-	self.data_dir="/grid/data/%s" % os.environ.get('TEST_USER', os.environ['USER'])
-
+	self.data_dir="/grid/data/%s/%s" % (os.environ.get('TEST_USER', os.environ['USER']), os.environ.get('CLUSTER','0000'))
+        os.system('uberftp -mkdir "gsiftp://fg-bestman1.fnal.gov:2811%s" > /dev/null 2>&1' % (self.data_dir))
+        os.system('uberftp -chmod 775 "gsiftp://fg-bestman1.fnal.gov:2811%s" > /dev/null 2>&1' % (self.data_dir))
+        
         # setup test directory tree..
         count = 0
         os.mkdir("%s" % (self.work))
@@ -417,7 +419,7 @@ class ifdh_cp_cases(unittest.TestCase):
          self.assertEqual(len(list) > 0, True)
 
     def test_bluearc_ls_gftp(self):
-         list = self.ifdh_handle.ls('/grid/data/mengel', 1, "--force=gridftp")
+         list = self.ifdh_handle.ls(self.data_dir, 1, "--force=gridftp")
          self.assertEqual(len(list) > 0, True)
 
     def test_pnfs_ls_gftp(self):
@@ -439,7 +441,7 @@ class ifdh_cp_cases(unittest.TestCase):
          self.assertEqual(len(list) > 0, True)
 
     def test_expgridftp_mkdir_add(self):
-         dir = '/grid/data/%s/%d' % (os.environ['USER'], os.getpid())
+         dir = "%s/%d" % (self.data_dir, os.getpid())
          self.ifdh_handle.mkdir(dir, '--force=expgridftp')
          self.ifdh_handle.cp( ['--force=expgridftp', '-D','%s/a/f1' % self.work, dir])
          list = self.ifdh_handle.ls(dir + '/f1' , 1, "")
@@ -449,7 +451,7 @@ class ifdh_cp_cases(unittest.TestCase):
          self.assertEqual(len(list) > 0, True)
 
     def test_bestman_mkdir_add(self):
-         dir = '/grid/data/%s/%d' % (os.environ['USER'], os.getpid())
+         dir = '%s/%d' % (self.data_dir, os.getpid())
          self.ifdh_handle.mkdir(dir, '--force=gridftp')
          self.ifdh_handle.cp( ['--force=gridftp', '-D','%s/a/f1' % self.work, dir])
          list = self.ifdh_handle.ls(dir + '/f1' , 1, "")
@@ -460,10 +462,10 @@ class ifdh_cp_cases(unittest.TestCase):
 
     def test_dcache_bluearc(self):
          try: 
-             self.ifdh_handle.rm("/grid/data/mengel/foo.txt","")
+             self.ifdh_handle.rm("%s/foo.txt" % self.data_dir,"")
          except:
              pass
-         res = self.ifdh_handle.cp(["/pnfs/nova/scratch/users/mengel/foo.txt", "/grid/data/mengel/foo.txt"])
+         res = self.ifdh_handle.cp(["/pnfs/nova/scratch/users/mengel/foo.txt", "%s/foo.txt" % self.data_dir])
          self.assertEqual(res == 0, True)
 
     def test_bluearc_dcache(self):
@@ -471,7 +473,7 @@ class ifdh_cp_cases(unittest.TestCase):
              self.ifdh_handle.rm("/pnfs/nova/scratch/users/mengel/foo.txt","")
          except:
              pass
-         res = self.ifdh_handle.cp(["/grid/data/mengel/foo.txt", "/pnfs/nova/scratch/users/mengel/foo.txt"])
+         res = self.ifdh_handle.cp(["%s/foo.txt" % self.data_dir, "/pnfs/nova/scratch/users/mengel/foo.txt"])
          self.assertEqual(res == 0, True)
 
     def test_list_copy_force_gridftp(self):
@@ -495,7 +497,7 @@ class ifdh_cp_cases(unittest.TestCase):
     def test_list_copy_mixed(self):
         self.make_test_txt()
         f = open("%s/list" % self.work,"w")
-        f.write("/grid/data/mengel/test.txt %s/test2.txt\n/pnfs/nova/scratch/users/mengel/foo.txt %s/foo.txt\n" % (self.work, self.work ))
+        f.write("%s/test.txt %s/test2.txt\n/pnfs/nova/scratch/users/mengel/foo.txt %s/foo.txt\n" % (self.data_dir, self.work, self.work ))
         f.close()
         self.ifdh_handle.cp([ "-f", "%s/list" % self.work])
         self.assertEqual(self.check_test_txt(), True)

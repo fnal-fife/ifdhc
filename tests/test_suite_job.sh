@@ -23,7 +23,7 @@ grid-proxy-info
 echo " --------------------- "
 
 # setup
-source /grid/fermiapp/products/common/etc/setups.sh
+source /cvmfs/oasis.opensciencegrid.org/fermilab/products/common/etc/setups.sh || source /grid/fermiapp/products/common/etc/setups.sh
 cd $dir
 setup -P -r $dir -M ups -m ifdhc.table ifdhc
 

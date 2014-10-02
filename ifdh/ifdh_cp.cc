@@ -254,7 +254,7 @@ public:
      
 	_heartbeat_pid = fork();
 	if (_heartbeat_pid == 0) {
-	    parent_pid = getpgrp();
+	    parent_pid = getppid();
 	    while( 0 == kill(parent_pid, 0) ) {
                 // touch our lockfile
 		if ( 0 != utimes(lockfilename.c_str(), NULL)) {

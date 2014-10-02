@@ -37,7 +37,11 @@ namespace ifdh_ns {
 std::string bestman_srm_uri = "srm://fg-bestman1.fnal.gov:10443/srm/v2/server?SFN=";
 std::string bestman_ftp_uri = "gsiftp://fg-bestman1.fnal.gov:2811";
 std::string pnfs_srm_uri = "srm://fndca1.fnal.gov:8443/srm/managerv2?SFN=/pnfs/fnal.gov/usr/";
+#ifndef NOSYMLINKS
+std::string pnfs_gsiftp_uri = "gsiftp://fndca1.fnal.gov/pnfs/fnal.gov/usr";
+#else
 std::string pnfs_gsiftp_uri = "gsiftp://fndca1.fnal.gov/";
+#endif
 std::string pnfs_cdf_srm_uri = "srm://cdfdca1.fnal.gov:8443/srm/managerv2?SFN=/pnfs/fnal.gov/usr/";
 std::string pnfs_cdf_gsiftp_uri = "gsiftp://cdfdca1.fnal.gov/";
 std::string pnfs_d0_srm_uri = "srm://d0dca1.fnal.gov:8443/srm/managerv2?SFN=/pnfs/fnal.gov/usr/";
@@ -701,7 +705,9 @@ map_pnfs(string loc, int srmflag = 0) {
       if (srmflag) {
 	 loc = srmuri + loc;
       } else {
+#ifdef NOSYMLINKS
 	  loc = loc.substr(loc.find("/",1)+1);
+#endif
 	  loc = gsiftpuri + loc;
       } 
 

@@ -37,7 +37,11 @@ namespace ifdh_ns {
 std::string bestman_srm_uri = "srm://fg-bestman1.fnal.gov:10443/srm/v2/server?SFN=";
 std::string bestman_ftp_uri = "gsiftp://fg-bestman1.fnal.gov:2811";
 std::string pnfs_srm_uri = "srm://fndca1.fnal.gov:8443/srm/managerv2?SFN=/pnfs/fnal.gov/usr/";
+#ifndef NOSYMLINKS
+std::string pnfs_gsiftp_uri = "gsiftp://fndca1.fnal.gov/pnfs/fnal.gov/usr";
+#else
 std::string pnfs_gsiftp_uri = "gsiftp://fndca1.fnal.gov/";
+#endif
 std::string pnfs_cdf_srm_uri = "srm://cdfdca1.fnal.gov:8443/srm/managerv2?SFN=/pnfs/fnal.gov/usr/";
 std::string pnfs_cdf_gsiftp_uri = "gsiftp://cdfdca1.fnal.gov/";
 std::string pnfs_d0_srm_uri = "srm://d0dca1.fnal.gov:8443/srm/managerv2?SFN=/pnfs/fnal.gov/usr/";
@@ -701,7 +705,9 @@ map_pnfs(string loc, int srmflag = 0) {
       if (srmflag) {
 	 loc = srmuri + loc;
       } else {
+#ifdef NOSYMLINKS
 	  loc = loc.substr(loc.find("/",1)+1);
+#endif
 	  loc = gsiftpuri + loc;
       } 
 
@@ -714,11 +720,7 @@ is_dzero_node_path( std::string path ) {
  // it could be a clued0 node, or it could be a d0srv node...
  // and the d0srv is either at the front, or has user@ on the
  // front of it...
- return path.find("-clued0:") != std::string::npos || 
-      path.find("-clued0.fnal.gov:") != std::string::npos || 
-     (path.find("d0srv") == 0 && path.find(':') != std::string::npos) ||
-     (path.find("d0srv") == path.find("@") + 1 && 
-	path.find(':') != std::string::npos);
+ return path.find("D0:") == 0;
 }
 
 int 
@@ -1149,8 +1151,11 @@ ifdh::cp( std::vector<std::string> args ) {
             } else if (clued0_hack) { 
                 // stick in $GRID_USER@host:path if no user provided
                 // and we have $GRID_USER...
+
                 if ( is_dzero_node_path(args[curarg]) && args[curarg].find('@') == std::string::npos && getenv("GRID_USER")) {
-                    cmd <<  getenv("GRID_USER") << "@" << args[curarg] << " ";
+                    cmd <<  getenv("GRID_USER") << "@" << args[curarg].substr(3) << " ";
+                } else if (is_dzero_node_path(args[curarg]) ) {
+                   cmd << args[curarg].substr(3) << " ";
                 } else {
                    cmd << args[curarg] << " ";
                 }

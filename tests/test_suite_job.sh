@@ -42,10 +42,10 @@ exec 2>&1
 ulimit -s 512000 -d 512000 -m 1024000
 ulimit -a
 
-python projTests.py
-python cpTests.py
-
-exit 0
+#python projTests.py
+#python cpTests.py
+#
+#exit 0
 
 # this is for massively parallel tests of rest of cpTests if they get killed
 

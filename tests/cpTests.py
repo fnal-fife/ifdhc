@@ -58,7 +58,7 @@ class ifdh_cp_cases(unittest.TestCase):
         os.environ['EXPERIMENT'] =  ifdh_cp_cases.experiment
         self.ifdh_handle = ifdh.ifdh(base_uri_fmt % ifdh_cp_cases.experiment)
         self.hostname = socket.gethostname()
-        self.work="/tmp/work%d" % os.getpid()
+        self.work="%s/work%d" % (os.environ.get('TMPDIR','/tmp'),os.getpid())
 	self.data_dir="/grid/data/%s/%s" % (os.environ.get('TEST_USER', os.environ['USER']), os.environ.get('CLUSTER','0000'))
         os.system('uberftp -mkdir "gsiftp://fg-bestman1.fnal.gov:2811%s" > /dev/null 2>&1' % (self.data_dir))
         os.system('uberftp -chmod 775 "gsiftp://fg-bestman1.fnal.gov:2811%s" > /dev/null 2>&1' % (self.data_dir))
@@ -463,16 +463,26 @@ class ifdh_cp_cases(unittest.TestCase):
     def test_dcache_bluearc(self):
          try: 
              self.ifdh_handle.rm("%s/foo.txt" % self.data_dir,"")
+             self.ifdh_handle.rm("/pnfs/nova/scratch/users/mengel/foo.txt","")
          except:
              pass
+         f =open("%s/foo.txt" % self.work,"w") 
+ 	 f.write("foo")
+	 f.close()
+         self.ifdh_handle.cp(["%s/foo.txt" % self.work, "/pnfs/nova/scratch/users/mengel/foo.txt"])
          res = self.ifdh_handle.cp(["/pnfs/nova/scratch/users/mengel/foo.txt", "%s/foo.txt" % self.data_dir])
          self.assertEqual(res == 0, True)
 
     def test_bluearc_dcache(self):
          try: 
+             self.ifdh_handle.rm("%s/foo.txt" % self.data_dir,"")
              self.ifdh_handle.rm("/pnfs/nova/scratch/users/mengel/foo.txt","")
          except:
              pass
+         f =open("%s/foo.txt" % self.work,"w") 
+ 	 f.write("foo")
+	 f.close()
+         self.ifdh_handle.cp(["%s/foo.txt" % self.work, "%s/foo.txt" % self.data_dir])
          res = self.ifdh_handle.cp(["%s/foo.txt" % self.data_dir, "/pnfs/nova/scratch/users/mengel/foo.txt"])
          self.assertEqual(res == 0, True)
 

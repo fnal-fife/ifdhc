@@ -58,6 +58,7 @@ class ifdh_cp_cases(unittest.TestCase):
         os.environ['EXPERIMENT'] =  ifdh_cp_cases.experiment
         self.ifdh_handle = ifdh.ifdh(base_uri_fmt % ifdh_cp_cases.experiment)
         self.hostname = socket.gethostname()
+        # xxx put TMPDIR here
         self.work="/tmp/work%d" % os.getpid()
         #XXX put cluster number here v...
 	self.data_dir="/grid/data/%s" % os.environ.get('TEST_USER', os.environ['USER'])

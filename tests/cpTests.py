@@ -59,6 +59,7 @@ class ifdh_cp_cases(unittest.TestCase):
         self.ifdh_handle = ifdh.ifdh(base_uri_fmt % ifdh_cp_cases.experiment)
         self.hostname = socket.gethostname()
         self.work="/tmp/work%d" % os.getpid()
+        #XXX put cluster number here v...
 	self.data_dir="/grid/data/%s" % os.environ.get('TEST_USER', os.environ['USER'])
 
         # setup test directory tree..
@@ -417,7 +418,7 @@ class ifdh_cp_cases(unittest.TestCase):
          self.assertEqual(len(list) > 0, True)
 
     def test_bluearc_ls_gftp(self):
-         list = self.ifdh_handle.ls('/grid/data/mengel', 1, "--force=gridftp")
+         list = self.ifdh_handle.ls(self.data_dir, 1, "--force=gridftp")
          self.assertEqual(len(list) > 0, True)
 
     def test_pnfs_ls_gftp(self):

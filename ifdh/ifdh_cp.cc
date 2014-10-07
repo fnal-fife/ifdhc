@@ -254,7 +254,7 @@ public:
      
 	_heartbeat_pid = fork();
 	if (_heartbeat_pid == 0) {
-	    parent_pid = getpgrp();
+	    parent_pid = getppid();
 	    while( 0 == kill(parent_pid, 0) ) {
                 // touch our lockfile
 		if ( 0 != utimes(lockfilename.c_str(), NULL)) {
@@ -280,7 +280,7 @@ public:
         waitpid(_heartbeat_pid, &res, 0);
         res2 = system("$CPN_DIR/bin/lock free");
         _heartbeat_pid = -1;
-        if (!(WIFSIGNALED(res) && 9 == WTERMSIG(res)) || !(WIFEXITED(res) &&WEXITSTATUS(res)==0)) {
+        if (!((WIFSIGNALED(res) && 9 == WTERMSIG(res)) || (WIFEXITED(res) &&WEXITSTATUS(res)==0))) {
             stringstream basemessage;
             basemessage <<"lock touch process exited code " << res << " signalled: " << WIFSIGNALED(res) << " signal: " << WTERMSIG(res);
             throw( std::logic_error(basemessage.str()));

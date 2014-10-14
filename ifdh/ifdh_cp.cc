@@ -910,7 +910,7 @@ ifdh::cp( std::vector<std::string> args ) {
                use_cpn = false; 
                use_srm = false;
  	       need_cpn_lock = true;
-               cpngroup += args[i].substr(0,args[i].find(':'));
+               cpngroup += args[i].substr(0,args[i].find(':',3));
                setenv("CPN_LOCK_GROUP", cpngroup.c_str(),0);
                break;
             }

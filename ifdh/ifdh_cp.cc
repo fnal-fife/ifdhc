@@ -1368,7 +1368,7 @@ pick_type( string &loc, string force, bool &use_fs, bool &use_gridftp, bool &use
 
         // if it's not visible, it's assumed to be either
         // dcache or bluearc...
-        int r1 =  local_access(parent_dir(loc).c_str(), R_OK);
+        int r1 =  access(parent_dir(loc).c_str(), R_OK);
         ifdh::_debug && std::cout << "ifdh ls: local_access returns " << r1 <<"\n";
         
         if (0 != r1 ) {

@@ -580,7 +580,7 @@ get_grid_credentials_if_needed() {
             cmd += " >/dev/null 2>&1 ";
         }
         cmd += "&& voms-proxy-init -rfc -noregen -debug -voms ";
-	if (experiment != "lbne" && experiment != "dzero" && experiment != "cdf" && experiment != "lsst" ) {
+	if (experiment != "lbne" && experiment != "dzero" && experiment != "cdf" && experiment != "lsst" && experiment != "fermilab") {
 	   cmd += "fermilab:/fermilab/" + experiment + "/Role=Analysis";
 	} else if (experiment == "dzero" ) {
            // dzero has an extra "users" component

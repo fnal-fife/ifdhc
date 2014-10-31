@@ -947,6 +947,13 @@ ifdh::cp( std::vector<std::string> args ) {
             }
 
 	    if( 0 != access(args[i].c_str(),R_OK) ) {
+
+                string altmount  = "/.ifdh_only" + args[i];
+
+                if ( 0 == access(altmount.c_str(),R_OK) ) {
+                     args[i] = altmount;
+                     continue;
+                }
 	       
 		if ( i == args.size() - 1 || args[i+1] == ";" ) {
 

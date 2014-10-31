@@ -827,6 +827,7 @@ ifdh::cp( std::vector<std::string> args ) {
        }
     }
 
+    
     // now decide whether to get a cpn lock...
     bool need_cpn_lock = false;
     for( std::vector<std::string>::size_type i = curarg; i < args.size(); i++ ) {
@@ -840,9 +841,10 @@ ifdh::cp( std::vector<std::string> args ) {
            break;
         }
 
-        if (args[i][0] == '/' && 0 == access(parent_dir(args[i]).c_str(),R_OK) && 0 != local_access(parent_dir(args[i]).c_str(),R_OK) && 0L != args[i].find("/pnfs") ) {
+        if (args[i][0] == '/' && 0 == access(parent_dir(args[i]).c_str(),R_OK) && 0 != local_access(parent_dir(args[i]).c_str(),R_OK) && 0L != args[i].find("/pnfs") && 0l != args[i].find("/scratch") ) {
            _debug && cout << "need lock: " << args[i] << " NFS test\n";
             // we can see it but it's not local and not /pnfs
+            //   and it isn't a nfs mounted /scratch area
             need_cpn_lock = true;
            break;
         }

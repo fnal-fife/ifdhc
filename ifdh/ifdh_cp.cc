@@ -1310,6 +1310,12 @@ ifdh::mv(vector<string> args) {
 
 void
 pick_type( string &loc, string force, bool &use_fs, bool &use_gridftp, bool &use_srm, bool &use_irods) {
+
+    if (force.length() == 0) {
+       if (getenv("IFDH_FORCE")) {
+          force = getenv("IFDH_FORCE");
+       }
+    }
     if (force.find("--force=") == 0L) {
         ifdh::_debug && std::cout << "force type: " << force[8] << "\n";
         switch(force[8]) {
@@ -1563,6 +1569,65 @@ ifdh::rmdir(string loc, string force) {
     return 0;
 }
 
+std::string
+mbits( int n ) {
+    std::stringstream res;
+    if ( n & 04 ) 
+       res << 'R';
+    if ( n & 02 ) 
+       res << 'W';
+    if ( n & 01 ) 
+       res << 'X';
+    return res.str();
+}
+
+int
+ifdh::chmod(string mode, string loc, string force) {
+    bool use_gridftp = false;
+    bool use_srm = false;
+    bool use_fs = false;
+    bool use_irods = false;
+    std::stringstream cmd;
+
+    pick_type( loc, force, use_fs, use_gridftp, use_srm, use_irods);
+
+    if (use_fs)      cmd << "chmod ";
+    if (use_gridftp) cmd << "uberftp -chmod ";
+    // commented out srm bits here are an alternate possiblity --
+    // using srm-permission-set versus srm-set-permissions(!)
+    // -- note srm-set-permissions gives errors about ACL support
+    //    from DCache SRM. So we don't do that now.
+    //if (use_srm)     cmd << "srm-permission-set ";
+    if (use_srm)     cmd << "srm-set-permissions ";
+    if (use_irods)   cmd << "ichmod ";
+
+    //if (use_srm) {
+    //   int imode = strtol(mode.c_str(), 0, 8);
+    //   cmd << "-permissiontype change ";
+    //   cmd << "-ownerpermission " << mbits((imode >> 6) & 7) << " ";
+    //   cmd << "-grouppermissions " << getexperiment() << ":" << mbits((imode >> 3) & 7) << " ";
+    //   cmd << "-otherpermission " << mbits((imode >> 0) & 7) << " ";
+    //   cmd << "-s ";
+    if (use_srm) {
+       int imode = strtol(mode.c_str(), 0, 8);
+       cmd << "-type=CHANGE ";
+       cmd << "-owner=" << mbits((imode >> 6) & 7) << " ";
+       cmd << "-group=" << mbits((imode >> 3) & 7) << " ";
+       cmd << "-other=" << mbits((imode >> 0) & 7) << " ";
+    } else {
+       cmd << mode << " ";
+    }
+
+    cmd << loc;
+
+    _debug && std::cout << "running: " << cmd.str() << "\n";
+
+    int status = system(cmd.str().c_str());
+    if (WIFSIGNALED(status)) throw( std::logic_error("signalled while doing chmod"));
+    if (WIFEXITED(status) && WEXITSTATUS(status) != 0) throw( std::logic_error("chmod failed"));
+    return 0;
+}
+
 int
 ifdh::pin(string loc, long int secs) {
     bool use_gridftp = false;
@@ -1581,7 +1646,7 @@ ifdh::pin(string loc, long int secs) {
     pick_type( loc, "--force=srm", use_fs, use_gridftp, use_srm, use_irods);
 
     cmd << "srm-bring-online --lifetime=" << secs << " " << loc;
-    _debug && std::cout << "running: " << cmd.str();
+    _debug && std::cout << "running: " << cmd.str() << "\n";
 
     int status = system(cmd.str().c_str());
     if (WIFSIGNALED(status)) throw( std::logic_error("signalled while doing rmdir"));

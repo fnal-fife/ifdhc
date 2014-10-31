@@ -111,6 +111,8 @@ class ifdh {
         int more(std::string loc);
         // pin file 
         int pin(std::string loc, long int seconds);
+        // change file permissions
+        int chmod(std::string mode, std::string loc, std::string force);
 };
 
 }

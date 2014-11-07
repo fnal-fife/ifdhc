@@ -1124,6 +1124,8 @@ ifdh::cp( std::vector<std::string> args ) {
 	     }
 	 }
 
+         bool did_one_endpoint = false;
+
          while (curarg < args.size() && args[curarg] != ";" ) {
 
 
@@ -1182,22 +1184,48 @@ ifdh::cp( std::vector<std::string> args ) {
                 if (stage_via) {
                     need_copyback = true;
                 }
-                if( args[curarg].find("srm:") == 0)  
+
+                if( curarg + 1 < args.size() && args[curarg+1].find("srm:") == 0) {
+                    did_one_endpoint = 1;
+                }
+                if( args[curarg].find("srm:") == 0) {
 		    cmd << args[curarg] << " ";
-                else
+                    did_one_endpoint = 1;
+                } else if ( did_one_endpoint && 0 == access(args[curarg].c_str(), R_OK)) {
+                    // if one endpoint is visible locally and the other is srm: use it locally
+                    cmd << "file:///" << args[curarg] << " ";
+                } else {
 		    cmd << bestman_srm_uri << args[curarg] << " ";
+                    did_one_endpoint = 1;
+                }
 
 
             } else if (use_exp_gridftp) {
-                if( args[curarg].find("gsiftp:") == 0)  
+                if( curarg + 1 < args.size() && args[curarg+1].find("gsiftp:") == 0) {
+                    did_one_endpoint = 1;
+                }
+                if( args[curarg].find("gsiftp:") == 0) {
                     cmd << args[curarg] << " ";
-                else
+                    did_one_endpoint = 1;
+                } else if ( did_one_endpoint && 0 == access(args[curarg].c_str(), R_OK)) {
+                    cmd << "file:///" << args[curarg] << " ";
+                } else {
                     cmd << "gsiftp://" << gftpHost << args[curarg] << " ";
+                    did_one_endpoint = 1;
+                }
             } else if (use_bst_gridftp) {
-                if( args[curarg].find("gsiftp:") == 0)  
+                if( curarg + 1 < args.size() && args[curarg+1].find("gsiftp:") == 0) {
+                    did_one_endpoint = 1;
+                }
+                if( args[curarg].find("gsiftp:") == 0) {
                     cmd << args[curarg] << " ";
-                else
+                    did_one_endpoint = 1;
+                } else if ( did_one_endpoint && 0 == access(args[curarg].c_str(), R_OK)) {
+                    cmd << "file:///" << args[curarg] << " ";
+                } else {
                     cmd << bestman_ftp_uri << args[curarg] << " ";
+                    did_one_endpoint = 1;
+                }
             } else if ( use_irods) {
 	        cmd << args[curarg] << " ";
             }

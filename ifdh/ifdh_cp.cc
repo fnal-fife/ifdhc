@@ -1191,7 +1191,7 @@ ifdh::cp( std::vector<std::string> args ) {
                 if( args[curarg].find("srm:") == 0) {
 		    cmd << args[curarg] << " ";
                     did_one_endpoint = 1;
-                } else if ( did_one_endpoint && 0 == access(args[curarg].c_str(), R_OK)) {
+                } else if ( did_one_endpoint && 0 == access(parent_dir(args[curarg]).c_str(), R_OK)) {
                     // if one endpoint is visible locally and the other is srm: use it locally
                     cmd << "file:///" << args[curarg] << " ";
                 } else {
@@ -1207,7 +1207,7 @@ ifdh::cp( std::vector<std::string> args ) {
                 if( args[curarg].find("gsiftp:") == 0) {
                     cmd << args[curarg] << " ";
                     did_one_endpoint = 1;
-                } else if ( did_one_endpoint && 0 == access(args[curarg].c_str(), R_OK)) {
+                } else if ( did_one_endpoint && 0 == access(parent_dir(args[curarg]).c_str(), R_OK)) {
                     cmd << "file:///" << args[curarg] << " ";
                 } else {
                     cmd << "gsiftp://" << gftpHost << args[curarg] << " ";
@@ -1220,7 +1220,7 @@ ifdh::cp( std::vector<std::string> args ) {
                 if( args[curarg].find("gsiftp:") == 0) {
                     cmd << args[curarg] << " ";
                     did_one_endpoint = 1;
-                } else if ( did_one_endpoint && 0 == access(args[curarg].c_str(), R_OK)) {
+                } else if ( did_one_endpoint && 0 == access(parent_dir(args[curarg]).c_str(), R_OK)) {
                     cmd << "file:///" << args[curarg] << " ";
                 } else {
                     cmd << bestman_ftp_uri << args[curarg] << " ";

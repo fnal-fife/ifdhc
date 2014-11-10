@@ -431,7 +431,7 @@ class ifdh_cp_cases(unittest.TestCase):
          self.assertEqual(len(list) > 0, True)
 
     def test_pnfs_mkdir_add(self):
-         dir = '/pnfs/nova/scratch/users/%s/%d' % (os.environ['USER'], os.getpid())
+         dir = '/pnfs/nova/scratch/users/%s/%d' % (os.environ.get('TEST_USER', os.environ['USER']), os.getpid())
          self.ifdh_handle.mkdir(dir,'')
          self.ifdh_handle.cp( ['-D','%s/a/f1' % self.work, dir])
          list = self.ifdh_handle.ls(dir + '/f1' , 1, "")

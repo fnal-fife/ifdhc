@@ -1350,7 +1350,7 @@ pick_type( string &loc, string force, bool &use_fs, bool &use_gridftp, bool &use
 
     if (force.length() == 0) {
        if (getenv("IFDH_FORCE")) {
-          force += "--force="
+          force += "--force=";
           force += getenv("IFDH_FORCE");
        }
     }

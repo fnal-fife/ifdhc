@@ -203,7 +203,7 @@ class ifdh_lock_cases(unittest.TestCase):
         os.kill( int(pids[7:14]), 9)
 
         # wait long enough for the background task to notice...
-        time.sleep(1)
+        time.sleep(65)
 
         lockf = s[s.rfind(" ")+1:-1]
         print "checking lock file: '%s'" % lockf

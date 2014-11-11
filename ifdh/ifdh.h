@@ -18,6 +18,7 @@ class ifdh {
    public:
         static int _debug;
         static std::string _default_base_uri;
+        static std::string _default_base_ssl_uri;
 
         // generic constructor...
 

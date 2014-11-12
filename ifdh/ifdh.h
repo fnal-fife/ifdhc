@@ -18,6 +18,7 @@ class ifdh {
    public:
         static int _debug;
         static std::string _default_base_uri;
+        static std::string _default_base_ssl_uri;
 
         // generic constructor...
 
@@ -80,7 +81,7 @@ class ifdh {
 	std::string findProject( std::string name, std::string station);
 
         // set yourself up as a file consumer process for a project
-	std::string establishProcess(std::string projecturi,  std::string appname, std::string appversion, std::string location, std::string user, std::string appfamily = "", std::string description = "", int filelimit = -1);
+	std::string establishProcess(std::string projecturi,  std::string appname, std::string appversion, std::string location, std::string user, std::string appfamily = "", std::string description = "", int filelimit = -1, std::string schemas = "");
         // get the next file location from a project
 	std::string getNextFile(std::string projecturi, std::string processid);
         // update the file status (use: transferred, skipped, or consumed)
@@ -107,6 +108,12 @@ class ifdh {
         int rm(std::string loc, std::string force);
         // remove directories
         int rmdir(std::string loc, std::string force);
+        // view text files
+        int more(std::string loc);
+        // pin file 
+        int pin(std::string loc, long int seconds);
+        // change file permissions
+        int chmod(std::string mode, std::string loc, std::string force);
 };
 
 }

@@ -97,8 +97,8 @@ do
           ;;
         *)
           echo "usual case: $args" >&2 
-          cargs=`echo $args | perl -pe 's/std::string//g; s/= ".*?"//g; s/= -1//g; s/;.*//; s/int ([a-z]*)/atol_$1/g;'`
-          args=`echo $args | perl -pe 's/std::string//g; s/= ".*?"//g; s/= -1//g; s/;.*//; s/int//g;'`
+          cargs=`echo $args | perl -pe 's/std::string//g; s/= ".*?"//g; s/= -1//g; s/;.*//; s/(long )?int ([a-z]*)/atol_$2/g;'`
+          args=`echo $args | perl -pe 's/std::string//g; s/= ".*?"//g; s/= -1//g; s/;.*//; s/(long )?int//g;'`
           ;;
         esac
         echo "cargs are now: $cargs" >&2

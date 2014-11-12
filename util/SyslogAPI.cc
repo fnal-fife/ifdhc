@@ -61,7 +61,13 @@ SyslogAPI::send( int facility, int severity, const char *tag, const char *msg) {
 
      st << "<" << pri << ">";
      st << date;
-     st << ' ' << phe->h_name  << ' ' ;
+     if (phe) {
+         st << ' ' << phe->h_name  << ' ' ;
+     } else if (hostbuf[0]) {
+         st << ' ' << hostbuf  << ' ' ;
+     } else {
+         st << " unknown_host " ;
+     }
      st << tag << "[" << (_parentflag ? getppid() : getpid())  << "]: ";
      st << msg;
 

@@ -37,7 +37,11 @@ namespace ifdh_ns {
 std::string bestman_srm_uri = "srm://fg-bestman1.fnal.gov:10443/srm/v2/server?SFN=";
 std::string bestman_ftp_uri = "gsiftp://fg-bestman1.fnal.gov:2811";
 std::string pnfs_srm_uri = "srm://fndca1.fnal.gov:8443/srm/managerv2?SFN=/pnfs/fnal.gov/usr/";
+#ifndef NOSYMLINKS
+std::string pnfs_gsiftp_uri = "gsiftp://fndca1.fnal.gov/pnfs/fnal.gov/usr/";
+#else
 std::string pnfs_gsiftp_uri = "gsiftp://fndca1.fnal.gov/";
+#endif
 std::string pnfs_cdf_srm_uri = "srm://cdfdca1.fnal.gov:8443/srm/managerv2?SFN=/pnfs/fnal.gov/usr/";
 std::string pnfs_cdf_gsiftp_uri = "gsiftp://cdfdca1.fnal.gov/";
 std::string pnfs_d0_srm_uri = "srm://d0dca1.fnal.gov:8443/srm/managerv2?SFN=/pnfs/fnal.gov/usr/";
@@ -87,12 +91,12 @@ cache_stat(std::string s) {
 
 bool
 is_directory(std::string dirname) {
-    struct stat *sb = cache_stat(dirname);
-    if (!sb) {
+    struct stat *sbp = cache_stat(dirname);
+    if (!sbp) {
         return false;
     }
-    ifdh::_debug && std::cout << "is_directory(" << dirname << ") -> " <<  S_ISDIR(sb->st_mode);
-    return S_ISDIR(sb->st_mode) != 0;
+    ifdh::_debug && std::cout << "is_directory(" << dirname << ") -> " <<  S_ISDIR(sbp->st_mode);
+    return S_ISDIR(sbp->st_mode) != 0;
 }
 
 bool
@@ -276,7 +280,7 @@ public:
         waitpid(_heartbeat_pid, &res, 0);
         res2 = system("$CPN_DIR/bin/lock free");
         _heartbeat_pid = -1;
-        if (!WIFSIGNALED(res) || 9 != WTERMSIG(res)) {
+        if (!((WIFSIGNALED(res) && 9 == WTERMSIG(res)) || (WIFEXITED(res) &&WEXITSTATUS(res)==0))) {
             stringstream basemessage;
             basemessage <<"lock touch process exited code " << res << " signalled: " << WIFSIGNALED(res) << " signal: " << WTERMSIG(res);
             throw( std::logic_error(basemessage.str()));
@@ -548,12 +552,16 @@ get_grid_credentials_if_needed() {
     std::string cmd;
     std::string experiment(getexperiment());
     std::stringstream proxyfileenv;
+    int res;
 
     ifdh::_debug && std::cout << "Checking for proxy cert...";
+
+    if( getenv("IFDH_NO_PROXY"))
+        return;
    
     if (!check_grid_credentials() && have_kerberos_creds()) {
         // if we don't have credentials, try our standard copy cache file
-        proxyfileenv << "/tmp/x509up_cp" << getuid();
+        proxyfileenv << datadir() << "/x509up_cp" << getuid();
 	ifdh::_debug && std::cout << "no credentials, trying " << proxyfileenv.str() << "\n";
         setenv("X509_USER_PROXY", proxyfileenv.str().c_str(),1);
         ifdh::_debug && std::cout << "Now X509_USER_PROXY is: " << getenv("X509_USER_PROXY");
@@ -572,10 +580,13 @@ get_grid_credentials_if_needed() {
             cmd += " >/dev/null 2>&1 ";
         }
         cmd += "&& voms-proxy-init -rfc -noregen -debug -voms ";
-	if (experiment != "lbne" && experiment != "dzero" && experiment != "cdf" ) {
+	if (experiment != "lbne" && experiment != "dzero" && experiment != "cdf" && experiment != "lsst" && experiment != "fermilab") {
 	   cmd += "fermilab:/fermilab/" + experiment + "/Role=Analysis";
+	} else if (experiment == "dzero" ) {
+           // dzero has an extra "users" component
+	   cmd +=  experiment + ":/" + experiment  + "/users/Role=Analysis";
 	} else {
-	   cmd += experiment + ":/Role=Analysis";
+	   cmd += experiment + ":/" + experiment + "/Role=Analysis";
 	}
         if (ifdh::_debug) {
             cmd += " >&2";
@@ -584,7 +595,15 @@ get_grid_credentials_if_needed() {
         }
 
 	ifdh::_debug && std::cout << "running: " << cmd << "\n";
-	system(cmd.c_str());
+	res = system(cmd.c_str());
+        // try a second time if it failed...
+        if (!WIFEXITED(res) || 0 != WEXITSTATUS(res)) {
+           sleep(1);
+	   res = system(cmd.c_str());
+        }
+        if (!WIFEXITED(res) ||  0 != WEXITSTATUS(res)) {
+            std::cerr << "Unable to get proxy cert.. later things may fail\n";
+        }
     }
 }
  
@@ -686,13 +705,24 @@ map_pnfs(string loc, int srmflag = 0) {
       if (srmflag) {
 	 loc = srmuri + loc;
       } else {
+#ifdef NOSYMLINKS
 	  loc = loc.substr(loc.find("/",1)+1);
+#endif
 	  loc = gsiftpuri + loc;
       } 
 
       ifdh::_debug && std::cout << "ending up with pnfs uri of " <<  loc << "\n";
       return loc;
 }
+
+bool
+is_dzero_node_path( std::string path ) {
+ // it could be a clued0 node, or it could be a d0srv node...
+ // and the d0srv is either at the front, or has user@ on the
+ // front of it...
+ return path.find("D0:") == 0;
+}
+
 int 
 ifdh::cp( std::vector<std::string> args ) {
 
@@ -705,6 +735,7 @@ ifdh::cp( std::vector<std::string> args ) {
     bool recursive = false;
     bool dest_is_dir = false;
     bool cleanup_stage = false;
+    bool no_zero_length = false;
     struct timeval time_before, time_after;
 
 
@@ -721,6 +752,9 @@ ifdh::cp( std::vector<std::string> args ) {
     if (getenv("IFDH_FORCE")) {
         force = getenv("IFDH_FORCE");
     }
+    if (getenv("IFDH_NO_ZERO_LENGTH")) {
+        no_zero_length = true;
+    }
 
     //
     // parse arguments
@@ -733,6 +767,11 @@ ifdh::cp( std::vector<std::string> args ) {
         if (args[curarg].substr(0,8) == "--force=") {
            force = args[curarg].substr(8,1);
            _debug && cout << "force option is " << args[curarg] << " char is " << force << "\n";
+           curarg++;
+           continue;
+        }
+        if (args[curarg] == "--no_zero_length") {
+           no_zero_length = true;
            curarg++;
            continue;
         }
@@ -775,7 +814,9 @@ ifdh::cp( std::vector<std::string> args ) {
     }
 
     for( std::vector<std::string>::size_type i = curarg; i < args.size(); i++ ) {
-       if (args[i][0] != ';' && args[i][0] != '/' && args[i].find("srm:") != 0 && args[i].find("gsiftp:") != 0) {
+
+       if (args[i][0] != ';' && args[i][0] != '/' && args[i].find("srm:") != 0 && args[i].find("gsiftp:") != 0 && !is_dzero_node_path(args[i])) {
+           _debug && std::cout << "adding cwd to " << args[i] << "\n";
 	   args[i] = cwd + "/" + args[i];
        }
        //
@@ -786,6 +827,7 @@ ifdh::cp( std::vector<std::string> args ) {
        }
     }
 
+    
     // now decide whether to get a cpn lock...
     bool need_cpn_lock = false;
     for( std::vector<std::string>::size_type i = curarg; i < args.size(); i++ ) {
@@ -799,9 +841,10 @@ ifdh::cp( std::vector<std::string> args ) {
            break;
         }
 
-        if (args[i][0] == '/' && 0 == access(parent_dir(args[i]).c_str(),R_OK) && 0 != local_access(parent_dir(args[i]).c_str(),R_OK) && 0L != args[i].find("/pnfs") ) {
+        if (args[i][0] == '/' && 0 == access(parent_dir(args[i]).c_str(),R_OK) && 0 != local_access(parent_dir(args[i]).c_str(),R_OK) && 0L != args[i].find("/pnfs") && 0l != args[i].find("/scratch") ) {
            _debug && cout << "need lock: " << args[i] << " NFS test\n";
             // we can see it but it's not local and not /pnfs
+            //   and it isn't a nfs mounted /scratch area
             need_cpn_lock = true;
            break;
         }
@@ -828,6 +871,7 @@ ifdh::cp( std::vector<std::string> args ) {
 
     // now decide local/remote
     // if anything is not local, use remote
+    bool clued0_hack = false;
     bool use_srm = false;
     bool use_exp_gridftp = false;
     bool use_bst_gridftp = false;
@@ -856,6 +900,21 @@ ifdh::cp( std::vector<std::string> args ) {
 
             if( args[i] == ";" ) {
                 continue;
+            }
+
+            if( is_dzero_node_path(args[i]) )  { 
+               // if we're given a foo-clued0:/path we're going
+               // to use rsync to copy it later, and we're going
+               // to use a per-host cpn lock group...
+               _debug && std::cout << "In clued0 hack case..\n";
+               std::string cpngroup("dzero/");
+               clued0_hack = true;
+               use_cpn = false; 
+               use_srm = false;
+ 	       need_cpn_lock = true;
+               cpngroup += args[i].substr(3,args[i].find(':',3)-3);
+               setenv("CPN_LOCK_GROUP", cpngroup.c_str(),0);
+               break;
             }
 
             if( args[i].find("i:") == 0)  { 
@@ -888,6 +947,13 @@ ifdh::cp( std::vector<std::string> args ) {
             }
 
 	    if( 0 != access(args[i].c_str(),R_OK) ) {
+
+                string altmount  = "/.ifdh_only" + args[i];
+
+                if ( 0 == access(altmount.c_str(),R_OK) ) {
+                     args[i] = altmount;
+                     continue;
+                }
 	       
 		if ( i == args.size() - 1 || args[i+1] == ";" ) {
 
@@ -978,7 +1044,7 @@ ifdh::cp( std::vector<std::string> args ) {
          cleanup_stage = true;
          curarg = 0;
          // workaround srmls heap limit hang problems
-         setenv("SRM_JAVA_OPTIONS", "-Xmx2048m" ,0);
+         setenv("SRM_JAVA_OPTIONS", "-Xmx1024m" ,0);
      }
 
      int error_expected;
@@ -1007,12 +1073,12 @@ ifdh::cp( std::vector<std::string> args ) {
      bool need_copyback = false;
 
      long int srcsize = 0, dstsize = 0;
-     struct stat statbuf;
+     struct stat *sbp;
 
      while( keep_going ) {
          stringstream cmd;
 
-         cmd << (use_dd ? "dd bs=512k " : use_cpn ? "cp "  : use_srm ? srm_copy_command  : use_any_gridftp ? "globus-url-copy -gridftp2 -nodcau -restart -stall-timeout 14400 " :  use_irods ? "icp " : "false" );
+         cmd << (use_dd ? "dd bs=512k " : use_cpn ? "cp "  : use_srm ? srm_copy_command  : use_any_gridftp ? "globus-url-copy -gridftp2 -nodcau -restart -stall-timeout 14400 " :  use_irods ? "icp " :  clued0_hack ? "scp " : "false" );
 
          if (use_any_gridftp) {
             if ( use_passive()) {
@@ -1048,6 +1114,18 @@ ifdh::cp( std::vector<std::string> args ) {
 
          error_expected  = 0;
 
+         // check if source is local and zero length, and skip if 
+         // we were told to not copy empty files.
+	 if (no_zero_length && 0 == local_access(args[curarg].c_str(), R_OK) ) {
+	     sbp = cache_stat(args[curarg]);
+	     if (sbp && sbp->st_size == 0) {
+	 	std::cerr << "Not copying " << args[curarg] << " as it is zero length.\n";
+	 	continue;
+	     }
+	 }
+
+         bool did_one_endpoint = false;
+
          while (curarg < args.size() && args[curarg] != ";" ) {
 
 
@@ -1078,9 +1156,20 @@ ifdh::cp( std::vector<std::string> args ) {
 		    args[curarg] += "/";
 	    }
 
-            if (use_cpn) { 
+            if (use_cpn ) { 
                 // no need to munge arguments, take them as is.
                 cmd << args[curarg] << " ";
+            } else if (clued0_hack) { 
+                // stick in $GRID_USER@host:path if no user provided
+                // and we have $GRID_USER...
+
+                if ( is_dzero_node_path(args[curarg]) && args[curarg].find('@') == std::string::npos && getenv("GRID_USER")) {
+                    cmd <<  getenv("GRID_USER") << "@" << args[curarg].substr(3) << " ";
+                } else if (is_dzero_node_path(args[curarg]) ) {
+                   cmd << args[curarg].substr(3) << " ";
+                } else {
+                   cmd << args[curarg] << " ";
+                }
             } else if (use_dd) {
                 if (curarg == args.size() - 1 || args[curarg+1] == ";" ){
                    cmd << "of=" << args[curarg] << " ";
@@ -1095,22 +1184,48 @@ ifdh::cp( std::vector<std::string> args ) {
                 if (stage_via) {
                     need_copyback = true;
                 }
-                if( args[curarg].find("srm:") == 0)  
+
+                if( curarg + 1 < args.size() && args[curarg+1].find("srm:") == 0) {
+                    did_one_endpoint = 1;
+                }
+                if( args[curarg].find("srm:") == 0) {
 		    cmd << args[curarg] << " ";
-                else
+                    did_one_endpoint = 1;
+                } else if ( did_one_endpoint && 0 == access(parent_dir(args[curarg]).c_str(), R_OK)) {
+                    // if one endpoint is visible locally and the other is srm: use it locally
+                    cmd << "file:///" << args[curarg] << " ";
+                } else {
 		    cmd << bestman_srm_uri << args[curarg] << " ";
+                    did_one_endpoint = 1;
+                }
 
 
             } else if (use_exp_gridftp) {
-                if( args[curarg].find("gsiftp:") == 0)  
+                if( curarg + 1 < args.size() && args[curarg+1].find("gsiftp:") == 0) {
+                    did_one_endpoint = 1;
+                }
+                if( args[curarg].find("gsiftp:") == 0) {
                     cmd << args[curarg] << " ";
-                else
+                    did_one_endpoint = 1;
+                } else if ( did_one_endpoint && 0 == access(parent_dir(args[curarg]).c_str(), R_OK)) {
+                    cmd << "file:///" << args[curarg] << " ";
+                } else {
                     cmd << "gsiftp://" << gftpHost << args[curarg] << " ";
+                    did_one_endpoint = 1;
+                }
             } else if (use_bst_gridftp) {
-                if( args[curarg].find("gsiftp:") == 0)  
+                if( curarg + 1 < args.size() && args[curarg+1].find("gsiftp:") == 0) {
+                    did_one_endpoint = 1;
+                }
+                if( args[curarg].find("gsiftp:") == 0) {
                     cmd << args[curarg] << " ";
-                else
+                    did_one_endpoint = 1;
+                } else if ( did_one_endpoint && 0 == access(parent_dir(args[curarg]).c_str(), R_OK)) {
+                    cmd << "file:///" << args[curarg] << " ";
+                } else {
                     cmd << bestman_ftp_uri << args[curarg] << " ";
+                    did_one_endpoint = 1;
+                }
             } else if ( use_irods) {
 	        cmd << args[curarg] << " ";
             }
@@ -1145,11 +1260,11 @@ ifdh::cp( std::vector<std::string> args ) {
     }
 
      for( curarg = 0 ; curarg < args.size(); curarg++ ) {
-	if (0 == stat(args[curarg].c_str(),&statbuf)) {
+	if (0 != (sbp =  cache_stat(args[curarg].c_str()))) {
 	    if (curarg == args.size() - 1 || args[curarg+1] == ";" ) {
-		dstsize += statbuf.st_size;
+		dstsize += sbp->st_size;
 	    } else {
-		srcsize += statbuf.st_size;
+		srcsize += sbp->st_size;
 	    }
 	}
      }
@@ -1232,6 +1347,12 @@ ifdh::mv(vector<string> args) {
 
 void
 pick_type( string &loc, string force, bool &use_fs, bool &use_gridftp, bool &use_srm, bool &use_irods) {
+
+    if (force.length() == 0) {
+       if (getenv("IFDH_FORCE")) {
+          force = getenv("IFDH_FORCE");
+       }
+    }
     if (force.find("--force=") == 0L) {
         ifdh::_debug && std::cout << "force type: " << force[8] << "\n";
         switch(force[8]) {
@@ -1281,17 +1402,16 @@ pick_type( string &loc, string force, bool &use_fs, bool &use_gridftp, bool &use
 
     }
 
-    if (!(use_fs || use_gridftp || use_srm || use_irods)) {
+    if (!(use_fs || use_gridftp || use_srm || use_irods )) {
 
-        // convert to absolute path
         if (loc[0] != '/') {
            string cwd(get_current_dir_name());
            loc = cwd + '/' + loc;
-        }
+         }
 
         // if it's not visible, it's assumed to be either
         // dcache or bluearc...
-        int r1 =  local_access(parent_dir(loc).c_str(), R_OK);
+        int r1 =  access(parent_dir(loc).c_str(), R_OK);
         ifdh::_debug && std::cout << "ifdh ls: local_access returns " << r1 <<"\n";
         
         if (0 != r1 ) {
@@ -1330,7 +1450,7 @@ ifdh::ls(string loc, int recursion_depth, string force) {
 
 
     if (use_srm) {
-       setenv("SRM_JAVA_OPTIONS", "-Xmx2048m" ,0);
+       setenv("SRM_JAVA_OPTIONS", "-Xmx1024m" ,0);
        cmd << "srmls -2 ";
        if (recursion_depth > 1) {
            cmd << "--recursion_depth " << recursion_depth << " ";
@@ -1486,4 +1606,89 @@ ifdh::rmdir(string loc, string force) {
     return 0;
 }
 
+std::string
+mbits( int n ) {
+    std::stringstream res;
+    if ( n & 04 ) 
+       res << 'R';
+    if ( n & 02 ) 
+       res << 'W';
+    if ( n & 01 ) 
+       res << 'X';
+    return res.str();
+}
+
+int
+ifdh::chmod(string mode, string loc, string force) {
+    bool use_gridftp = false;
+    bool use_srm = false;
+    bool use_fs = false;
+    bool use_irods = false;
+    std::stringstream cmd;
+
+    pick_type( loc, force, use_fs, use_gridftp, use_srm, use_irods);
+
+    if (use_fs)      cmd << "chmod ";
+    if (use_gridftp) cmd << "uberftp -chmod ";
+    // commented out srm bits here are an alternate possiblity --
+    // using srm-permission-set versus srm-set-permissions(!)
+    // -- note srm-set-permissions gives errors about ACL support
+    //    from DCache SRM. So we don't do that now.
+    //if (use_srm)     cmd << "srm-permission-set ";
+    if (use_srm)     cmd << "srm-set-permissions ";
+    if (use_irods)   cmd << "ichmod ";
+
+    //if (use_srm) {
+    //   int imode = strtol(mode.c_str(), 0, 8);
+    //   cmd << "-permissiontype change ";
+    //   cmd << "-ownerpermission " << mbits((imode >> 6) & 7) << " ";
+    //   cmd << "-grouppermissions " << getexperiment() << ":" << mbits((imode >> 3) & 7) << " ";
+    //   cmd << "-otherpermission " << mbits((imode >> 0) & 7) << " ";
+    //   cmd << "-s ";
+    if (use_srm) {
+       int imode = strtol(mode.c_str(), 0, 8);
+       cmd << "-type=CHANGE ";
+       cmd << "-owner=" << mbits((imode >> 6) & 7) << " ";
+       cmd << "-group=" << mbits((imode >> 3) & 7) << " ";
+       cmd << "-other=" << mbits((imode >> 0) & 7) << " ";
+    } else {
+       cmd << mode << " ";
+    }
+
+    cmd << loc;
+
+    _debug && std::cout << "running: " << cmd.str() << "\n";
+
+    int status = system(cmd.str().c_str());
+    if (WIFSIGNALED(status)) throw( std::logic_error("signalled while doing chmod"));
+    if (WIFEXITED(status) && WEXITSTATUS(status) != 0) throw( std::logic_error("chmod failed"));
+    return 0;
+}
+
+int
+ifdh::pin(string loc, long int secs) {
+    bool use_gridftp = false;
+    bool use_srm = false;
+    bool use_fs = false;
+    bool use_irods = false;
+    std::stringstream cmd;
+
+    // if it is not pnfs, ignore it.
+    if (loc.find("/pnfs") == string::npos) {
+        _debug && std::cout << "skiping pin of non pnfs " << loc << "\n";
+        return  0;
+    }
+
+    // we have to do this via srm for the moment
+    pick_type( loc, "--force=srm", use_fs, use_gridftp, use_srm, use_irods);
+
+    cmd << "srm-bring-online --lifetime=" << secs << " " << loc;
+    _debug && std::cout << "running: " << cmd.str() << "\n";
+
+    int status = system(cmd.str().c_str());
+    if (WIFSIGNALED(status)) throw( std::logic_error("signalled while doing rmdir"));
+    if (WIFEXITED(status) && WEXITSTATUS(status) != 0) throw( std::logic_error("rmdir failed"));
+    return 0;
+}
+       
 }

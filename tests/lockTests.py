@@ -76,7 +76,7 @@ class ifdh_lock_cases(unittest.TestCase):
         for i in range(0,7):
             sys.stdout.write(".")
             sys.stdout.flush()
-            time.sleep(10)
+            time.sleep(60)
         print ""
         try:
             sb = os.stat(qf)
@@ -98,9 +98,15 @@ class ifdh_lock_cases(unittest.TestCase):
         #print "trying: ", command
         os.system( command )
 
-    def expect_lock_line(self,  what ):
+    def expect_lock_line(self,  what, what2 = None, what3 = None ):
+        print "checking for '%s' ..." % what
         s = self.get_lock_line()
-        print "checking for '%s' in '%s'\n" % (what, s)
+        print "...in '%s'" %  s
+        if what2:
+            while what2 in s or what3 in s:
+                print "skipping because of %s, %s" % (what2, what3)
+                s = self.get_lock_line()
+	        print "...in '%s'" %  s
         self.assertTrue(what in s)
         return s
 
@@ -140,7 +146,7 @@ class ifdh_lock_cases(unittest.TestCase):
 
         self.wakeup()
 
-        self.expect_lock_line(" lock ")
+        self.expect_lock_line(" lock ", " queue ", " sleeping ")
         self.expect_lock_line(" freed ")
 
     def test_03_interrupt_queued(self):
@@ -196,7 +202,8 @@ class ifdh_lock_cases(unittest.TestCase):
 
         os.kill( int(pids[7:14]), 9)
 
-        time.sleep(1)
+        # wait long enough for the background task to notice...
+        time.sleep(65)
 
         lockf = s[s.rfind(" ")+1:-1]
         print "checking lock file: '%s'" % lockf

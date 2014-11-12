@@ -80,6 +80,17 @@ string cpn_loc  = "cpn";  // just use the one in the PATH -- its a product now
 string fermi_gsiftp  = "gsiftp://fg-bestman1.fnal.gov:2811";
 string bestmanuri = "srm://fg-bestman1.fnal.gov:10443/srm/v2/server?SFN=";
 std::string ifdh::_default_base_uri = "http://samweb.fnal.gov:8480/sam/";
+std::string ifdh::_default_base_ssl_uri = "https://samweb.fnal.gov:8483/sam/";
+
+string ssl_uri(string s) {
+   if (s.find(ifdh::_default_base_uri) == 0) {
+      return ifdh::_default_base_ssl_uri + s.substr(ifdh::_default_base_uri.length());
+   } else {
+      if (getenv("IFDH_BASE_URI") && getenv("IFDH_BASE_SSL_URI") && s.find(getenv("IFDH_BASE_URI")) == 0)
+          return getenv("IFDH_BASE_SSL_URI") + s.substr(strlen(getenv("IFDH_BASE_URI")));
+      return s;
+   }
+}
 
 string datadir() {
     stringstream dirmaker;
@@ -315,6 +326,11 @@ do_url_2(int postflag, va_list ap) {
     }
     urls = url.str();
     postdatas= postdata.str();
+    
+    if (urls.find("https:") == 0) {
+       extern void get_grid_credentials_if_needed();
+       get_grid_credentials_if_needed();
+    }
 
     if (ifdh::_debug) std::cerr << "calling WebAPI with url: " << urls << " and postdata: " << postdatas << "\n";
 
@@ -423,7 +439,7 @@ string ifdh::startProject( string name, string station,  string defname_or_id,  
   if (station == "" && getenv("SAM_STATIOn"))
       station = getenv("SAM_STATION}");
 
-  return do_url_str(1,_baseuri.c_str(),"startProject","","name",name.c_str(),"station",station.c_str(),"defname",defname_or_id.c_str(),"username",user.c_str(),"group",group.c_str(),"","");
+  return do_url_str(1,ssl_uri(_baseuri).c_str(),"startProject","","name",name.c_str(),"station",station.c_str(),"defname",defname_or_id.c_str(),"username",user.c_str(),"group",group.c_str(),"","");
 }
 
 string 
@@ -435,7 +451,7 @@ ifdh::findProject( string name, string station){
   if (station == "" && getenv("SAM_STATIOn"))
       station = getenv("SAM_STATION}");
 
-  return do_url_str(0,_baseuri.c_str(),"findProject","","name",name.c_str(),"station",station.c_str(),"","");
+  return do_url_str(0,ssl_uri(_baseuri).c_str(),"findProject","","name",name.c_str(),"station",station.c_str(),"","");
 }
 
 string 

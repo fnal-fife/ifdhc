@@ -83,8 +83,6 @@ std::string ifdh::_default_base_uri = "http://samweb.fnal.gov:8480/sam/";
 std::string ifdh::_default_base_ssl_uri = "https://samweb.fnal.gov:8483/sam/";
 
 string ssl_uri(string s) {
-   extern void get_grid_credentials_if_needed();
-   get_grid_credentials_if_needed();
    if (s.find(ifdh::_default_base_uri) == 0) {
       return ifdh::_default_base_ssl_uri + s.substr(ifdh::_default_base_uri.length());
    } else {
@@ -328,6 +326,11 @@ do_url_2(int postflag, va_list ap) {
     }
     urls = url.str();
     postdatas= postdata.str();
+    
+    if (urls.find("https:") == 0) {
+       extern void get_grid_credentials_if_needed();
+       get_grid_credentials_if_needed();
+    }
 
     if (ifdh::_debug) std::cerr << "calling WebAPI with url: " << urls << " and postdata: " << postdatas << "\n";
 

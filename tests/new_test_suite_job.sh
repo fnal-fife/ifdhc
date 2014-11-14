@@ -47,11 +47,16 @@ echo "-------------"
 
 ulimit -s 512000 -d 512000 -m 1024000
 ulimit -a
+#this just causes authentiction to fail
+#export IFDH_GRIDFTP_EXTRA=' -rst-interval 1 -rst-timeout 1 -rst-retries 1 '
 
-#python projTests.py
-#python cpTests.py
+
+python projTests.py
+R1=$?
+python cpTests.py
+R2=$?
 #
-#exit 0
+exit $(( $R1 && $R2 ))
 
 #grep 'def test' cpTests.py | perl -ne 's/^.*def //; s/\(.*//; printf "ifdh_cp_cases.$_  "'| sort 
 

@@ -16,21 +16,27 @@ if [ "$MAILTO" != "" ]; then
 fi
 
 TAR_FILE=ifdh_test.tgz
-if [ ! -e "$TAR_FILE" ] ; then
-    tar czvf $TAR_FILE *
-fi
+tar czvf $TAR_FILE *
 
 #Legal values for site: 
 # condor_status -any --format '%s\n' glidein_site | sort | uniq
+#BNL Cornell FZU Fermigridosg1 Harvard MWT2 Nebraska OSC Omaha SMU TTU UCSD UChicago MWT2
+#
 #export SITE=SMU to send to SMU
 
 #Legal values for SITE_CLASS as of 10/27/14 are:FERMICLOUD_PP_PRIV1,
 #FERMICLOUD_PP_PRIV,FERMICLOUD_PP,FERMICLOUD8G,FERMICLOUD,OFFSITE,
 #PAID_CLOUD,DEDICATED,OPPORTUNISTIC,SLOTTEST,PAID_CLOUD_TEST
+
+ORIG_EXE=new_test_suite_job.sh
 if [ "$SITE" = "" ]; then
     SITE_CLASS="DEDICATED,OPPORTUNISTIC"
+    TEST_SUITE=fermigrid_test.sh
+    cp $ORIG_EXE $TEST_SUITE
 else
     SITE_CLASS="OFFSITE"'   '"--site $SITE"' '
+    TEST_SUITE=${SITE}_test.sh
+    cp $ORIG_EXE $TEST_SUITE
 fi
 
 jobsub_submit -G $GROUP  \
@@ -42,4 +48,7 @@ jobsub_submit -G $GROUP  \
    --resource-provides=usage_model=$SITE_CLASS \
    $JOBSUB_SERVER \
    $SHOULD_SEND_MAIL \
-   file://new_test_suite_job.sh
+   file://$TEST_SUITE
+
+#cleanup
+rm $TEST_SUITE

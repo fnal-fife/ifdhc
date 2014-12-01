@@ -47,6 +47,11 @@ std::string pnfs_cdf_gsiftp_uri = "gsiftp://cdfdca1.fnal.gov/";
 std::string pnfs_d0_srm_uri = "srm://d0dca1.fnal.gov:8443/srm/managerv2?SFN=/pnfs/fnal.gov/usr/";
 std::string pnfs_d0_gsiftp_uri = "gsiftp://d0dca1.fnal.gov/";
 
+
+bool has(std::string s1, std::string s2) {
+   return s1.find(s2) != std::string::npos;
+}
+
 //
 // string constant for number of streams for gridftp, srmcp
 // 
@@ -149,11 +154,13 @@ ping_se(std::string uri) {
    std::stringstream cmd;
    int res;
 
+   if (has(uri,"srm:")) {
    ifdh::_debug && cout << "checking " << uri << " with srmping\n";
    cmd << "srmping -2 -retry_num=2 " << uri;
    res = system(cmd.str().c_str());
    if (WIFSIGNALED(res)) {
        throw( std::logic_error("signalled while doing srmping"));
+   }
    }
    return res == 0;
 }
@@ -721,10 +728,6 @@ is_dzero_node_path( std::string path ) {
  // and the d0srv is either at the front, or has user@ on the
  // front of it...
  return path.find("D0:") == 0;
-}
-
-bool has(std::string s1, std::string s2) {
-   return s1.find(s2) != std::string::npos;
 }
 
 int 

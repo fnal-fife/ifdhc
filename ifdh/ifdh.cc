@@ -357,7 +357,7 @@ do_url_str(int postflag,...) {
     string line;
     va_start(ap, postflag);
     WebAPI *wap = do_url_2(postflag, ap);
-    while (!wap->data().eof()) {
+    while (!wap->data().eof() && !wap->data().fail()) {
       getline(wap->data(), line);
       if (wap->data().eof()) {
          res = res + line;
@@ -377,9 +377,11 @@ do_url_lst(int postflag,...) {
     vector<string> res;
     va_start(ap, postflag);
     WebAPI *wap = do_url_2(postflag, ap);
-    while (!wap->data().eof()) {
+    while (!wap->data().eof() && !wap->data().fail()) {
         getline(wap->data(), line);
-        res.push_back(line);
+        if (! (line == "" && wap->data().eof())) {
+            res.push_back(line);
+        }
     }
     delete wap;
     return res;

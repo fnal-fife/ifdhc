@@ -964,14 +964,14 @@ ifdh::cp( std::vector<std::string> args ) {
 		       // to get desired ownership. 
 		       use_cpn = 0;
                            
-                       if (stage_via) {
+                       if (stage_via && stage_via.find("srm:") != std::string::npos) {
                            use_srm = 1;
                            _debug && cout << "deciding to use srm due to $IFDH_STAGE_VIA and: " << args[i] << "\n";
                        } else {
 		           use_exp_gridftp = 1;
                            _debug && cout << "deciding to use exp gridftp due to: " << args[i] << "\n";
                        }
-		   }      
+		   }  
 		} else {
 		   // for non-local sources, default to srm, for throttling (?)
 		   use_cpn = 0;
@@ -1451,7 +1451,7 @@ ifdh::ls(string loc, int recursion_depth, string force) {
 
     if (use_srm) {
        setenv("SRM_JAVA_OPTIONS", "-Xmx1024m" ,0);
-       cmd << "srmls -2 ";
+       cmd << "srmls -2 -count=8192 ";
        if (recursion_depth > 1) {
            cmd << "--recursion_depth " << recursion_depth << " ";
        }

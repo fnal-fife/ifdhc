@@ -723,6 +723,10 @@ is_dzero_node_path( std::string path ) {
  return path.find("D0:") == 0;
 }
 
+bool has(std::string s1, std::string s2) {
+   return s1.find(s2) != std::string::npos;
+}
+
 int 
 ifdh::cp( std::vector<std::string> args ) {
 
@@ -964,7 +968,7 @@ ifdh::cp( std::vector<std::string> args ) {
 		       // to get desired ownership. 
 		       use_cpn = 0;
                            
-                       if (stage_via && stage_via.find("srm:") != std::string::npos) {
+                       if (stage_via && has(stage_via,"srm:")) {
                            use_srm = 1;
                            _debug && cout << "deciding to use srm due to $IFDH_STAGE_VIA and: " << args[i] << "\n";
                        } else {

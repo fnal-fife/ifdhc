@@ -84,10 +84,10 @@ init() {
 get_first() {
    #debugging
    printf "Lock dir listing output:\n" >&2
-   srmls -2 "$wprefix/lock" >&2
+   ifdh ls  "$wprefix/lock" >&2
    printf "::\n" >&2
 
-   srmls -2 "$wprefix/lock" | sed -e '1d' -e '/^$/d' | sort | head -1
+   ifdh ls "$wprefix/lock" | sed -e 1d |  sort | head -1
 }
 
 i_am_first() {
@@ -122,7 +122,7 @@ expired_lock() {
 	   lock_name=`basename $first_file`
 	   printf "Breaking expired lock.\n"
            ifdh log "ifdh_copyback.sh: Breaking expired lock $lock_name\n"
-	   srmrm $wprefix/lock/$lock_name
+	   ifdh rm $wprefix/lock/$lock_name
        else
            printf "Still valid.\n"
        fi
@@ -156,24 +156,24 @@ get_lock() {
    fi
 
    printf "Lock $lockfile already exists, someone else is already copying files.\n"
-   srmrm $wprefix/lock/$uniqfile
+   ifdh rm $wprefix/lock/$uniqfile
    return 1
 }
 
 clean_lock() {
    printf "Removing my lock: $wprefix/lock/$uniqfile\n"
-   srmrm $wprefix/lock/$uniqfile > /dev/null 2>&1
+   ifdh rm $wprefix/lock/$uniqfile > /dev/null 2>&1
 }
 
 have_queue() {
-   count=`srmls -2  $wprefix/queue | wc -l`
-   [ $count -gt 2 ]
+   count=`ifdh ls $wprefix/queue | wc -l`
+   [ $count -gt 1 ]
 }
 
 copy_files() {
-   srmls -2 $wprefix/queue | (
+   ifdh ls $wprefix/queue | (
      read dirname
-     while read size filename
+     while read filename
      do
 
          [ x$filename = x ] && continue
@@ -197,11 +197,6 @@ copy_files() {
          while read src dest
          do              
   	     # fixup plain fermi destinations
-             case "$dest" in
-             srm:*) ;;
-             /*)  dest="srm://fg-bestman1.fnal.gov:10443/srm/v2/server?SFN=$dest"
-;;
-             esac
 
              cmd="ifdh cp  \"$src\" \"$dest\""
              echo "ifdh_copyback.sh: $cmd"
@@ -209,7 +204,7 @@ copy_files() {
              run_with_timeout 3600 eval "$cmd"
              debug "status; $?"
 
-             if  srmls -2 "$dest" > /dev/null 2>&1
+             if  ifdh ls "$dest" > /dev/null 2>&1
              then
                  :
              else
@@ -229,17 +224,17 @@ copy_files() {
              printf "removing: $src\n"
              ifdh log "ifdh_copyback.sh: cleaned up $src"
 
-             srmrm $src &
+             ifdh rm $src &
              srcdir=`dirname $src`
          done < ${filelist}
 
          wait
 
          printf "removing: $srcdir\n"
-         srmrmdir $srcdir &
+         ifdh rmdir $srcdir &
 
          printf "removing: $wprefix/queue/$filename\n"
-         srmrm    $wprefix/queue/$filename &
+         ifdh rm    $wprefix/queue/$filename &
          ifdh log "ifdh_copyback.sh: cleaned up $filename"
 
          rm $filelist
@@ -250,7 +245,7 @@ copy_files() {
 
 debug_ls() {
    debug "current stage area:"
-   [ x$IFDH_DEBUG != x ] && srmls -2 --recursion_depth=4 $wprefix
+   [ x$IFDH_DEBUG != x ] && ifdh ls $wprefix 4
    debug ""
 }
 

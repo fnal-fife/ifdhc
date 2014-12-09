@@ -1725,17 +1725,24 @@ ifdh::rename(std::string loc, std::string loc2, std::string force) {
 }
 
 std::vector<std::pair<std::string,long> > 
-ll( std::string loc, int recursion_depth, std::string force = "") {
-   ;
+ifdh::ll( std::string loc, int recursion_depth, std::string force) {
+  std::vector<std::pair<std::string,long> >  res;
+  std::cerr << "not yet implemented" << loc << recursion_depth << force <<"\n";
+   return res;;
 }
 
 std::vector<std::pair<std::string,long> > 
-findMatchingFiles( std::string path, std::string glob) {
-   ;
+ifdh::findMatchingFiles( std::string path, std::string glob) {
+   std::vector<std::pair<std::string,long> >  res;
+   std::cerr << "not yet implemented" << path << glob << "\n";
+   return res;
 }
 
 std::vector<std::pair<std::string,long> > 
-fetchSharedFiles( std::string path, std::string schema = "") {
+ifdh::fetchSharedFiles( std::string path , std::string schema ) {
+   std::vector<std::pair<std::string,long> >  res;
+   std::cerr << "not yet implemented" << path << schema << "\n";
+   return res;
   ;
 }
 

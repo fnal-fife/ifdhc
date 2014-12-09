@@ -959,6 +959,7 @@ ifdh::cp( std::vector<std::string> args ) {
 
                 if ( 0 == access(altmount.c_str(),R_OK) ) {
                      args[i] = altmount;
+                     need_cpn_lock = true;
                      continue;
                 }
 	       

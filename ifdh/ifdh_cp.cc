@@ -1699,4 +1699,45 @@ ifdh::pin(string loc, long int secs) {
     return 0;
 }
        
+int 
+ifdh::rename(std::string loc, std::string loc2, std::string force) {
+    bool use_gridftp = false;
+    bool use_srm = false;
+    bool use_fs = false;
+    bool use_irods = false;
+    std::stringstream cmd;
+
+    pick_type( loc, force, use_fs, use_gridftp, use_srm, use_irods);
+
+    if (use_fs)      cmd << "mv ";
+    if (use_gridftp) cmd << "uberftp -rename";
+    if (use_srm)     cmd << "srmmv ";
+    if (use_irods)   cmd << "imv ";
+
+    cmd << loc << " " << loc2;
+
+    _debug && std::cerr << "running: " << cmd.str() << "\n";
+
+    int status = system(cmd.str().c_str());
+    if (WIFSIGNALED(status)) throw( std::logic_error("signalled while doing chmod"));
+    if (WIFEXITED(status) && WEXITSTATUS(status) != 0) throw( std::logic_error("chmod failed"));
+    return 0;
+}
+
+std::vector<std::pair<std::string,long> > 
+ll( std::string loc, int recursion_depth, std::string force = "") {
+   ;
+}
+
+std::vector<std::pair<std::string,long> > 
+findMatchingFiles( std::string path, std::string glob) {
+   ;
+}
+
+std::vector<std::pair<std::string,long> > 
+fetchSharedFiles( std::string path, std::string schema = "") {
+  ;
+}
+
+
 }

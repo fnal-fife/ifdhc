@@ -7,11 +7,28 @@ xlate=false
 # ignore parens and commas
 IFS="(),$IFS"
 
+#  some funcs have a template type that confuses things, fix it
+fixargs() {
+   echo "in fixargs..." >&2
+   case "$args" in 
+   \>*) 
+       type="$type $func >"
+       func="$2"
+       shift
+       shift
+       args="$*"
+       echo "setting func to $func args to $args" >&2
+       ;;
+   esac
+}
+
 else=""
 while read type func args 
 do
+    fixargs $args
 
     docall=false
+    echo "DEBUG: line " $type "||" $func "||" $args >&2
 
     case "$type" in
     //)
@@ -25,16 +42,18 @@ do
 	printf "#include <stdlib.h>\n"
 	printf "#include <iostream>\n"
 	printf "#include <string>\n"
+	printf "#include <utility>\n"
 	printf "#include <vector>\n"
 	printf "#include <stdexcept>\n"
         printf "using namespace std;\n"
         printf "using namespace ifdh_util_ns;\n"
         # printf "extern \"C\" { void exit(int); }\n"
         printf "static void usage();\n"
-        printf "static int di(int i)\t{ exit(i);  return 1; }\n"
-        printf "static int ds(string s)\t { cout << s << \"\\\\n\"; return 1; }\n"
-        printf "static int dv(vector<string> v)\t{ for(size_t i = 0; i < v.size(); i++) { cout << v[i] << \"\\\\n\"; } return 1; }\n"
-        printf "static int dvtsl(vector<tuple<string, long int>> v)\t{ for(size_t i = 0; i < v.size(); i++) { cout << get<0>(v[i]) << "'"\t"'" << get<0>(v[i])\"\\\\n\"; } return 1; }\n"
+        printf "static int di(int i)\t\t{ exit(i);  return 1; }\n"
+        printf "static int ds(string s)\t\t{ cout << s << \"\\\\n\"; return 1; }\n"
+        printf "static int dv(vector<string> v)\t\t{ for(size_t i = 0; i < v.size(); i++) { cout << v[i] << \"\\\\n\"; } return 1; }\n"
+        printf "static int dvpsl(vector<pair<string, long int> > v)\t{ for(size_t i = 0; i < v.size(); i++) { cout << v[i].first << "'"\\t"'" << v[i].second << \"\\\\n\"; } return 1; }\n"
+        printf "static int dvmsvs(map<string,vector<string> > m)\t{for( map<string,vector<string> >:: iterator i  = m.begin(); i != m.end(); ++i) { cout << i->first << "'":\\n"'"; for j = 0; j < i->second.len(); ++j) { cout << "'"\\t"'" <<  i->second[j] "'"\\n"'";}  } return 1; }\n"
         printf "static vector<string> argvec(int argc, char **argv) { vector<string> v; for(int i = 0; i < argc; i++ ) { v.push_back(argv[i]); } return v; }\n"
         printf "static string catargs(int argc, char **argv) { string res; for(int i = 0; i < argc; i++ ) { res.append(argv[i]); res.append(\" \"); } return res; }\n"
 
@@ -63,6 +82,18 @@ do
         printf "$help\n"
 	printf "}\n"
         ;;
+    std::vector*std::pair*)
+        pfunc="dvpsl"
+        docall=true;
+        ;;
+    std::map*std::string*)
+        pfunc="dvmsvs"
+        docall=true;
+        ;;
+    std::vector*std::string*)
+        pfunc="dv"
+        docall=true;
+        ;;
     void)
         lastcomment=""
 	;;
@@ -73,14 +104,6 @@ do
     std::string)
         pfunc="ds"
         docall=true
-        ;;
-    std::vector*tuple*std::string*long.int*)
-        pfunc="dvtsl"
-        docall=true;
-        ;;
-    std::vector*std::string*)
-        pfunc="dv"
-        docall=true;
         ;;
     esac
 

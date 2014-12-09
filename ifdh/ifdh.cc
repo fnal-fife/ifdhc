@@ -14,6 +14,7 @@
 #include <errno.h>
 #include <exception>
 #include <sys/wait.h>
+#include <map>
 
 using namespace std;
 
@@ -656,6 +657,46 @@ ifdh::more(string loc) {
             unlink(c_where);
        } else {
             return -1;
+       }
+    }
+    return res;
+}
+
+std::map<std::string,std::vector<std::string> > 
+ifdh::locateFiles( std::vector<std::string> args) {
+    stringstream url;
+    stringstream postdata;
+    std::map<std::string,std::vector<std::string> >  res;
+    std::vector<std::string> locvec;
+    size_t p1, p2, p3, start;
+    std::string line, fname;
+
+    url << _baseuri.c_str() << "/files/locations";
+    for(size_t i = 0; i < args.size(); ++i) {
+        postdata << "filename=" << args[i] << "&";
+    }
+    postdata << "format=json";
+    WebAPI wa(url.str(), 1, postdata.str());
+    
+    while (!wa.data().eof() && !wa.data().fail()) {
+        getline(wa.data(), line, ']');
+        p1 = line.find('"');
+        p2 = line.find('"', p1+1);
+        if (p1 != string::npos && p2 != string::npos) {
+            locvec.clear();
+            fname = line.substr(p1,p2-p1);
+            start = p2+2;
+            p3 = line.find("\"location\":", start);
+            while (p3 != string::npos) {
+                p1 = line.find('"', p3+10);
+                p2 = line.find('"', p2+1);
+                if (p1 != string::npos && p2 != string::npos) {
+                   locvec.push_back(line.substr(p1+1, p2-p1));
+                }
+                start = p2+1;
+                p3 = line.find("\"location\":", start);
+           }
+           res[fname] = locvec;
        }
     }
     return res;

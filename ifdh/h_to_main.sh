@@ -77,6 +77,7 @@ do
     std::vector*tuple*std::string*long.int*)
         pfunc="dvtsl"
         docall=true;
+        ;;
     std::vector*std::string*)
         pfunc="dv"
         docall=true;

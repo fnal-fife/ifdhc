@@ -110,7 +110,7 @@ string datadir() {
 
     if ( 0 != access(dirmaker.str().c_str(), W_OK) ) {
         res = mkdir(dirmaker.str().c_str(),0700);
-        ifdh::_debug && cout <<  "mkdir " << dirmaker.str() << " => " << res << "\n";
+        ifdh::_debug && cerr <<  "mkdir " << dirmaker.str() << " => " << res << "\n";
     }
     localpath = dirmaker.str();
     if (localpath.substr(0,2) == "//" ){ 
@@ -242,7 +242,7 @@ ifdh::copyBackOutput(string dest_dir) {
 
         getline(outlog, line);
 
-        _debug && std::cout << "parsing: |" << line << "|\n";
+        _debug && std::cerr << "parsing: |" << line << "|\n";
 	spos = line.find(' ');
 	if (spos != string::npos) {
 	    file = line.substr(0,spos);
@@ -264,7 +264,7 @@ ifdh::copyBackOutput(string dest_dir) {
         first = false;
         cpargs.push_back(file);
         cpargs.push_back(dest_dir + "/" + filelast);
-        _debug && std::cout << "adding cp of " << file << " " << dest_dir << "/" << filelast << "\n";
+        _debug && std::cerr << "adding cp of " << file << " " << dest_dir << "/" << filelast << "\n";
    
     }
     return cp(cpargs);

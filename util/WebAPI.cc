@@ -227,10 +227,10 @@ WebAPI::WebAPI(std::string url, int postflag, std::string postdata) throw(WebAPI
                 _debug && std::cerr << "openssl"<< ' ' << "s_client"<< ' ' << " -CApath /etc/grid-security/certificates" << ' ' << "-connect"<< ' ' << hostport.str().c_str() << " -quiet"; 
                 if (proxy && _debug) {
                      // from https://wiki.nikhef.nl/grid/How_to_handle_OpenSSL_and_not_get_hurt_using_the_CLI#Using_proxy_certificates_and_s_client
-		    std::cout << " -key " << proxy << " -cert "<< proxy << " -CAfile " << proxy ;
+		    std::cerr << " -key " << proxy << " -cert "<< proxy << " -CAfile " << proxy ;
                 }
 
-                std::cout.flush();
+                std::cerr.flush();
 
                 // fixup file descriptors so our in/out are pipes
                 close(0);      

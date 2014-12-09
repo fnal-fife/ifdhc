@@ -34,6 +34,7 @@ do
         printf "static int di(int i)\t{ exit(i);  return 1; }\n"
         printf "static int ds(string s)\t { cout << s << \"\\\\n\"; return 1; }\n"
         printf "static int dv(vector<string> v)\t{ for(size_t i = 0; i < v.size(); i++) { cout << v[i] << \"\\\\n\"; } return 1; }\n"
+        printf "static int dvtsl(vector<tuple<string, long int>> v)\t{ for(size_t i = 0; i < v.size(); i++) { cout << get<0>(v[i]) << "'"\t"'" << get<0>(v[i])\"\\\\n\"; } return 1; }\n"
         printf "static vector<string> argvec(int argc, char **argv) { vector<string> v; for(int i = 0; i < argc; i++ ) { v.push_back(argv[i]); } return v; }\n"
         printf "static string catargs(int argc, char **argv) { string res; for(int i = 0; i < argc; i++ ) { res.append(argv[i]); res.append(\" \"); } return res; }\n"
 
@@ -73,6 +74,9 @@ do
         pfunc="ds"
         docall=true
         ;;
+    std::vector*tuple*std::string*long.int*)
+        pfunc="dvtsl"
+        docall=true;
     std::vector*std::string*)
         pfunc="dv"
         docall=true;

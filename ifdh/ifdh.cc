@@ -671,9 +671,11 @@ ifdh::locateFiles( std::vector<std::string> args) {
     size_t p1, p2, p3, start;
     std::string line, fname;
 
+    if (_debug) cerr << "Entering LocateFiles -- _baseuri is " << _baseuri; 
+
     url << _baseuri.c_str() << "/files/locations";
     for(size_t i = 0; i < args.size(); ++i) {
-        postdata << "filename=" << args[i] << "&";
+        postdata << "file_name=" << args[i] << "&";
     }
     postdata << "format=json";
     WebAPI wa(url.str(), 1, postdata.str());
@@ -684,14 +686,14 @@ ifdh::locateFiles( std::vector<std::string> args) {
         p2 = line.find('"', p1+1);
         if (p1 != string::npos && p2 != string::npos) {
             locvec.clear();
-            fname = line.substr(p1,p2-p1);
+            fname = line.substr(p1+1,p2-p1-1);
             start = p2+2;
             p3 = line.find("\"location\":", start);
             while (p3 != string::npos) {
                 p1 = line.find('"', p3+10);
-                p2 = line.find('"', p2+1);
+                p2 = line.find('"', p1+1);
                 if (p1 != string::npos && p2 != string::npos) {
-                   locvec.push_back(line.substr(p1+1, p2-p1));
+                   locvec.push_back(line.substr(p1+1, p2-p1-1));
                 }
                 start = p2+1;
                 p3 = line.find("\"location\":", start);

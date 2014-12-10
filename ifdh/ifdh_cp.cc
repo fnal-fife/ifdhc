@@ -1719,8 +1719,8 @@ ifdh::rename(std::string loc, std::string loc2, std::string force) {
     _debug && std::cerr << "running: " << cmd.str() << "\n";
 
     int status = system(cmd.str().c_str());
-    if (WIFSIGNALED(status)) throw( std::logic_error("signalled while doing chmod"));
-    if (WIFEXITED(status) && WEXITSTATUS(status) != 0) throw( std::logic_error("chmod failed"));
+    if (WIFSIGNALED(status)) throw( std::logic_error("signalled while doing rename"));
+    if (WIFEXITED(status) && WEXITSTATUS(status) != 0) throw( std::logic_error("rename failed"));
     return 0;
 }
 

@@ -27,8 +27,7 @@
 #include <wait.h>
 #include <linux/nfs_fs.h>
 #include <ifaddrs.h>
-
-
+#include <../util/regwrap.h>
 
 using namespace std;
 
@@ -1501,7 +1500,7 @@ ifdh::ll( std::string loc, int recursion_depth, std::string force) {
        recursion_depth++;
        cmd << "find " << loc << 
            " -maxdepth " << recursion_depth << 
-          " \\( -type d -printf '%s %p/\\n' -o -printf '%p\\n' \\)  " <<
+          " \\( -type d -printf '%s %p/\\n' -o -printf '%s %p\\n' \\)  " <<
            " " ;
     }
 
@@ -1570,7 +1569,7 @@ ifdh::ll( std::string loc, int recursion_depth, std::string force) {
            } 
            if (use_fs) {
                fsize = atol(s.c_str());
-               pos = s.find('/', spos);				if (pos == string::npos) continue;
+               pos = s.find('/');				if (pos == string::npos) continue;
 	       s = s.substr(pos);
                
            }
@@ -1691,13 +1690,6 @@ ifdh::chmod(string mode, string loc, string force) {
     if (use_srm)     cmd << "srm-set-permissions ";
     if (use_irods)   cmd << "ichmod ";
 
-    //if (use_srm) {
-    //   int imode = strtol(mode.c_str(), 0, 8);
-    //   cmd << "-permissiontype change ";
-    //   cmd << "-ownerpermission " << mbits((imode >> 6) & 7) << " ";
-    //   cmd << "-grouppermissions " << getexperiment() << ":" << mbits((imode >> 3) & 7) << " ";
-    //   cmd << "-otherpermission " << mbits((imode >> 0) & 7) << " ";
-    //   cmd << "-s ";
     if (use_srm) {
        int imode = strtol(mode.c_str(), 0, 8);
        cmd << "-type=CHANGE ";
@@ -1745,12 +1737,12 @@ ifdh::pin(string loc, long int secs) {
 }
        
 int 
-ifdh::rename(std::string loc, std::string loc2, std::string force) {
+ifdh::rename(string loc, string loc2, string force) {
     bool use_gridftp = false;
     bool use_srm = false;
     bool use_fs = false;
     bool use_irods = false;
-    std::stringstream cmd;
+    stringstream cmd;
 
     pick_type( loc, force, use_fs, use_gridftp, use_srm, use_irods);
 
@@ -1761,28 +1753,77 @@ ifdh::rename(std::string loc, std::string loc2, std::string force) {
 
     cmd << loc << " " << loc2;
 
-    _debug && std::cerr << "running: " << cmd.str() << "\n";
+    _debug && cerr << "running: " << cmd.str() << "\n";
 
     int status = system(cmd.str().c_str());
-    if (WIFSIGNALED(status)) throw( std::logic_error("signalled while doing rename"));
-    if (WIFEXITED(status) && WEXITSTATUS(status) != 0) throw( std::logic_error("rename failed"));
+    if (WIFSIGNALED(status)) throw( logic_error("signalled while doing rename"));
+    if (WIFEXITED(status) && WEXITSTATUS(status) != 0) throw( logic_error("rename failed"));
     return 0;
 }
 
-
-std::vector<std::pair<std::string,long> > 
-ifdh::findMatchingFiles( std::string path, std::string glob) {
-   std::vector<std::pair<std::string,long> >  res;
-   std::cerr << "not yet implemented" << path << glob << "\n";
+string
+glob_2_re(string s) {
+   string res;
+   res.push_back('/');
+   for(size_t i = 0; i < s.size(); i++ ) {
+       if (s[i] == '*') {
+          res.push_back('.');
+          res.push_back('*');
+       } else if (s[i] == '?') {
+          res.push_back('.');
+       } else if (s[i] == '+' || s[i] == '.' || s[i] == '|') {
+          res.push_back('\\');
+          res.push_back(s[i]);
+       } else {
+          res.push_back(s[i]);
+       }
+   }
    return res;
 }
 
-std::vector<std::pair<std::string,long> > 
-ifdh::fetchSharedFiles( std::vector<std::pair<std::string,long> > list, std::string schema ) {
-   std::vector<std::pair<std::string,long> >  res;
-   std::cerr << "not yet implemented" << list[0].first << schema << "\n";
+vector<pair<string,long> > 
+ifdh::findMatchingFiles( string path, string glob) {
+   vector<pair<string,long> >  res, batch;
+   vector<string>  dlist;
+   glob = glob_2_re(glob);
+
+   dlist = split(path,':',false);
+   for (size_t i = 0; i < dlist.size(); ++i) {
+        if (_debug) cerr << "checking dir: " << dlist[i] << endl;
+        batch = this->ll(dlist[i],10,"");
+        for(size_t j = 0; j < batch.size(); j++ ) {
+            if (_debug) cerr << "checking file: " << batch[j].first << endl;
+            regexp globre(glob);
+            regmatch m(globre(batch[j].first));
+            if (m) {
+                res.push_back(batch[j]);
+            }
+        }
+   }
    return res;
-  ;
+}
+
+vector<pair<string,long> > 
+ifdh::fetchSharedFiles( vector<pair<string,long> > list, string schema ) {
+   vector<pair<string,long> >  res;
+   string f;
+   string rdpath("root://fndca.fnal.gov:1094/pnfs/fnal.gov");
+
+   for(size_t i = 0; i < list.size(); i++ ) {
+       // for now, if we found it via a cvmfs path, return it, else
+       // run it through ifdh::fetchInput to get a local path
+       if (list[i].first.find("/cvmfs/") == 0 ) {
+           f = list[i].first;
+       } else {
+           if (schema == "xrootd" && list[i].first.find("/pnfs") == 0) {
+               f = rdpath + list[i].first;
+           } else {
+               f = this->fetchInput( list[i].first );
+           }
+       }
+       res.push_back( pair<string,long>(f, list[i].second));
+   }
+   return res;
 }
 
 }

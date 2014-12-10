@@ -47,6 +47,7 @@ regmatch::operator int() {
 
 regexp::regexp(std::string re) {
    int r1;
+   //std::cerr << "In re constructor, re is: " << re << std::endl;
    r1= regcomp( &_re, re.c_str(), REG_EXTENDED);
    if (r1 != 0) {
        static char buffer[1024];
@@ -74,10 +75,12 @@ int
 main() {
     std::string s("aabbccc");
     std::string s2("aaaccc");
-    regexp r("(a*)(b*)(c*)");
+    std::string s3("xxyyzz");
+    regexp r("^(a*)(b*)(c*)$");
 
     regmatch m(r(s));
     regmatch m2(r(s2));
+    regmatch m3(r(s3));
 
     if (m) {
        std::cout << "matched: got 0:" <<  m[0] << " 1: " << m[1] << " 2: " << m[2] << " 3: " << m[3] << "\n";
@@ -88,6 +91,11 @@ main() {
        std::cout << "matched: got 0:" <<  m2[0] << " 1: " << m2[1] << " 2: " << m2[2] << " 3: " << m2[3] << "\n";
     } else {
        std::cout << "ouch!\n";
+    }
+    if (m3) {
+       std::cout << "ouch!\n";
+    } else {
+       ;
     }
 }
 

@@ -1316,6 +1316,9 @@ ifdh::cp( std::vector<std::string> args ) {
 
     }
 
+    if (rres != 0) {
+        cerr << "ifdh cp failed at: " << ctime(&time_after.tv_sec) << endl;
+    }
    
     if (need_cpn_lock) {
         cpn.free();
@@ -1443,6 +1446,21 @@ pick_type( string &loc, string force, bool &use_fs, bool &use_gridftp, bool &use
 vector<string>
 ifdh::ls(string loc, int recursion_depth, string force) {
     vector<string> res;
+    std::vector<std::pair<std::string,long> > llout;
+
+    // return just the names from ll's output
+    llout = this->ll(loc, recursion_depth, force );
+    for(size_t i = 0; i < llout.size(); i++) { 
+       res.push_back(llout[i].first);
+    }
+    return res;
+}
+
+    
+std::vector<std::pair<std::string,long> > 
+ifdh::ll( std::string loc, int recursion_depth, std::string force) {
+
+  std::vector<std::pair<std::string,long> >  res;
     /* XX this should be factored & shared with ifdh_cp... */
     bool use_gridftp = false;
     bool use_srm = false;
@@ -1460,7 +1478,7 @@ ifdh::ls(string loc, int recursion_depth, string force) {
     if (use_srm) {
        setenv("SRM_JAVA_OPTIONS", "-Xmx1024m" ,0);
        cmd << "srmls -2 -count=8192 ";
-       if (recursion_depth > 1) {
+       if (recursion_depth > -1) {
            cmd << "--recursion_depth " << recursion_depth << " ";
        }
        cmd << loc;
@@ -1483,7 +1501,7 @@ ifdh::ls(string loc, int recursion_depth, string force) {
        recursion_depth++;
        cmd << "find " << loc << 
            " -maxdepth " << recursion_depth << 
-          " \\( -type d -printf '%p/\\n' -o -printf '%p\\n' \\)  " <<
+          " \\( -type d -printf '%s %p/\\n' -o -printf '%p\\n' \\)  " <<
            " " ;
     }
 
@@ -1491,10 +1509,13 @@ ifdh::ls(string loc, int recursion_depth, string force) {
 
     FILE *pf = popen(cmd.str().c_str(), "r");
     char buf[512];
+    long fsize;
+    size_t pos, spos, fpos;
     while (!feof(pf) && !ferror(pf)) {
 	if (fgets(buf, 512, pf)) {
            string s(buf);
            _debug && std::cerr << "before cleanup: |" << s <<  "|\n";
+           fsize = 0;
            // trim trailing newlines
            if ('\n' == s[s.size()-1]) {
                s = s.substr(0,s.size()-1);
@@ -1504,7 +1525,12 @@ ifdh::ls(string loc, int recursion_depth, string force) {
            }
            // trim leading stuff from srmls
            if (use_srm) {
-	       size_t pos = s.find('/');
+               spos = s.find_first_of("0123456789");
+	       pos = s.find('/');
+               if (spos != string::npos && spos < pos) {
+                   // we have digits before the path...
+                   fsize = atol(s.c_str()+spos);
+               }
 	       if (pos > 0 && pos != string::npos ) {
 		   s = s.substr(pos);
 	       }
@@ -1513,12 +1539,23 @@ ifdh::ls(string loc, int recursion_depth, string force) {
            }
            if (use_gridftp) {
                // trim long listing bits, (8 columns) add slash if dir
-               size_t pos = 0;
-               for( int i = 0; i < 8; i++ ) {
-                   pos = s.find(" ",pos);
-                   pos = s.find_first_not_of(" ", pos);
-               }
-               if (s[0] == 'd') {
+                 
+               // find flags (i.e drwxr-xr-x...)
+               fpos = s.find_first_of("drwsx-");   		if (fpos == string::npos) continue;
+               if (_debug) cerr << "fpos is" << fpos << endl;
+               // find path
+               pos = s.rfind(' ');				if (pos == string::npos) continue;
+               pos = pos + 1;
+               // find space column -- skip back over date
+               // look backwards for a space, then forwards for a digit
+               spos = pos - 16;
+               spos = s.rfind(' ', spos);		 	if (spos == string::npos) continue;
+               spos = s.find_first_of("0123456789",spos);	if (spos == string::npos) continue;
+               if (_debug) cerr << "spos is " << spos << endl;
+               fsize = atol(s.c_str()+spos);	
+               if (_debug) cerr << "fsize is " << fsize << endl;
+               if (_debug) cerr << "pos is" << pos << endl;
+               if (s[fpos] == 'd') {
                   s = s.substr(pos) + "/";
                   ifdh::_debug && std::cerr << "directory: " << s << "\n";
                } else {
@@ -1527,9 +1564,17 @@ ifdh::ls(string loc, int recursion_depth, string force) {
                // only gridftp lists . and ..
                if (s == "../" || s == "./" )
                    continue;
-               s = dir + '/' + s;
+               if (s[0] != '/') {
+                   s = dir + '/' +  s;
+               }
            } 
-           res.push_back(s);
+           if (use_fs) {
+               fsize = atol(s.c_str());
+               pos = s.find('/', spos);				if (pos == string::npos) continue;
+	       s = s.substr(pos);
+               
+           }
+           res.push_back(pair<string,long>(s,fsize));
         }
     }
     int status = pclose(pf);
@@ -1724,12 +1769,6 @@ ifdh::rename(std::string loc, std::string loc2, std::string force) {
     return 0;
 }
 
-std::vector<std::pair<std::string,long> > 
-ifdh::ll( std::string loc, int recursion_depth, std::string force) {
-  std::vector<std::pair<std::string,long> >  res;
-  std::cerr << "not yet implemented" << loc << recursion_depth << force <<"\n";
-   return res;;
-}
 
 std::vector<std::pair<std::string,long> > 
 ifdh::findMatchingFiles( std::string path, std::string glob) {
@@ -1739,12 +1778,11 @@ ifdh::findMatchingFiles( std::string path, std::string glob) {
 }
 
 std::vector<std::pair<std::string,long> > 
-ifdh::fetchSharedFiles( std::string path , std::string schema ) {
+ifdh::fetchSharedFiles( std::vector<std::pair<std::string,long> > list, std::string schema ) {
    std::vector<std::pair<std::string,long> >  res;
-   std::cerr << "not yet implemented" << path << schema << "\n";
+   std::cerr << "not yet implemented" << list[0].first << schema << "\n";
    return res;
   ;
 }
-
 
 }

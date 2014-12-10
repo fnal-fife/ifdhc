@@ -123,7 +123,7 @@ class ifdh {
         // find filenames and sizes matching pattern
         std::vector<std::pair<std::string,long> > findMatchingFiles( std::string path, std::string glob); 
         // filenames and sizes matching pattern moved locally enough to be seen
-        std::vector<std::pair<std::string,long> > fetchSharedFiles( std::string path, std::string schema = ""); 
+        std::vector<std::pair<std::string,long> > fetchSharedFiles( std::vector<std::pair<std::string,long> > list, std::string schema = ""); 
         // locate multiple files
         std::map<std::string,std::vector<std::string> > locateFiles( std::vector<std::string> args );
 };

@@ -103,6 +103,7 @@ class ifdh {
         // general file rename using mvn or srmcp
         int mv(std::vector<std::string> args);
         // Get a list of directory contents, or check existence of files
+        // use recursion_depth== 0 to check directory without contents
         std::vector<std::string> ls( std::string loc, int recursion_depth, std::string force = "");
         // make a directory (i.e. for file destination)
         int mkdir(std::string loc, std::string force = "");
@@ -118,7 +119,8 @@ class ifdh {
         int chmod(std::string mode, std::string loc, std::string force = "");
         // atomic rename items in same directory/fs
         int rename(std::string loc, std::string loc2,  std::string force = "");
-        // get filenames with sizes
+        // list files with sizes
+        // use recursion_depth== 0 to check directory without contents
         std::vector<std::pair<std::string,long> > ll( std::string loc, int recursion_depth, std::string force = "");
         // find filenames and sizes matching pattern
         std::vector<std::pair<std::string,long> > findMatchingFiles( std::string path, std::string glob); 

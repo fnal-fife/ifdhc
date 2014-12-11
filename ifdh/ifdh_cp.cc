@@ -1477,9 +1477,7 @@ ifdh::ll( std::string loc, int recursion_depth, std::string force) {
     if (use_srm) {
        setenv("SRM_JAVA_OPTIONS", "-Xmx1024m" ,0);
        cmd << "srmls -2 -count=8192 ";
-       if (recursion_depth > -1) {
-           cmd << "--recursion_depth " << recursion_depth << " ";
-       }
+       cmd << "--recursion_depth " << recursion_depth << " ";
        cmd << loc;
     } else if (use_irods) {
        cmd << "ils  ";
@@ -1497,7 +1495,6 @@ ifdh::ll( std::string loc, int recursion_depth, std::string force) {
        dir = loc.substr(loc.find("/",9));
     } else if (use_fs) {
        // find uses an off by one depth from srmls
-       recursion_depth++;
        cmd << "find " << loc << 
            " -maxdepth " << recursion_depth << 
           " \\( -type d -printf '%s %p/\\n' -o -printf '%s %p\\n' \\)  " <<
@@ -1578,8 +1575,6 @@ ifdh::ll( std::string loc, int recursion_depth, std::string force) {
     }
     int status = pclose(pf);
     if (WIFSIGNALED(status)) throw( std::logic_error("signalled while doing ls"));
-    if (WIFEXITED(status) && 0 != WEXITSTATUS(status)) throw( std::logic_error("ls failed."));
- 
     return res;
 }
    
@@ -1745,11 +1740,19 @@ ifdh::rename(string loc, string loc2, string force) {
     stringstream cmd;
 
     pick_type( loc, force, use_fs, use_gridftp, use_srm, use_irods);
+    pick_type( loc2, force, use_fs, use_gridftp, use_srm, use_irods);
 
     if (use_fs)      cmd << "mv ";
-    if (use_gridftp) cmd << "uberftp -rename";
+    if (use_gridftp) cmd << "uberftp -rename ";
     if (use_srm)     cmd << "srmmv ";
     if (use_irods)   cmd << "imv ";
+
+    // uberftp doesn't want the second argument to be a full uri, 
+    // but rather a path.
+    if (use_gridftp) {
+         size_t slpos = loc2.find('/',9);
+         loc2 = loc2.substr(slpos);
+    }
 
     cmd << loc << " " << loc2;
 

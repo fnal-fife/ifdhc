@@ -1466,10 +1466,26 @@ ifdh::ll( std::string loc, int recursion_depth, std::string force) {
     bool use_fs = false;
     bool use_irods = false;
     std::stringstream cmd;
-    std::string dir;
+    std::string dir, base;
+    size_t cpos, spos, qpos, pos, fpos;
 
     if ( -1 == recursion_depth )
         recursion_depth = 1;
+
+    cpos = loc.find(':');
+    if (cpos > 2 && cpos < 8) {
+       // looks like a uri...
+       spos = loc.find('/',cpos+3);
+       if( spos != string::npos) {
+          qpos = loc.find("?SFN=",spos);
+          if (qpos != string::npos) {
+              base = loc.substr(0,qpos+5);
+          } else {
+              base = loc.substr(0,spos);
+          }
+       }
+    }
+    if(_debug) std::cerr << "came up with base:" << base << endl;
 
     pick_type( loc, force, use_fs, use_gridftp, use_srm, use_irods);
 
@@ -1506,7 +1522,6 @@ ifdh::ll( std::string loc, int recursion_depth, std::string force) {
     FILE *pf = popen(cmd.str().c_str(), "r");
     char buf[512];
     long fsize;
-    size_t pos, spos, fpos;
     while (!feof(pf) && !ferror(pf)) {
 	if (fgets(buf, 512, pf)) {
            string s(buf);
@@ -1570,6 +1585,7 @@ ifdh::ll( std::string loc, int recursion_depth, std::string force) {
 	       s = s.substr(pos);
                
            }
+           s = base + s;
            res.push_back(pair<string,long>(s,fsize));
         }
     }

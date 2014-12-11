@@ -6,11 +6,11 @@ HDR=ifdh.h
 SWIGCXXFLAGS=-fPIC -I../util -I../numsg -I../../util -I../../numsg -I../../ifdh -g -I`echo $${PYTHON_INCLUDE:-$${PYTHON_DIR:-/usr}/include/python*}` $(ARCH)
 CXXFLAGS=-pedantic-errors -Wall -Wextra -Werror -fPIC -I../../util -I../util -I ../../numsg -I../numsg -g  $(ARCH) -I$(SRCDIR)
 OBJ=ifdh.o ifdh_cp.o
-ALL_OBJS=$(OBJ) ../util/WebAPI.o ../numsg/numsg.o ../util/SyslogAPI.o ../util/utils.o ../util/regwrap.o
+ALL_OBJS=$(OBJ) ../util/WebAPI.o ../numsg/numsg.o ../util/SyslogAPI.o ../util/utils.o ../util/regwrap.o ../util/Checksum.o
 genOBJ=ifdh_main.o ifdh_wrap.o python/_ifdh.so
 genSRC=ifdh_wrap.cxx ifdh_main.cc
 PYMOD_OBJS=$(ALL_OBJS) ifdh_wrap.o
-
+LDLIBS=-lz
 
 all: ifdh python python/_ifdh.so libifdh.so libifdh.a
 
@@ -33,16 +33,16 @@ ifdh_main.cc: h_to_main.sh ifdh.h
 	sh $^ > $@
 
 ifdh: libifdh.so ifdh_main.o 
-	g++ $(ARCH) -o $@ ifdh_main.o $(ALL_OBJS)
+	g++ $(ARCH) -o $@ ifdh_main.o $(ALL_OBJS) $(LDLIBS)
 	./ifdh --help | perl -pe 's{\033\[.*?m}{}g; s{\tifdh ([^ ]*) *(.*?) *$$}{* *ifdh* *$$1* _$$2_}; s{\t--}{** }' > ifdh.textile
 
 python/_ifdh.so: $(PYMOD_OBJS)
 	test -d python || mkdir python 
-	g++ --shared $(ARCH) -o  $@ $(PYMOD_OBJS) $${PYTHON_LIB:-$${PYTHON_DIR:-/usr}/lib64}/python*/config/libpython*.[as]* || g++ --shared $(ARCH) -o  $@ $(PYMOD_OBJS) $${PYTHON_LIB:-$${PYTHON_DIR:-/usr}/lib}/python*/config/libpython*.[as]*
+	g++ --shared $(ARCH) -o  $@ $(PYMOD_OBJS) $${PYTHON_LIB:-$${PYTHON_DIR:-/usr}/lib64}/python*/config/libpython*.[as]* || g++ --shared $(ARCH) -o  $@ $(PYMOD_OBJS) $${PYTHON_LIB:-$${PYTHON_DIR:-/usr}/lib}/python*/config/libpython*.[as]* $(LDLIBS)
 
 
 libifdh.so: $(ALL_OBJS)
-	g++ --shared $(ARCH) $(CPPFLAGS)  -o $@ $(ALL_OBJS)
+	g++ --shared $(ARCH) $(CPPFLAGS)  -o $@ $(ALL_OBJS) $(LDLIBS)
 
 libifdh.a: $(ALL_OBJS)
 	rm -f $@

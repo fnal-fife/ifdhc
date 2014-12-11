@@ -128,6 +128,8 @@ class ifdh {
         std::vector<std::pair<std::string,long> > fetchSharedFiles( std::vector<std::pair<std::string,long> > list, std::string schema = ""); 
         // locate multiple files
         std::map<std::string,std::vector<std::string> > locateFiles( std::vector<std::string> args );
+        // cheksum file
+        std::string checksum(std::string loc);
 };
 
 }

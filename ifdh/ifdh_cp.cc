@@ -1787,10 +1787,23 @@ glob_2_re(string s) {
 vector<pair<string,long> > 
 ifdh::findMatchingFiles( string path, string glob) {
    vector<pair<string,long> >  res, batch;
-   vector<string>  dlist;
+   vector<string>  dlist, dlist1;
+   string prefix;
+
    glob = glob_2_re(glob);
 
-   dlist = split(path,':',false);
+   prefix = "";
+   dlist1 = split(path,':',false);
+   // splitting on colons breaks urls, so put them back
+   for (size_t i = 0; i < dlist1.size(); ++i) {
+       if (dlist1[i] == "srm" || dlist1[i] == "gsiftp" || dlist1[i] == "http") {
+            prefix = dlist1[i] + ':';
+       } else {
+            dlist.push_back(prefix + dlist1[i]);
+            prefix = "";
+       }
+   }
+
    for (size_t i = 0; i < dlist.size(); ++i) {
         if (_debug) cerr << "checking dir: " << dlist[i] << endl;
         batch = this->ll(dlist[i],10,"");

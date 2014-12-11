@@ -1459,8 +1459,8 @@ ifdh::ls(string loc, int recursion_depth, string force) {
 std::vector<std::pair<std::string,long> > 
 ifdh::ll( std::string loc, int recursion_depth, std::string force) {
 
-  std::vector<std::pair<std::string,long> >  res;
-    /* XX this should be factored & shared with ifdh_cp... */
+    std::vector<std::pair<std::string,long> >  res;
+
     bool use_gridftp = false;
     bool use_srm = false;
     bool use_fs = false;
@@ -1469,7 +1469,7 @@ ifdh::ll( std::string loc, int recursion_depth, std::string force) {
     std::string dir;
 
     if ( -1 == recursion_depth )
-        recursion_depth = 0;
+        recursion_depth = 1;
 
     pick_type( loc, force, use_fs, use_gridftp, use_srm, use_irods);
 
@@ -1809,7 +1809,10 @@ ifdh::fetchSharedFiles( vector<pair<string,long> > list, string schema ) {
    string f;
    string rdpath("root://fndca.fnal.gov:1094/pnfs/fnal.gov");
 
+   if (_debug) cerr << "fetchShared -- schema is " << schema << endl;
+
    for(size_t i = 0; i < list.size(); i++ ) {
+       if (_debug) cerr << "fetchShared item " << i << " " << list[i].first << endl;
        // for now, if we found it via a cvmfs path, return it, else
        // run it through ifdh::fetchInput to get a local path
        if (list[i].first.find("/cvmfs/") == 0 ) {

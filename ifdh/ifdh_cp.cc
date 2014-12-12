@@ -445,8 +445,8 @@ ifdh::build_stage_list(std::vector<std::string> args, int curarg, char *stage_vi
    ustring = unique_string();
 
    // if we are told how to stage, use it, fall back to OSG_SITE_WRITE,
-   //  or worst case, the bestman gateway.
-   std::string base_uri(stage_via? stage_via : bestman_srm_uri + "/grid/data/");
+   //  or worst case, pnfs scratch
+   std::string base_uri(stage_via? stage_via : pnfs_srm_uri + getexperiment() + "/scratch/ifdh_stage/");
    if (base_uri[0] == '$') {
        base_uri = base_uri.substr(1);
        base_uri = getenv(base_uri.c_str());
@@ -1045,7 +1045,7 @@ ifdh::cp( std::vector<std::string> args ) {
          curarg = 0;
      }
 
-     if (stage_via && use_srm ) {
+     if ( stage_via ) {
          args = build_stage_list(args, curarg, stage_via);
 	 // we now have a stage back file to clean up later...
          cleanup_stage = true;

@@ -1,11 +1,15 @@
 %module ifdh 
 
 %include "std_string.i"
-
 %include "std_vector.i"
+%include "std_pair.i"
+%include "std_map.i"
 
 namespace std {
     %template(vectors) vector<string>;
+    %template(msl)     map<string,long>;
+    %template(vectorpsl) vector<map<string,long> >;
+    %template(mapsvs)    map<string,vector<string> >;
 };
 
 %exception { 
@@ -25,6 +29,7 @@ namespace std {
 %{
 #define SWIG_FILE_WITH_INIT
 #include "ifdh.h"
+#include <malloc.h>
 %}
 
 %include "ifdh.h"

@@ -38,7 +38,7 @@ ifdh: libifdh.so ifdh_main.o
 
 python/_ifdh.so: $(PYMOD_OBJS)
 	test -d python || mkdir python 
-	g++ --shared $(ARCH) -o  $@ $(PYMOD_OBJS) $${PYTHON_LIB:-$${PYTHON_DIR:-/usr}/lib64}/python*/config/libpython*.[as]* || g++ --shared $(ARCH) -o  $@ $(PYMOD_OBJS) $${PYTHON_LIB:-$${PYTHON_DIR:-/usr}/lib}/python*/config/libpython*.[as]* $(LDLIBS)
+	g++ --shared $(ARCH) -o  $@ $(PYMOD_OBJS) $${PYTHON_LIB:-$${PYTHON_DIR:-/usr}/lib64}/python*/config/libpython*.[as]* $(LDLIBS) || g++ --shared $(ARCH) -o  $@ $(PYMOD_OBJS) $${PYTHON_LIB:-$${PYTHON_DIR:-/usr}/lib}/python*/config/libpython*.[as]* $(LDLIBS)
 
 
 libifdh.so: $(ALL_OBJS)

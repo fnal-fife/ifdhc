@@ -628,10 +628,16 @@ ifdh::renameOutput(std::string how) {
 
 
             outfile = file;
-            outfile = outfile.insert( spos, unique_string() );
-	    rename(file.c_str(), outfile.c_str());
+            string uniq = unique_string();
+            // don't double-uniqify if renameOutput is called repeatedly
+            //  -- i.e. if the uniqe string without the pid and counter 
+            //      on the end already exists in the filename
+            if (string::npos == outfile.find(uniq.substr(0,uniq.size()-8))) {
+                outfile = outfile.insert( spos, uniq );
+	        rename(file.c_str(), outfile.c_str());
+	        _debug && std::cerr << "renaming: " << file << " " << outfile << "\n";
+            }
 
-	    _debug && std::cerr << "renaming: " << file << " " << outfile << "\n";
             newoutlog << outfile << " " << infile << "\n";
         }
         outlog.close();

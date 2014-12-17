@@ -39,6 +39,7 @@ class SAMCases(unittest.TestCase):
         else:
             SAMCases.defname = "mwm_test_9" 
         SAMCases.test_file = "MN_00000798_0002_numib_v04_0911090042_RawEvents.root"
+        SAMCases.test_file2 = "MN_00000798_0002_numib_v04_0911090000_RawEvents.root"
 
     def log(self,msg):
         self.ifdh_handle.log(msg)
@@ -65,6 +66,7 @@ class SAMCases(unittest.TestCase):
         SAMCases.experiment = "nova"
         SAMCases.defname = "mwm_test_9"
         SAMCases.test_file = "sim_genie_fd_nhc_fluxswap_10000_r1_38_S12.02.14_20120318_005449_reco.root"
+        SAMCases.test_file2 = "sim_genie_fd_nhc_fluxswap_10000_r1_38_S12.02.14_20120318_005449_reco.root"
 
     def test_0_setexperiment(self):
         self.log(self._testMethodName)
@@ -94,13 +96,43 @@ class SAMCases(unittest.TestCase):
             self.log(err)
             self.fail(err)
         
-
-
-
+    def test_1_locate_multi_notfound(self):
+        self.log(self._testMethodName)
+        try:
+            res = self.ifdh_handle.locateFiles(["nosuchfile","nosuchfile2"])
+            res = dict(res)
+            print "got:", res
+        except RuntimeError:
+            self.log("PASS %s"%self._testMethodName)
+            pass
+        except Exception as e:
+            err="FAIL %s unexpected exception: %s"%(self._testMethodName,e)
+            self.log(err)
+            self.fail(err)
+        else:
+            if len(res.keys()) == 0:
+                self.log("PASS %s"%self._testMethodName)
+                 
+            else:
+                
+                err="FAIL %s should returned empty dictionary..."%self._testMethodName
+                self.log(err)
+                self.fail(err)
+        
     def test_2_locate_found(self):
         self.log(self._testMethodName)
         list = self.ifdh_handle.locateFile(SAMCases.test_file)
         self.assertNotEqual(len(list), 0,self._testMethodName)
+
+    def test_2_locate_multi_found(self):
+        self.log(self._testMethodName)
+        res = self.ifdh_handle.locateFiles([SAMCases.test_file, SAMCases.test_file2])
+        res = dict(res)
+        print "got: ", res
+        self.assertNotEqual(res.has_key(SAMCases.test_file), 0,self._testMethodName)
+        self.assertNotEqual(res.has_key(SAMCases.test_file2), 0,self._testMethodName)
+        self.assertNotEqual(len(res[SAMCases.test_file]), 0,self._testMethodName)
+        self.assertNotEqual(len(res[SAMCases.test_file2]), 0,self._testMethodName)
 
     def test_3_describe_found(self):
         self.log(self._testMethodName)

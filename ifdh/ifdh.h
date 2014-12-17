@@ -119,9 +119,12 @@ class ifdh {
         int chmod(std::string mode, std::string loc, std::string force = "");
         // atomic rename items in same directory/fs
         int rename(std::string loc, std::string loc2,  std::string force = "");
+        // list files with long listing
+        // use recursion_depth== 0 to check directory without contents
+        int ll( std::string loc, int recursion_depth, std::string force = "");
         // list files with sizes
         // use recursion_depth== 0 to check directory without contents
-        std::vector<std::pair<std::string,long> > ll( std::string loc, int recursion_depth, std::string force = "");
+        std::vector<std::pair<std::string,long> > lss( std::string loc, int recursion_depth, std::string force = "");
         // find filenames and sizes matching pattern
         std::vector<std::pair<std::string,long> > findMatchingFiles( std::string path, std::string glob); 
         // filenames and sizes matching pattern moved locally enough to be seen

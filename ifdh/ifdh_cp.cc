@@ -1391,8 +1391,7 @@ pick_type( string &loc, string force, bool &use_fs, bool &use_gridftp, bool &use
     } else {
         // no xyz: on front...
         if ( loc.find("/pnfs") == 0 ) {
-            //use_gridftp = !use_srm;
-            use_srm = !use_gridftp;
+            use_gridftp = !use_srm;
             loc = map_pnfs(loc, use_srm);
 
         } else if( use_gridftp )  {
@@ -1425,11 +1424,12 @@ pick_type( string &loc, string force, bool &use_fs, bool &use_gridftp, bool &use
         ifdh::_debug && std::cerr << "ifdh ls: local_access returns " << r1 <<"\n";
         
         if (0 != r1 ) {
-            use_srm = true;
+             
+            use_gridftp = true;
             if ( loc.find("/pnfs") == 0 ) {
-                loc = map_pnfs(loc, 1);
+                loc = map_pnfs(loc, 0);
             } else {
-                loc = bestman_srm_uri + loc;
+                loc = bestman_ftp_uri + loc;
             }
         } else {
             use_fs = true;
@@ -1447,17 +1447,66 @@ ifdh::ls(string loc, int recursion_depth, string force) {
     vector<string> res;
     std::vector<std::pair<std::string,long> > llout;
 
-    // return just the names from ll's output
-    llout = this->ll(loc, recursion_depth, force );
+    // return just the names from lss's output
+    llout = this->lss(loc, recursion_depth, force );
     for(size_t i = 0; i < llout.size(); i++) { 
        res.push_back(llout[i].first);
     }
     return res;
 }
 
-    
-std::vector<std::pair<std::string,long> > 
+int
 ifdh::ll( std::string loc, int recursion_depth, std::string force) {
+
+    std::vector<std::pair<std::string,long> >  res;
+
+    bool use_gridftp = false;
+    bool use_srm = false;
+    bool use_fs = false;
+    bool use_irods = false;
+    std::stringstream cmd;
+
+    if ( -1 == recursion_depth )
+        recursion_depth = 1;
+
+    pick_type( loc, force, use_fs, use_gridftp, use_srm, use_irods);
+
+
+    if (use_srm) {
+       setenv("SRM_JAVA_OPTIONS", "-Xmx1024m" ,0);
+       cmd << "srmls -l -2 -count=8192 ";
+       cmd << "--recursion_depth " << recursion_depth << " ";
+       cmd << loc;
+    } else if (use_irods) {
+       cmd << "ils -l ";
+       if (recursion_depth > 1) {
+           cmd << "-r ";
+       }
+       cmd << loc;
+    } else if (use_gridftp) {
+       cmd << "uberftp -ls ";
+       if (recursion_depth > 1) {
+           cmd << "-r ";
+       }
+       cmd << loc;
+    } else if (use_fs) {
+       // find uses an off by one depth from srmls
+       cmd << "find " << loc << 
+           " -maxdepth " << recursion_depth << 
+          " \\( -type d -ls \\)  " <<
+           " " ;
+    }
+
+    _debug && std::cerr << "ifdh ll: running: " << cmd.str() << "\n";
+
+    int status = system(cmd.str().c_str());
+    if (WIFSIGNALED(status)) throw( std::logic_error("signalled while doing mkdir"));
+    if (WIFEXITED(status) && WEXITSTATUS(status) != 0) throw( std::logic_error("mkdir failed"));
+    return 0;
+}
+
+std::vector<std::pair<std::string,long> > 
+ifdh::lss( std::string loc, int recursion_depth, std::string force) {
 
     std::vector<std::pair<std::string,long> >  res;
 
@@ -1822,7 +1871,7 @@ ifdh::findMatchingFiles( string path, string glob) {
 
    for (size_t i = 0; i < dlist.size(); ++i) {
         if (_debug) cerr << "checking dir: " << dlist[i] << endl;
-        batch = this->ll(dlist[i],10,"");
+        batch = this->lss(dlist[i],10,"");
         for(size_t j = 0; j < batch.size(); j++ ) {
             if (_debug) cerr << "checking file: " << batch[j].first << endl;
             regexp globre(glob);

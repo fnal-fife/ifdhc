@@ -5,10 +5,13 @@
 %include "std_pair.i"
 %include "std_map.i"
 
+%{
+#define SWIGH_PYTHON_EXTRA_NATIVE_CONTAINERS
+%}
 namespace std {
-    %template(vectors) vector<string>;
-    %template(msl)     map<string,long>;
-    %template(vectorpsl) vector<map<string,long> >;
+    %template(vectors)   vector<string>;
+    %template()          pair<string,long>;
+    %template(vectorpsl) vector<pair<string,long> >;
     %template(mapsvs)    map<string,vector<string> >;
 };
 

@@ -472,26 +472,28 @@ class ifdh_cp_cases(unittest.TestCase):
     def test_stage_copyback(self):
         self.log(self._testMethodName)
         self.clean_dest()
+        expsave = os.environ.get('EXPERIMENT','')
         os.environ['EXPERIMENT'] = "nova"
         os.environ['IFDH_STAGE_VIA'] = "srm://fndca1.fnal.gov:8443/srm/managerv2?SFN=/pnfs/fnal.gov/usr/nova/ifdh_stage/test_multi"
         self.ifdh_handle.addOutputFile('%s/a/f1' % self.work)
         self.ifdh_handle.addOutputFile('%s/a/f2' % self.work)
         self.ifdh_handle.copyBackOutput(self.data_dir)
         self.ifdh_handle.cleanup()
-        del os.environ['EXPERIMENT'] 
+        os.environ['EXPERIMENT'] = expsave
         del os.environ['IFDH_STAGE_VIA']
         self.assertEqual(self.check_data_f1_f2(), True, self._testMethodName)
 
     def test_borked_copyback(self):
         self.log(self._testMethodName)
         self.clean_dest()
+        expsave = os.environ.get('EXPERIMENT','')
         os.environ['EXPERIMENT'] = "nova"
         os.environ['IFDH_STAGE_VIA'] = "srm://localhost:12345/foo/bar?SFN=/baz"
         self.ifdh_handle.addOutputFile('%s/a/f1' % self.work)
         self.ifdh_handle.addOutputFile('%s/a/f2' % self.work)
         self.ifdh_handle.copyBackOutput(self.data_dir)
         self.ifdh_handle.cleanup()
-        del os.environ['EXPERIMENT'] 
+        os.environ['EXPERIMENT'] = expsave
         del os.environ['IFDH_STAGE_VIA']
         self.assertEqual(self.check_data_f1_f2(), True, self._testMethodName)
 

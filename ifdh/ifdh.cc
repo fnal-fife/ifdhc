@@ -14,6 +14,8 @@
 #include <errno.h>
 #include <exception>
 #include <sys/wait.h>
+#include <map>
+#include "../util/Checksum.h"
 
 using namespace std;
 
@@ -110,7 +112,7 @@ string datadir() {
 
     if ( 0 != access(dirmaker.str().c_str(), W_OK) ) {
         res = mkdir(dirmaker.str().c_str(),0700);
-        ifdh::_debug && cout <<  "mkdir " << dirmaker.str() << " => " << res << "\n";
+        ifdh::_debug && cerr <<  "mkdir " << dirmaker.str() << " => " << res << "\n";
     }
     localpath = dirmaker.str();
     if (localpath.substr(0,2) == "//" ){ 
@@ -242,7 +244,7 @@ ifdh::copyBackOutput(string dest_dir) {
 
         getline(outlog, line);
 
-        _debug && std::cout << "parsing: |" << line << "|\n";
+        _debug && std::cerr << "parsing: |" << line << "|\n";
 	spos = line.find(' ');
 	if (spos != string::npos) {
 	    file = line.substr(0,spos);
@@ -264,7 +266,7 @@ ifdh::copyBackOutput(string dest_dir) {
         first = false;
         cpargs.push_back(file);
         cpargs.push_back(dest_dir + "/" + filelast);
-        _debug && std::cout << "adding cp of " << file << " " << dest_dir << "/" << filelast << "\n";
+        _debug && std::cerr << "adding cp of " << file << " " << dest_dir << "/" << filelast << "\n";
    
     }
     return cp(cpargs);
@@ -357,7 +359,7 @@ do_url_str(int postflag,...) {
     string line;
     va_start(ap, postflag);
     WebAPI *wap = do_url_2(postflag, ap);
-    while (!wap->data().eof()) {
+    while (!wap->data().eof() && !wap->data().fail()) {
       getline(wap->data(), line);
       if (wap->data().eof()) {
          res = res + line;
@@ -377,9 +379,11 @@ do_url_lst(int postflag,...) {
     vector<string> res;
     va_start(ap, postflag);
     WebAPI *wap = do_url_2(postflag, ap);
-    while (!wap->data().eof()) {
+    while (!wap->data().eof() && !wap->data().fail()) {
         getline(wap->data(), line);
-        res.push_back(line);
+        if (! (line == "" && wap->data().eof())) {
+            res.push_back(line);
+        }
     }
     delete wap;
     return res;
@@ -624,10 +628,16 @@ ifdh::renameOutput(std::string how) {
 
 
             outfile = file;
-            outfile = outfile.insert( spos, unique_string() );
-	    rename(file.c_str(), outfile.c_str());
+            string uniq = unique_string();
+            // don't double-uniqify if renameOutput is called repeatedly
+            //  -- i.e. if the uniqe string without the pid and counter 
+            //      on the end already exists in the filename
+            if (string::npos == outfile.find(uniq.substr(0,uniq.size()-8))) {
+                outfile = outfile.insert( spos, uniq );
+	        rename(file.c_str(), outfile.c_str());
+	        _debug && std::cerr << "renaming: " << file << " " << outfile << "\n";
+            }
 
-	    _debug && std::cerr << "renaming: " << file << " " << outfile << "\n";
             newoutlog << outfile << " " << infile << "\n";
         }
         outlog.close();
@@ -654,6 +664,89 @@ ifdh::more(string loc) {
             unlink(c_where);
        } else {
             return -1;
+       }
+    }
+    return res;
+}
+
+// mostly a little named pipe plumbing and a fork()...
+std::string
+ifdh::checksum(string loc) {
+    if(_debug) cerr << "starting cheksum( " << loc << ")" << endl;
+    cerr.flush();
+    std::stringstream sumtext;
+    std::string where = localPath(loc);
+    const char *c_where = where.c_str();
+    int res2 ,res;
+    unsigned long sum;
+    res  = mknod(c_where, 0600 | S_IFIFO, 0);
+    if(_debug) cerr << "made node " << c_where << endl;
+    if (res == 0) {
+       res2 = fork();
+       if(_debug) cerr << "fork says " << res2 << endl;
+       if (res2 == 0) {
+            if(_debug) cerr << "starting fetchInput( " << loc << ")" << endl;
+            this-> fetchInput(loc);
+            if(_debug) cerr << "finishe fetchInput( " << loc << ")" << endl;
+            exit(0);
+       } else if (res2 > 0) {
+            if(_debug) cerr << "starting get_adler32( " << c_where << ")" << endl;
+            sum = checksum::get_adler32(c_where);
+	    sumtext <<  "{\"crc_value\": \""  
+                    << sum
+                    << "\", \"crc_type\": \"adler 32 crc type\"}"
+                    << endl;
+            if(_debug) cerr << "finished get_adler32( " << c_where << ")" << endl;
+            waitpid(res2, 0,0);
+            unlink(c_where);
+       } else {
+            if(_debug) cerr << "fork failed? " << res <<endl;
+           
+            return "";
+       }
+    } else {
+       cerr <<  "mknod failed";
+    }
+    return sumtext.str();
+}
+
+std::map<std::string,std::vector<std::string> > 
+ifdh::locateFiles( std::vector<std::string> args) {
+    stringstream url;
+    stringstream postdata;
+    std::map<std::string,std::vector<std::string> >  res;
+    std::vector<std::string> locvec;
+    size_t p1, p2, p3, start;
+    std::string line, fname;
+
+    if (_debug) cerr << "Entering LocateFiles -- _baseuri is " << _baseuri; 
+
+    url << _baseuri.c_str() << "/files/locations";
+    for(size_t i = 0; i < args.size(); ++i) {
+        postdata << "file_name=" << args[i] << "&";
+    }
+    postdata << "format=json";
+    WebAPI wa(url.str(), 1, postdata.str());
+    
+    while (!wa.data().eof() && !wa.data().fail()) {
+        getline(wa.data(), line, ']');
+        p1 = line.find('"');
+        p2 = line.find('"', p1+1);
+        if (p1 != string::npos && p2 != string::npos) {
+            locvec.clear();
+            fname = line.substr(p1+1,p2-p1-1);
+            start = p2+2;
+            p3 = line.find("\"location\":", start);
+            while (p3 != string::npos) {
+                p1 = line.find('"', p3+10);
+                p2 = line.find('"', p1+1);
+                if (p1 != string::npos && p2 != string::npos) {
+                   locvec.push_back(line.substr(p1+1, p2-p1-1));
+                }
+                start = p2+1;
+                p3 = line.find("\"location\":", start);
+           }
+           res[fname] = locvec;
        }
     }
     return res;

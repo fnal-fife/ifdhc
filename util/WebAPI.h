@@ -21,6 +21,7 @@ class WebAPI {
     std::fstream _tosite, _fromsite;
     __gnu_cxx::stdio_filebuf<char> *_buf_in;
     int _status;
+    long int _pid;
 public:
     static int _debug;
     WebAPI(std::string url, int postflag = 0, std::string postdata = "") throw(WebAPIException);

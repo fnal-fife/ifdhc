@@ -1,7 +1,7 @@
 #include "WebAPI.h"
 #include <fstream>
 #include <iostream>
-#include <stdarg.h>
+#include <stdarg.h> 
 #include <stdio.h>
 #include <errno.h>
 #include <iomanip>
@@ -13,6 +13,7 @@
 #include "utils.h"
 #include <pwd.h>
 #include "ifdh_version.h"
+#include <sys/wait.h>
 
 
 namespace ifdh_util_ns {
@@ -123,6 +124,7 @@ WebAPI::WebAPI(std::string url, int postflag, std::string postdata) throw(WebAPI
      int totaltime = 0;
      int timeoutafter = -1;
 
+     _pid = 0;
      __gnu_cxx::stdio_filebuf<char> *buf_out = 0;
      std::string method(postflag?"POST ":"GET ");
 
@@ -227,10 +229,10 @@ WebAPI::WebAPI(std::string url, int postflag, std::string postdata) throw(WebAPI
                 _debug && std::cerr << "openssl"<< ' ' << "s_client"<< ' ' << " -CApath /etc/grid-security/certificates" << ' ' << "-connect"<< ' ' << hostport.str().c_str() << " -quiet"; 
                 if (proxy && _debug) {
                      // from https://wiki.nikhef.nl/grid/How_to_handle_OpenSSL_and_not_get_hurt_using_the_CLI#Using_proxy_certificates_and_s_client
-		    std::cout << " -key " << proxy << " -cert "<< proxy << " -CAfile " << proxy ;
+		    std::cerr << " -key " << proxy << " -cert "<< proxy << " -CAfile " << proxy ;
                 }
 
-                std::cout.flush();
+                std::cerr.flush();
 
                 // fixup file descriptors so our in/out are pipes
                 close(0);      
@@ -250,6 +252,7 @@ WebAPI::WebAPI(std::string url, int postflag, std::string postdata) throw(WebAPI
                 exit(-1);
             } else {
                 // parent, fix up pipes, make streams
+                _pid = pid;
                 close(inp[0]);  
                 close(outp[1]);  
 	        _buf_in = new  __gnu_cxx::stdio_filebuf<char> (outp[0], std::fstream::in|std::fstream::binary); 
@@ -340,8 +343,15 @@ WebAPI::WebAPI(std::string url, int postflag, std::string postdata) throw(WebAPI
          if ((_status < 301 || _status > 309) && _status < 500 && _status != 202 ) {
             redirect_or_retry_flag = 0;
 	 } else {
+	     int wstatus;
+	     pid_t wres;
+	     if (_pid) {
+	        wres = waitpid(_pid,&wstatus,0);
+	        _pid = 0;
+	     }
 	     // we're going to redirect/retry again, so close the _fromsite side
 	     _fromsite.close();
+             
              delete _buf_in;
          }
 
@@ -367,7 +377,14 @@ WebAPI::getStatus() {
 }
 
 WebAPI::~WebAPI() {
+    int wstatus;
+    pid_t wres;
+    if (_pid) {
+        wres = waitpid(_pid,&wstatus,0);
+        waitpid(-1,&wstatus,WNOHANG);
+    }
     _tosite.close();
+    _fromsite.close();
     delete _buf_in;
 }
 

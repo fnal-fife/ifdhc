@@ -1,11 +1,18 @@
 %module ifdh 
 
 %include "std_string.i"
-
 %include "std_vector.i"
+%include "std_pair.i"
+%include "std_map.i"
 
+%{
+#define SWIGH_PYTHON_EXTRA_NATIVE_CONTAINERS
+%}
 namespace std {
-    %template(vectors) vector<string>;
+    %template(vectors)   vector<string>;
+    %template()          pair<string,long>;
+    %template(vectorpsl) vector<pair<string,long> >;
+    %template(mapsvs)    map<string,vector<string> >;
 };
 
 %exception { 
@@ -25,6 +32,7 @@ namespace std {
 %{
 #define SWIG_FILE_WITH_INIT
 #include "ifdh.h"
+#include <malloc.h>
 %}
 
 %include "ifdh.h"

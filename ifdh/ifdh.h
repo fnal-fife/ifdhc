@@ -5,6 +5,8 @@
 #include <vector>
 #include "../util/WebAPI.h"
 #include <stdlib.h>
+#include <map>
+#include <utility>
 
 
 namespace ifdh_ns {
@@ -101,19 +103,36 @@ class ifdh {
         // general file rename using mvn or srmcp
         int mv(std::vector<std::string> args);
         // Get a list of directory contents, or check existence of files
-        std::vector<std::string> ls( std::string loc, int recursion_depth, std::string force);
+        // use recursion_depth== 0 to check directory without contents
+        std::vector<std::string> ls( std::string loc, int recursion_depth, std::string force = "");
         // make a directory (i.e. for file destination)
-        int mkdir(std::string loc, std::string force);
+        int mkdir(std::string loc, std::string force = "");
         // remove files
-        int rm(std::string loc, std::string force);
+        int rm(std::string loc, std::string force = "");
         // remove directories
-        int rmdir(std::string loc, std::string force);
+        int rmdir(std::string loc, std::string force = "");
         // view text files
         int more(std::string loc);
         // pin file 
         int pin(std::string loc, long int seconds);
         // change file permissions
-        int chmod(std::string mode, std::string loc, std::string force);
+        int chmod(std::string mode, std::string loc, std::string force = "");
+        // atomic rename items in same directory/fs
+        int rename(std::string loc, std::string loc2,  std::string force = "");
+        // list files with long listing
+        // use recursion_depth== 0 to check directory without contents
+        int ll( std::string loc, int recursion_depth, std::string force = "");
+        // list files with sizes
+        // use recursion_depth== 0 to check directory without contents
+        std::vector<std::pair<std::string,long> > lss( std::string loc, int recursion_depth, std::string force = "");
+        // find filenames and sizes matching pattern
+        std::vector<std::pair<std::string,long> > findMatchingFiles( std::string path, std::string glob); 
+        // filenames and sizes matching pattern moved locally enough to be seen
+        std::vector<std::pair<std::string,long> > fetchSharedFiles( std::vector<std::pair<std::string,long> > list, std::string schema = ""); 
+        // locate multiple files
+        std::map<std::string,std::vector<std::string> > locateFiles( std::vector<std::string> args );
+        // cheksum file
+        std::string checksum(std::string loc);
 };
 
 }

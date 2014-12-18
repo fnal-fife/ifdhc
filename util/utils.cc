@@ -114,7 +114,7 @@ fixquotes(char *s, int debug) {
    char *p1 = s, *p2 = s;
 
    if (debug) {
-       std::cout << "before: " << s << "\n";
+       std::cerr << "before: " << s << "\n";
    }
    if (*p1 == '"') {
       p1++;
@@ -131,8 +131,8 @@ fixquotes(char *s, int debug) {
       }
    }
    if (debug) {
-      std::cout << "after: " << s << "\n";
-      std::cout.flush();
+      std::cerr << "after: " << s << "\n";
+      std::cerr.flush();
    }
 }
 

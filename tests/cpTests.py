@@ -52,12 +52,9 @@ class ifdh_cp_cases(unittest.TestCase):
 
     def list_remote_dir(self):
 
-        if 1: return
+        if 1: return 0
+        return self.ifdh_handle.ll(self.data_dir,1,'')
 
-        f = os.popen('srmls -2 "srm://fg-bestman1.fnal.gov:10443/srm/v2/server?SFN=%s" 2>&1' % self.data_dir, "r")
-        list = f.read()
-        f.close()
-        return list
 
     def check_data_f1_f2(self, char="f"):
         print "check_data"
@@ -71,9 +68,13 @@ class ifdh_cp_cases(unittest.TestCase):
         return count > 1
 
     def clean_dest(self):
-        os.system('test -d %s && rm -f %s/test.txt || srmrm -2 "srm://fg-bestman1.fnal.gov:10443/srm/v2/server?SFN=%s/test.txt" > /dev/null 2>&1' % (self.data_dir,self.data_dir,self.data_dir))
-        os.system('test -d %s && rm -f %s/f1 || srmrm -2 "srm://fg-bestman1.fnal.gov:10443/srm/v2/server?SFN=%s/f1" > /dev/null 2>&1' % (self.data_dir,self.data_dir,self.data_dir))
-        os.system('test -d %s && rm -f %s/f2 ||  srmrm -2 "srm://fg-bestman1.fnal.gov:10443/srm/v2/server?SFN=%s/f2" > /dev/null 2>&1' % (self.data_dir,self.data_dir,self.data_dir))
+        for f in ('test.txt', 'f1', 'f2'):
+            full = '%s/%s' % ( self.data_dir, f )
+            if 1 == len(self.ifdh_handle.ls(full,1,'')):
+                try:
+                    self.ifdh_handle.rm('%s/test.txt'%self.data_dir)
+                except:
+                    pass
 
     def make_local_test_txt(self):
         self.clean_dest();
@@ -88,21 +89,18 @@ class ifdh_cp_cases(unittest.TestCase):
         out = NamedTemporaryFile(delete=False)
         out.write("testing testing %d \n" % ifdh_cp_cases.tc)
         out.close()
-        cmd="srmcp file:///%s srm://fg-bestman1.fnal.gov:10443/srm/v2/server?SFN=%s/test.txt"%(out.name,self.data_dir)
-        os.system('uberftp -chmod 775 "gsiftp://fg-bestman1.fnal.gov:2811%s" > /dev/null 2>&1' % (dir))
-        rslt=os.system(cmd)
+        self.ifdh_handle.cp(["-D", out.name, self.data_dir + '/test.txt'])
+        try:
+            self.ifdh_handle.chmod("775", self.data_dir + '/test.txt')
+        except:
+            pass
         out.unlink(out.name)
 
     def check_writable(self,apath):
         try:
-            os.chmod(apath,0775)
+	    self.ifdh_handle.chmod("775",  apath)
         except:
-            try:
-                os.system('uberftp -chmod 775 "gsiftp://fg-bestman1.fnal.gov:2811%s" > /dev/null 2>&1' % (apath))
-            except:
-                print "cant chmod 775  %s - I tried "%apath
-                pass
-        pass
+            pass
 
     def check_test_txt(self):
         fin = open("%s/test.txt" % self.work, "r")
@@ -119,9 +117,12 @@ class ifdh_cp_cases(unittest.TestCase):
         self.work="%s/work%d" % (os.environ.get('TMPDIR','/tmp'),os.getpid())
 	self.data_dir_root="/grid/data/%s/%s" % (os.environ.get('TEST_USER', os.environ['USER']), self.hostname)
 	self.data_dir="/grid/data/%s/%s/%s" % (os.environ.get('TEST_USER', os.environ['USER']), self.hostname,os.getpid())
-        self.ifdh_handle.mkdir(self.data_dir_root,'')
-        self.ifdh_handle.mkdir(self.data_dir,'')
-        self.ifdh_handle.mkdir('%s/started'% (self.data_dir),'')
+        if 1 != len(self.ifdh_handle.ls(self.data_dir_root,0,'')):
+            self.ifdh_handle.mkdir(self.data_dir_root,'')
+        if 1 != len(self.ifdh_handle.ls(self.data_dir,0,'')):
+            self.ifdh_handle.mkdir(self.data_dir,'')
+        if 1 != len(self.ifdh_handle.ls('%s/started'%self.data_dir,0,'')):
+            self.ifdh_handle.mkdir('%s/started'% (self.data_dir),'')
         # setup test directory tree..
         count = 0
         os.mkdir("%s" % (self.work))
@@ -143,7 +144,7 @@ class ifdh_cp_cases(unittest.TestCase):
 
     def test_00_fetchinput_fail(self):
         self.log(self._testMethodName)
-        f = os.popen("ifdh fetchinput file:////no/such/file")
+        f = os.popen("ifdh fetchInput file:////no/such/file")
         line = f.readline()
         self.assertEqual(line,"",self._testMethodName)
 
@@ -245,7 +246,7 @@ class ifdh_cp_cases(unittest.TestCase):
         res = self.ifdh_handle.cp([ "--force=gridftp", "%s/test.txt"%self.work, "%s/test.txt" % self.data_dir])
         # shouldn't need this one, but we seem to?
         self.check_writable( "%s/test.txt" % self.data_dir)
-        self.ifdh_handle.ll("%s/test.txt" % self.data_dir, 1,"")
+        self.ifdh_handle.ll(self.data_dir, 1,"")
         list = self.ifdh_handle.ls("%s/test.txt" % self.data_dir, 1,"")
         print "got list: " , list
         self.assertEqual(len(list),1, self._testMethodName)  
@@ -505,20 +506,20 @@ class ifdh_cp_cases(unittest.TestCase):
     def test_pnfs_rewrite_1(self):
          self.log(self._testMethodName)
          res = self.ifdh_handle.cp(['-D','%s/a/f1' % self.work,'%s/a/f2' % self.work,'/pnfs/nova/ifdh_stage/test'])
-         r1 = os.system("srmls -2 srm://fndca1.fnal.gov:8443/pnfs/fnal.gov/usr/nova/ifdh_stage/test/f1")
-         r2 = os.system("srmls -2 srm://fndca1.fnal.gov:8443/pnfs/fnal.gov/usr/nova/ifdh_stage/test/f2")
-         os.system("srmrm -2 srm://fndca1.fnal.gov:8443/pnfs/fnal.gov/usr/nova/ifdh_stage/test/f1")
-         os.system("srmrm -2 srm://fndca1.fnal.gov:8443/pnfs/fnal.gov/usr/nova/ifdh_stage/test/f2")
-         self.assertEqual(r1==0 and r2==0,True, self._testMethodName)
+         r1 = len(self.ifdh_handle.ls('/pnfs/nova/ifdh_stage/test/f1',1,''))
+         r2 = len(self.ifdh_handle.ls('/pnfs/nova/ifdh_stage/test/f2',1,''))
+         self.ifdh_handle.rm('/pnfs/nova/ifdh_stage/test/f1','')
+         self.ifdh_handle.rm('/pnfs/nova/ifdh_stage/test/f2','')
+         self.assertEqual(r1==1 and r2==1,True, self._testMethodName)
 
     def test_pnfs_rewrite_2(self):
          self.log(self._testMethodName)
          res = self.ifdh_handle.cp(['-D','%s/a/f1' % self.work,'%s/a/f2' % self.work,'/pnfs/fnal.gov/usr/nova/ifdh_stage/test'])
-         r1 = os.system("srmls -2 srm://fndca1.fnal.gov:8443/pnfs/fnal.gov/usr/nova/ifdh_stage/test/f1")
-         r2 = os.system("srmls -2 srm://fndca1.fnal.gov:8443/pnfs/fnal.gov/usr/nova/ifdh_stage/test/f2")
-         os.system("srmrm -2 srm://fndca1.fnal.gov:8443/pnfs/fnal.gov/usr/nova/ifdh_stage/test/f1")
-         os.system("srmrm -2 srm://fndca1.fnal.gov:8443/pnfs/fnal.gov/usr/nova/ifdh_stage/test/f2")
-         self.assertEqual(r1==0 and r2==0,True, self._testMethodName)
+         r1 = len(self.ifdh_handle.ls('/pnfs/nova/ifdh_stage/test/f1',1,''))
+         r2 = len(self.ifdh_handle.ls('/pnfs/nova/ifdh_stage/test/f2',1,''))
+         self.ifdh_handle.rm('/pnfs/nova/ifdh_stage/test/f1','')
+         self.ifdh_handle.rm('/pnfs/nova/ifdh_stage/test/f2','')
+         self.assertEqual(r1==1 and r2==1,True, self._testMethodName)
         
     def test_pnfs_ls(self):
          self.log(self._testMethodName)

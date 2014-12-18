@@ -151,7 +151,7 @@ is_bestman_server(std::string uri) {
 bool 
 ping_se(std::string uri) {
    std::stringstream cmd;
-   int res;
+   int res = 0;
 
    if (has(uri,"srm:")) {
    ifdh::_debug && cerr << "checking " << uri << " with srmping\n";
@@ -1503,9 +1503,8 @@ ifdh::ll( std::string loc, int recursion_depth, std::string force) {
     _debug && std::cerr << "ifdh ll: running: " << cmd.str() << endl;
 
     int status = system(cmd.str().c_str());
-    if (WIFSIGNALED(status)) throw( std::logic_error("signalled while doing mkdir"));
-    if (WIFEXITED(status) && WEXITSTATUS(status) != 0) throw( std::logic_error("mkdir failed"));
-    return 0;
+    if (WIFSIGNALED(status)) throw( std::logic_error("signalled while doing ll"));
+    return WEXITSTATUS(status);
 }
 
 std::vector<std::pair<std::string,long> > 
@@ -1517,8 +1516,9 @@ ifdh::lss( std::string loc, int recursion_depth, std::string force) {
     bool use_srm = false;
     bool use_fs = false;
     bool use_irods = false;
+    bool first = true;
     std::stringstream cmd;
-    std::string dir, base;
+    std::string dir, base, dir_last;
     size_t cpos, spos, qpos, pos, fpos;
 
     if ( -1 == recursion_depth )
@@ -1569,6 +1569,10 @@ ifdh::lss( std::string loc, int recursion_depth, std::string force) {
            " " ;
     }
 
+    spos = dir.rfind('/');
+    if (spos != string::npos) {
+      dir_last = dir.substr(spos+1);
+    }
     _debug && std::cerr << "ifdh ls: running: " << cmd.str() << endl;
 
     FILE *pf = popen(cmd.str().c_str(), "r");
@@ -1585,6 +1589,23 @@ ifdh::lss( std::string loc, int recursion_depth, std::string force) {
            }
            if ('\r' == s[s.size()-1]) {
                s = s.substr(0,s.size()-1);
+           }
+
+           // if the first thing we see ends in the last component
+           // of the name of our base directory, assume we got asked
+           // to ls /d1/d2/d3/file and we see 'file'
+           // otherwise we would see /d1/d2/d3/d4/ (trailing slash) 
+           // if it is a directory...
+           // Anhow if we see this, trim a component off of base so
+           // we dont make it /d1/d2/d3/file/file when we list it.
+           if (first) {
+               first = false;
+               if (dir_last.size()) {
+                   pos = s.rfind(dir_last);
+                   if (pos != string::npos && pos + dir_last.size() == s.size()) {
+                       dir = dir.substr(0,dir.rfind('/'));
+                   }
+               }
            }
            // trim leading stuff from srmls
            if (use_srm) {
@@ -1717,8 +1738,8 @@ ifdh::rmdir(string loc, string force) {
 
     int status = system(cmd.str().c_str());
     if (WIFSIGNALED(status)) throw( std::logic_error("signalled while doing rmdir"));
-    if (WIFEXITED(status) && WEXITSTATUS(status) != 0) throw( std::logic_error("rmdir failed"));
-    return 0;
+    // if (WIFEXITED(status) && WEXITSTATUS(status) != 0) throw( std::logic_error("rmdir failed"));
+    return WEXITSTATUS(status);
 }
 
 std::string
@@ -1769,8 +1790,8 @@ ifdh::chmod(string mode, string loc, string force) {
 
     int status = system(cmd.str().c_str());
     if (WIFSIGNALED(status)) throw( std::logic_error("signalled while doing chmod"));
-    if (WIFEXITED(status) && WEXITSTATUS(status) != 0) throw( std::logic_error("chmod failed"));
-    return 0;
+    // if (WIFEXITED(status) && WEXITSTATUS(status) != 0) throw( std::logic_error("chmod failed"));
+    return WEXITSTATUS(status);
 }
 
 int
@@ -1795,8 +1816,8 @@ ifdh::pin(string loc, long int secs) {
 
     int status = system(cmd.str().c_str());
     if (WIFSIGNALED(status)) throw( std::logic_error("signalled while doing rmdir"));
-    if (WIFEXITED(status) && WEXITSTATUS(status) != 0) throw( std::logic_error("rmdir failed"));
-    return 0;
+    // if (WIFEXITED(status) && WEXITSTATUS(status) != 0) throw( std::logic_error("rmdir failed"));
+    return WEXITSTATUS(status);
 }
        
 int 
@@ -1828,8 +1849,8 @@ ifdh::rename(string loc, string loc2, string force) {
 
     int status = system(cmd.str().c_str());
     if (WIFSIGNALED(status)) throw( logic_error("signalled while doing rename"));
-    if (WIFEXITED(status) && WEXITSTATUS(status) != 0) throw( logic_error("rename failed"));
-    return 0;
+    //if (WIFEXITED(status) && WEXITSTATUS(status) != 0) throw( logic_error("rename failed"));
+    return WEXITSTATUS(status);
 }
 
 string

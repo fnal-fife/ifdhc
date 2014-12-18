@@ -33,7 +33,7 @@ class ifdh_cp_cases(unittest.TestCase):
         except:
             pass
         try:
-            os.system('uberftp -chmod 775 "gsiftp://fg-bestman1.fnal.gov:2811%s" > /dev/null 2>&1' % (dir))
+            os.system('uberftp -chmod 777 "gsiftp://fg-bestman1.fnal.gov:2811%s" > /dev/null 2>&1' % (dir))
         except:
             pass
 
@@ -119,10 +119,9 @@ class ifdh_cp_cases(unittest.TestCase):
         self.work="%s/work%d" % (os.environ.get('TMPDIR','/tmp'),os.getpid())
 	self.data_dir_root="/grid/data/%s/%s" % (os.environ.get('TEST_USER', os.environ['USER']), self.hostname)
 	self.data_dir="/grid/data/%s/%s/%s" % (os.environ.get('TEST_USER', os.environ['USER']), self.hostname,os.getpid())
-        self.mk_remote_dir('%s'% (self.data_dir_root),'')
-        self.mk_remote_dir('%s'% (self.data_dir),'')
-        self.mk_remote_dir('%s/started'% (self.data_dir),'')
-        
+        self.ifdh_handle.mkdir(self.data_dir_root,'')
+        self.ifdh_handle.mkdir(self.data_dir,'')
+        self.ifdh_handle.mkdir('%s/started'% (self.data_dir),'')
         # setup test directory tree..
         count = 0
         os.mkdir("%s" % (self.work))
@@ -134,17 +133,19 @@ class ifdh_cp_cases(unittest.TestCase):
                 f.write("foo\n")
                 f.close()
         os.system("ls -R %s" % self.work)
+        print "Setup complete."
 
     def tearDown(self):
         os.system("rm -rf %s" % self.work)
         self.mk_remote_dir('%s/finished'% (self.data_dir),'')
+        print "tearDown complete."
         pass
 
     def test_00_fetchinput_fail(self):
         self.log(self._testMethodName)
-        f = os.popen("ifdh fetchinput file:////no/such/file | tail -1")
+        f = os.popen("ifdh fetchinput file:////no/such/file")
         line = f.readline()
-        self.assertEqual(line,"\n",self._testMethodName)
+        self.assertEqual(line,"",self._testMethodName)
 
     # somehow this test breaks the others later on(?)
     def test_0_OutputFiles(self):
@@ -236,7 +237,7 @@ class ifdh_cp_cases(unittest.TestCase):
             statinfo = os.stat("%s/f1" % self.data_dir)
     	    self.assertEqual(statinfo.st_mode & 040000, 0, self._testMethodName)
         else:
-            self.assertEqual(True,True, self._testMethodName, self._testMethodName)
+            self.assertEqual(True,True, self._testMethodName)
 
     def test_gsiftp__out(self):
         self.log(self._testMethodName)
@@ -244,8 +245,9 @@ class ifdh_cp_cases(unittest.TestCase):
         res = self.ifdh_handle.cp([ "--force=gridftp", "%s/test.txt"%self.work, "%s/test.txt" % self.data_dir])
         # shouldn't need this one, but we seem to?
         self.check_writable( "%s/test.txt" % self.data_dir)
-        list1 = self.ifdh_handle.ls(self.data_dir,1,"")
+        self.ifdh_handle.ll("%s/test.txt" % self.data_dir, 1,"")
         list = self.ifdh_handle.ls("%s/test.txt" % self.data_dir, 1,"")
+        print "got list: " , list
         self.assertEqual(len(list),1, self._testMethodName)  
 
     def test_gsiftp_in(self):

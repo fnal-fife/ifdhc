@@ -1429,7 +1429,10 @@ pick_type( string &loc, string force, bool &use_fs, bool &use_gridftp, bool &use
             if ( loc.find("/pnfs") == 0 ) {
                 loc = map_pnfs(loc, 0);
             } else {
-                loc = bestman_ftp_uri + loc;
+                std::string gftpHost("gsiftp://if-gridftp-");
+                gftpHost.append(getexperiment());
+                gftpHost.append(".fnal.gov");
+                loc = gftpHost + loc;
             }
         } else {
             use_fs = true;

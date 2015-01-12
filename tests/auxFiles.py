@@ -74,7 +74,6 @@ class aux_file_cases(unittest.TestCase):
         os.system("rm -rf %s" % self.work)
         pass
 
-    # somehow this test breaks the others later on(?)
     def test_0_matching(self):
         self.log(self._testMethodName)
         l = self.ifdh_handle.findMatchingFiles("%s/a/b:%s/a/c" % (self.work,self.work),"f*")

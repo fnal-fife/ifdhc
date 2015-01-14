@@ -344,9 +344,8 @@ WebAPI::WebAPI(std::string url, int postflag, std::string postdata) throw(WebAPI
             redirect_or_retry_flag = 0;
 	 } else {
 	     int wstatus;
-	     pid_t wres;
 	     if (_pid) {
-	        wres = waitpid(_pid,&wstatus,0);
+	        (void) waitpid(_pid,&wstatus,0);
 	        _pid = 0;
 	     }
 	     // we're going to redirect/retry again, so close the _fromsite side
@@ -378,10 +377,9 @@ WebAPI::getStatus() {
 
 WebAPI::~WebAPI() {
     int wstatus;
-    pid_t wres;
     if (_pid) {
-        wres = waitpid(_pid,&wstatus,0);
-        waitpid(-1,&wstatus,WNOHANG);
+        (void) waitpid(_pid,&wstatus,0);
+        (void) waitpid(-1,&wstatus,WNOHANG);
     }
     _tosite.close();
     _fromsite.close();

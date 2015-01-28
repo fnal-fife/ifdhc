@@ -232,8 +232,8 @@ public:
 	pf = popen("$CPN_DIR/bin/lock","r");
 	while (!feof(pf) && !ferror(pf)) {
             if (fgets(buf, 512, pf)) {
-                fputs(buf,stdout);
-                fflush(stdout);
+                fputs(buf,stderr);
+                fflush(stderr);
             }
 	}
         if (ferror(pf)) {
@@ -284,7 +284,7 @@ public:
         }
         kill(_heartbeat_pid, 9);
         waitpid(_heartbeat_pid, &res, 0);
-        res2 = system("$CPN_DIR/bin/lock free");
+        res2 = system("$CPN_DIR/bin/lock free >&2");
         _heartbeat_pid = -1;
         if (!((WIFSIGNALED(res) && 9 == WTERMSIG(res)) || (WIFEXITED(res) &&WEXITSTATUS(res)==0))) {
             stringstream basemessage;
@@ -746,9 +746,9 @@ ifdh::cp( std::vector<std::string> args ) {
 
 
     if (_debug) {
-         std::cout << "entering ifdh::cp( ";
+         std::cerr << "entering ifdh::cp( ";
          for( std::vector<std::string>::size_type i = 0; i < args.size(); i++ ) {
-             std::cout << args[i] << " ";
+             std::cerr << args[i] << " ";
          }
     }
 

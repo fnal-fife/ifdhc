@@ -65,9 +65,6 @@ do
         printf "\tif (! argv[1] || 0 == strcmp(argv[1],\"--help\") || (argv[2] && 0 == strcmp(argv[2],\"--help\"))) { \n"
         printf "\t\tusage();exit(0);\n"
         printf "\t}\n";
-        printf "\tif (0 != getenv(\"IFDH_DEBUG\")) { \n"
-        printf "\t\tifdh::_debug = 1;\n"
-        printf "\t}\n";
         printf "\ttry {\n"
 	xlate=true;
 	;;

@@ -229,7 +229,7 @@ public:
         }
 
 	// call lock, skip to last line 
-	pf = popen("$CPN_DIR/bin/lock","r");
+	pf = popen("exec $CPN_DIR/bin/lock","r");
 	while (!feof(pf) && !ferror(pf)) {
             if (fgets(buf, 512, pf)) {
                 fputs(buf,stderr);
@@ -284,7 +284,7 @@ public:
         }
         kill(_heartbeat_pid, 9);
         waitpid(_heartbeat_pid, &res, 0);
-        res2 = system("$CPN_DIR/bin/lock free >&2");
+        res2 = system("exec $CPN_DIR/bin/lock free >&2");
         _heartbeat_pid = -1;
         if (!((WIFSIGNALED(res) && 9 == WTERMSIG(res)) || (WIFEXITED(res) &&WEXITSTATUS(res)==0))) {
             stringstream basemessage;
@@ -1360,7 +1360,8 @@ pick_type( string &loc, string force, bool &use_fs, bool &use_gridftp, bool &use
 
     if (force.length() == 0) {
        if (getenv("IFDH_FORCE")) {
-          force = getenv("IFDH_FORCE");
+          force += "--force=";
+          force += getenv("IFDH_FORCE");
        }
     }
     if (force.find("--force=") == 0L) {

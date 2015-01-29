@@ -39,7 +39,7 @@ class SAMCases(unittest.TestCase):
         else:
             SAMCases.defname = "mwm_test_9" 
         SAMCases.test_file = "MN_00000798_0002_numib_v04_0911090042_RawEvents.root"
-        SAMCases.test_file2 = "MN_00000798_0002_numib_v04_0911090000_RawEvents.root"
+        SAMCases.test_file2 = "MN_00000798_0003_numib_v04_0911090141_RawEvents.root"
 
     def log(self,msg):
         self.ifdh_handle.log(msg)

@@ -12,13 +12,16 @@ from lockTests import ifdh_lock_cases
 
 from auxFiles import aux_file_cases
 
+from exitCodes import exitcodecases
+
 def suite():
     basesuite = unittest.TestLoader().loadTestsFromTestCase(SAMCases)
     basesuite2 = unittest.TestLoader().loadTestsFromTestCase(SAMCases)
     basesuite3 =  unittest.TestLoader().loadTestsFromTestCase(ifdh_cp_cases)
     basesuite4 =  unittest.TestLoader().loadTestsFromTestCase(ifdh_lock_cases)
     basesuite5 =   unittest.TestLoader().loadTestsFromTestCase(aux_file_cases)
-    suite = unittest.TestSuite( [basesuite,basesuite2,basesuite3,basesuite4,basesuite5] )
+    basesuite6 =   unittest.TestLoader().loadTestsFromTestCase(exitcodecases)
+    suite = unittest.TestSuite( [basesuite,basesuite2,basesuite3,basesuite4,basesuite5,basesuite6] )
     return suite
 
 if __name__ == '__main__':

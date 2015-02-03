@@ -142,13 +142,13 @@ class SAMCases(unittest.TestCase):
     def test_4_startproject(self):
         self.log(self._testMethodName)
         SAMCases.curproject = "testproj%s_%d_%d" % (self.hostname, os.getpid(),time.time())
-        url =  self.ifdh_handle.startProject(SAMCases.curproject,SAMCases.experiment, SAMCases.defname, os.environ['USER'], SAMCases.experiment)
+        url =  self.ifdh_handle.startProject(SAMCases.curproject,SAMCases.experiment, SAMCases.defname, os.environ.get('TEST_USER', os.environ['USER']), SAMCases.experiment)
         self.assertNotEqual(url, '',self._testMethodName)
 
     def test_5_startclient(self):
         self.log(self._testMethodName)
         cpurl = self.ifdh_handle.findProject(SAMCases.curproject,'')
-        SAMCases.curconsumer = self.ifdh_handle.establishProcess(cpurl,"demo","1",self.hostname,os.environ['USER'], "","test suite job", 0)
+        SAMCases.curconsumer = self.ifdh_handle.establishProcess(cpurl,"demo","1",self.hostname,os.environ.get('TEST_USER', os.environ['USER']), "","test suite job", 0)
         self.assertNotEqual(SAMCases.curconsumer, "",self._testMethodName)
 
     def test_5a_dumpProject(self):

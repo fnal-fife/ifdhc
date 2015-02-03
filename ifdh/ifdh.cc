@@ -526,8 +526,10 @@ int ifdh::endProject(string projecturi) {
 
 ifdh::ifdh(std::string baseuri) { 
     check_env();
-    if (0 != getenv("IFDH_DEBUG")) { 
-	_debug = 1;
+    char *debug = getenv("IFDH_DEBUG");
+    if (0 != debug ) { 
+        std::cerr << "IFDH_DEBUG=" << debug << " => " << atoi(debug) << "\n";
+	_debug = atoi(debug);
     }
     if ( baseuri == "" ) {
         _baseuri = getenv("IFDH_BASE_URI")?getenv("IFDH_BASE_URI"):(getenv("EXPERIMENT")?_default_base_uri+getenv("EXPERIMENT")+"/api":"") ;

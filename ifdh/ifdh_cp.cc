@@ -519,11 +519,18 @@ check_grid_credentials() {
     FILE *pf = popen("voms-proxy-info -all 2>/dev/null", "r");
     bool found = false;
     std::string experiment(getexperiment());
+    std::string path;
     
     ifdh::_debug && std::cerr << "check_grid_credentials:\n";
 
     while(fgets(buf,512,pf)) {
 	 std::string s(buf);
+
+         if ( 0 == s.find("path ")) {
+             path = s.substr(s.find(':') + 2);
+             path = path.substr(0,path.size()-1);
+             ifdh::_debug && std::cerr << "saw path" << path << "\n";
+         }
 	 if ( 0 == s.find("attribute ") && std::string::npos != s.find("Role=") && std::string::npos == s.find("Role=NULL")) { 
 	     found = true;
              if (std::string::npos ==  s.find(experiment)) {
@@ -538,6 +545,11 @@ check_grid_credentials() {
 	 }
     }
     fclose(pf);
+
+    if (found and 0 == getenv("X509_USER_PROXY")) {
+        ifdh::_debug && std::cerr << "setting X509_USER_PROXY to " << path << "\n";
+        setenv("X509_USER_PROXY", path.c_str(),1);
+    }
     return found;
 }
 

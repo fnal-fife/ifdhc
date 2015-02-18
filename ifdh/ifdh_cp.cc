@@ -523,6 +523,7 @@ check_grid_credentials() {
     
     ifdh::_debug && std::cerr << "check_grid_credentials:\n";
 
+
     while(fgets(buf,512,pf)) {
 	 std::string s(buf);
 
@@ -589,7 +590,7 @@ get_grid_credentials_if_needed() {
         // if we still don't have credentials, try to get some from kx509
 	ifdh::_debug && std::cerr << "trying to kx509/voms-proxy-init...\n " ;
 
-        ifdh::_debug && system("echo X509_USER_PROXY is $X509_USER_PROXY");
+        ifdh::_debug && system("echo X509_USER_PROXY is $X509_USER_PROXY >&2");
 
 	cmd = "kx509 ";
         if (ifdh::_debug) {

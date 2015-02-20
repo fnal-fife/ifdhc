@@ -30,7 +30,7 @@ Flavor=ANY
 Qualifiers=p279:e7:debug
 
   Action=DefineFQ
-    EnvSet(IFDHC_FQ_DIR, ${UPS_PROD_FLAVOR}-p279-e7-debug )
+    EnvSet(IFDHC_FQ_DIR, ${UPS_PROD_DIR}/${UPS_PROD_FLAVOR}-p279-e7-debug )
 
   Action = ExtraSetup
     setupRequired( python v2_7_9 )
@@ -40,7 +40,7 @@ Flavor=ANY
 Qualifiers=p279:e7:prof
 
   Action=DefineFQ
-    EnvSet(IFDHC_FQ_DIR, ${UPS_PROD_FLAVOR}-p279-e7-prof )
+    EnvSet(IFDHC_FQ_DIR, ${UPS_PROD_DIR}/${UPS_PROD_FLAVOR}-p279-e7-prof )
 
   Action = ExtraSetup
     setupRequired( python v2_7_9 )
@@ -50,7 +50,7 @@ Flavor=ANY
 Qualifiers=p279:e6:debug
 
   Action=DefineFQ
-    EnvSet(IFDHC_FQ_DIR, ${UPS_PROD_FLAVOR}-p279-e6-debug )
+    EnvSet(IFDHC_FQ_DIR, ${UPS_PROD_DIR}/${UPS_PROD_FLAVOR}-p279-e6-debug )
 
   Action = ExtraSetup
     setupRequired( python v2_7_9 )
@@ -60,7 +60,7 @@ Flavor=ANY
 Qualifiers=p279:e6:prof
 
   Action=DefineFQ
-    EnvSet(IFDHC_FQ_DIR, ${UPS_PROD_FLAVOR}-p279-e6-prof )
+    EnvSet(IFDHC_FQ_DIR, ${UPS_PROD_DIR}/${UPS_PROD_FLAVOR}-p279-e6-prof )
 
   Action = ExtraSetup
     setupRequired( python v2_7_9 )
@@ -70,7 +70,7 @@ Flavor=ANY
 Qualifiers=p278:e6:debug
 
   Action=DefineFQ
-    EnvSet(IFDHC_FQ_DIR, ${UPS_PROD_FLAVOR}-p278-e6-debug )
+    EnvSet(IFDHC_FQ_DIR, ${UPS_PROD_DIR}/${UPS_PROD_FLAVOR}-p278-e6-debug )
 
   Action = ExtraSetup
     setupRequired( python v2_7_8 )
@@ -80,7 +80,7 @@ Flavor=ANY
 Qualifiers=p278:e6:prof
 
   Action=DefineFQ
-    EnvSet(IFDHC_FQ_DIR, ${UPS_PROD_FLAVOR}-p278-e6-prof )
+    EnvSet(IFDHC_FQ_DIR, ${UPS_PROD_DIR}/${UPS_PROD_FLAVOR}-p278-e6-prof )
 
   Action = ExtraSetup
     setupRequired( python v2_7_8 )
@@ -90,7 +90,7 @@ Flavor=ANY
 Qualifiers=p278:e5:debug
 
   Action=DefineFQ
-    EnvSet(IFDHC_FQ_DIR, ${UPS_PROD_FLAVOR}-p278-e5-debug )
+    EnvSet(IFDHC_FQ_DIR, ${UPS_PROD_DIR}/${UPS_PROD_FLAVOR}-p278-e5-debug )
 
   Action = ExtraSetup
     setupRequired( python v2_7_8 )
@@ -100,7 +100,7 @@ Flavor=ANY
 Qualifiers=p278:e5:prof
 
   Action=DefineFQ
-    EnvSet(IFDHC_FQ_DIR, ${UPS_PROD_FLAVOR}-p278-e5-prof )
+    EnvSet(IFDHC_FQ_DIR, ${UPS_PROD_DIR}/${UPS_PROD_FLAVOR}-p278-e5-prof )
 
   Action = ExtraSetup
     setupRequired( python v2_7_8 )
@@ -110,7 +110,7 @@ Flavor=ANY
 Qualifiers=p276:e5:debug
 
   Action=DefineFQ
-    EnvSet(IFDHC_FQ_DIR, ${UPS_PROD_FLAVOR}-p276-e5-debug )
+    EnvSet(IFDHC_FQ_DIR, ${UPS_PROD_DIR}/${UPS_PROD_FLAVOR}-p276-e5-debug )
 
   Action = ExtraSetup
     setupRequired( python v2_7_6 )
@@ -120,7 +120,7 @@ Flavor=ANY
 Qualifiers=p276:e5:prof
 
   Action=DefineFQ
-    EnvSet(IFDHC_FQ_DIR, ${UPS_PROD_FLAVOR}-p276-e5-prof )
+    EnvSet(IFDHC_FQ_DIR, ${UPS_PROD_DIR}/${UPS_PROD_FLAVOR}-p276-e5-prof )
 
   Action = ExtraSetup
     setupRequired( python v2_7_6 )

@@ -129,9 +129,8 @@ Qualifiers=p276:e5:prof
 Common:
 
   Action=setup
+    proddir()
     SetupEnv()
-    EnvSet(SETUP_IFDHC, $SETUP_IFDHC)
-    EnvSet(IFDHC_DIR,     ${UPS_PROD_DIR})
     EnvSet(IFDHC_VERSION, ${UPS_PROD_VERSION})
     ExeActionRequired(DefineFQ)
     EnvSet(IFDHC_LIB,     ${IFDHC_FQ_DIR}/lib)

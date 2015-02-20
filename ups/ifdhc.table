@@ -54,7 +54,7 @@ Qualifiers=p279:e6:debug
 
   Action = ExtraSetup
     setupRequired( python v2_7_9 )
-    setupRequired( gcc v4_9_2 )
+    setupRequired( gcc v4_9_1 )
 
 Flavor=ANY
 Qualifiers=p279:e6:prof
@@ -64,7 +64,7 @@ Qualifiers=p279:e6:prof
 
   Action = ExtraSetup
     setupRequired( python v2_7_9 )
-    setupRequired( gcc v4_9_2 )
+    setupRequired( gcc v4_9_1 )
 
 Flavor=ANY
 Qualifiers=p278:e6:debug

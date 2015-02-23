@@ -57,7 +57,7 @@ class exitcodecases(unittest.TestCase):
         filename = "file%s.txt" % os.getpid()     
         self.goodRemoteDir = "/pnfs/%s/scratch/users/test_ifdh_%s_%s" % (self.experiment, socket.gethostname(), os.getpid())
         self.goodRemoteFile = "%s/%s" % (self.goodRemoteDir, filename)
-        self.badRemoteDir = "/pnfs/%s/nope/nope/nope"
+        self.badRemoteDir = "/pnfs/%s/nope/nope/nope" % self.experiment
         self.badRemoteFile = "%s/%s" % (self.badRemoteDir, filename)
         self.goodLocalFile = "/tmp/%s" % filename
         self.badLocalFile = "/tmp/nope/nope/nope"
@@ -227,6 +227,29 @@ class exitcodecases(unittest.TestCase):
     def test_pin_exist(self):
         res = os.system("EXPERIMENT=%s ifdh pin %s  > /dev/null 2>&1" % 
                 (self.experiment,self.goodRemoteFile))
+        self.assertEqual(res,0)
+
+## checksum ##
+
+    #this test hangs indefinitely
+    def do_nottest_checksum_noexist_local(self):
+        res = os.system("EXPERIMENT=%s ifdh checksum %s  > /dev/null 2>&1" % 
+                (self.experiment, self.badLocalFile))
+        self.assertNotEqual(res,0)
+
+    def test_checksum_noexist_remote(self):
+        res = os.system("EXPERIMENT=%s ifdh checksum %s  > /dev/null 2>&1" % 
+                (self.experiment, self.badRemoteFile))
+        self.assertNotEqual(res,0)
+
+    def test_checksum_exist_local(self):
+        res = os.system("EXPERIMENT=%s ifdh checksum %s  > /dev/null 2>&1" % 
+                (self.experiment, self.goodLocalFile))
+        self.assertEqual(res,0)
+
+    def test_checksum_exist_remote(self):
+        res = os.system("EXPERIMENT=%s ifdh checksum %s  > /dev/null 2>&1" % 
+                (self.experiment, self.goodRemoteFile))
         self.assertEqual(res,0)
 
 

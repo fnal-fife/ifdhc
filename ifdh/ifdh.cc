@@ -14,8 +14,10 @@
 #include <errno.h>
 #include <exception>
 #include <sys/wait.h>
+#include <sys/signal.h>
 #include <map>
 #include "../util/Checksum.h"
+#include <setjmp.h>
 
 using namespace std;
 
@@ -339,13 +341,66 @@ do_url_2(int postflag, va_list ap) {
     return new WebAPI(urls, postflag, postdatas);
 }
 
+// this should probably all be in the WebAPI...
+// then it would be thread-safe-ish
+//static sighandler_t savesig;
+jmp_buf jump_here;
+static struct sigaction oldaction;
+
+void
+clear_timeout() {
+    alarm(0);
+    sigaction(SIGALRM, &oldaction, 0);
+}
+
+
+void
+handle_timeout(int what) {
+    clear_timeout();
+    what = what;
+    longjmp(jump_here, 1);
+}
+
+int
+set_timeout() {
+    int timeoutafter;
+    struct sigaction action;
+    sigset_t empty;
+    sigemptyset(&empty);
+    action.sa_handler = handle_timeout;
+    action.sa_restorer = 0;
+    action.sa_mask = empty;
+    action.sa_flags = 0;
+   
+    if (getenv("IFDH_WEB_TIMEOUT")) { 
+        timeoutafter = atoi(getenv("IFDH_WEB_TIMEOUT"));
+    } else { 
+        timeoutafter = 3*60*60;
+    }
+    if (setjmp(jump_here)) {
+       std::cerr << "Timeout in ifdh web call\n";
+       throw std::runtime_error("Timeout in ifdh web call");
+    }
+    sigaction(SIGALRM, &action, &oldaction);
+    alarm(timeoutafter);
+    return 0;
+}
+
 int
 do_url_int(int postflag, ...) {
     va_list ap;
     int res;
+    WebAPI *wap;
     va_start(ap, postflag);
-    WebAPI *wap = do_url_2(postflag, ap);
+    try {
+    set_timeout();
+    wap = do_url_2(postflag, ap);
     res = wap->getStatus() - 200;
+    clear_timeout();
+    } catch( exception &e )  {
+       return 300;
+    }
+    alarm(0);
     if (ifdh::_debug) std::cerr << "got back int result: " << res << "\n";
     delete wap;
     return res;
@@ -357,8 +412,11 @@ do_url_str(int postflag,...) {
     va_list ap;
     string res("");
     string line;
+    WebAPI *wap;
+    try {
+    set_timeout();
     va_start(ap, postflag);
-    WebAPI *wap = do_url_2(postflag, ap);
+    wap = do_url_2(postflag, ap);
     while (!wap->data().eof() && !wap->data().fail()) {
       getline(wap->data(), line);
       if (wap->data().eof()) {
@@ -366,6 +424,10 @@ do_url_str(int postflag,...) {
       } else {
          res = res + line + "\n";
       }
+    }
+    clear_timeout();
+    } catch( exception &e )  {
+       return "";
     }
     if (ifdh::_debug) std::cerr << "got back string result: " << res << "\n";
     delete wap;
@@ -376,14 +438,22 @@ vector<string>
 do_url_lst(int postflag,...) {
     va_list ap;
     string line;
+    vector<string> empty;
     vector<string> res;
+    WebAPI *wap;
+    try {
+    set_timeout();
     va_start(ap, postflag);
-    WebAPI *wap = do_url_2(postflag, ap);
+    wap = do_url_2(postflag, ap);
     while (!wap->data().eof() && !wap->data().fail()) {
         getline(wap->data(), line);
         if (! (line == "" && wap->data().eof())) {
             res.push_back(line);
         }
+    }
+    clear_timeout();
+    } catch( runtime_error &e )  {
+        return empty;
     }
     delete wap;
     return res;

@@ -115,6 +115,7 @@ WebAPI::WebAPI(std::string url, int postflag, std::string postdata) throw(WebAPI
      struct addrinfo *addrp;   // getaddrinfo() result
      struct addrinfo *addrf;   // getaddrinfo() result, to free later
      static char buf[512];      // buffer for header lines
+     int optval, optlen;
      int retries;
      int res;
      int retryafter = -1;
@@ -175,6 +176,12 @@ WebAPI::WebAPI(std::string url, int postflag, std::string postdata) throw(WebAPI
 		 _debug && std::cerr.flush();
 
 		 s = socket(addrp->ai_family, addrp->ai_socktype,0);
+
+                 // turn on keepalive, so we know if we lose the
+                 // other end...
+                 optval = 1;
+                 optlen = sizeof(optval);
+                 setsockopt(s, SOL_SOCKET, SO_KEEPALIVE, &optval, optlen);
 
 		 if (connect(s, addrp->ai_addr,addrp->ai_addrlen) < 0) {
                      _debug && std::cerr << "connect failed: errno = " << errno << "\n";

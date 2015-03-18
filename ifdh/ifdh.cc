@@ -346,10 +346,13 @@ do_url_2(int postflag, va_list ap) {
 //static sighandler_t savesig;
 jmp_buf jump_here;
 static struct sigaction oldaction;
+int oldalarm;
 
 void
 clear_timeout() {
-    alarm(0);
+    // this isn't exaclty right, we should subtract off
+    // the elapsed time(?), but set it to 1 if it's negative.
+    alarm(oldalarm);
     sigaction(SIGALRM, &oldaction, 0);
 }
 
@@ -382,7 +385,7 @@ set_timeout() {
        throw std::runtime_error("Timeout in ifdh web call");
     }
     sigaction(SIGALRM, &action, &oldaction);
-    alarm(timeoutafter);
+    oldalarm = alarm(timeoutafter);
     return 0;
 }
 
@@ -400,7 +403,6 @@ do_url_int(int postflag, ...) {
     } catch( exception &e )  {
        return 300;
     }
-    alarm(0);
     if (ifdh::_debug) std::cerr << "got back int result: " << res << "\n";
     delete wap;
     return res;

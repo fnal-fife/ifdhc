@@ -1436,7 +1436,7 @@ pick_type( string &loc, string force, bool &use_fs, bool &use_gridftp, bool &use
         }
     }
 
-    if (loc.find(':') > 2 && loc.find(':') != string::npos) {
+    if (loc.find(':') > 1 && loc.find(':') != string::npos) {
         if (loc.find("s3:") == 0) {
            use_s3 = true;
         }
@@ -1598,7 +1598,7 @@ ifdh::lss( std::string loc, int recursion_depth, std::string force) {
         recursion_depth = 1;
 
     cpos = loc.find(':');
-    if (cpos > 2 && cpos < 8) {
+    if (cpos > 1 && cpos < 8) {
        // looks like a uri...
        spos = loc.find('/',cpos+3);
        if( spos != string::npos) {
@@ -1614,7 +1614,6 @@ ifdh::lss( std::string loc, int recursion_depth, std::string force) {
 
     pick_type( loc, force, use_fs, use_gridftp, use_srm, use_irods, use_s3);
 
-
     if (use_srm) {
        setenv("SRM_JAVA_OPTIONS", "-Xmx1024m" ,0);
        cmd << "srmls -2 -count=8192 ";
@@ -1626,7 +1625,8 @@ ifdh::lss( std::string loc, int recursion_depth, std::string force) {
            cmd << "--recursive ";
        }
        cmd << loc;
-       dir = loc.substr(loc.find("/",4));
+       dir = loc.substr(loc.find("/",5));
+       base = base + dir;
     } else if (use_irods) {
        cmd << "ils  ";
        if (recursion_depth > 1) {
@@ -1691,11 +1691,13 @@ ifdh::lss( std::string loc, int recursion_depth, std::string force) {
            if (use_srm || use_s3) {
                // find spos as start of size , which is after date
                // on s3
-               spos = s.find_first_of("0123456789", use_s3?19:0);
+               spos = s.find_first_of("0123456789", use_s3?20:0);
 	       pos = s.find('/');
                if (spos != string::npos && spos < pos) {
                    // we have digits before the path...
                    fsize = atol(s.c_str()+spos);
+                   pos = s.find(" ", spos);
+                   pos = pos + 1;
                }
 	       if (pos > 0 && pos != string::npos ) {
 		   s = s.substr(pos);

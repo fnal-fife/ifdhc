@@ -750,8 +750,10 @@ ifdh::checksum(string loc) {
     cerr.flush();
     std::stringstream sumtext;
     std::string where = localPath(loc);
+    std::string path;
     const char *c_where = where.c_str();
     int res2 ,res;
+    int parentpid = getpid();
     unsigned long sum;
     res  = mknod(c_where, 0600 | S_IFIFO, 0);
     if(_debug) cerr << "made node " << c_where << endl;
@@ -760,8 +762,13 @@ ifdh::checksum(string loc) {
        if(_debug) cerr << "fork says " << res2 << endl;
        if (res2 == 0) {
             if(_debug) cerr << "starting fetchInput( " << loc << ")" << endl;
-            this-> fetchInput(loc);
-            if(_debug) cerr << "finishe fetchInput( " << loc << ")" << endl;
+            try {
+                path =  this-> fetchInput(loc);
+            } catch (exception &e) {
+                cerr << "failed fetching " << loc << "\n";
+                kill(parentpid, SIGPIPE);
+            }
+            if(_debug) cerr << "finished fetchInput( " << loc << ")" << endl;
             exit(0);
        } else if (res2 > 0) {
             if(_debug) cerr << "starting get_adler32( " << c_where << ")" << endl;

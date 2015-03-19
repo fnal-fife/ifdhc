@@ -1594,7 +1594,7 @@ ifdh::lss( std::string loc, int recursion_depth, std::string force) {
     } else if (use_s3) {
        cmd << "aws s3 ls  ";
        if (recursion_depth > 1) {
-           cmd << "-r ";
+           cmd << "--recursive ";
        }
        cmd << loc;
        dir = loc.substr(loc.find("/",4));
@@ -1658,8 +1658,8 @@ ifdh::lss( std::string loc, int recursion_depth, std::string force) {
                    }
                }
            }
-           // trim leading stuff from srmls
-           if (use_srm) {
+           // trim leading stuff from srmls/aws s3 ls
+           if (use_srm || use_s3) {
                spos = s.find_first_of("0123456789");
 	       pos = s.find('/');
                if (spos != string::npos && spos < pos) {

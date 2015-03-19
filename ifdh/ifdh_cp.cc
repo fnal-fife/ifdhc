@@ -849,6 +849,8 @@ ifdh::cp( std::vector<std::string> args ) {
     
     // now decide whether to get a cpn lock...
     bool need_cpn_lock = false;
+    int need_lock_low = args.size() + 1;
+    int need_lock_high = -1;
     for( std::vector<std::string>::size_type i = curarg; i < args.size(); i++ ) {
         if (args[i] == ";") {
            continue;
@@ -857,33 +859,48 @@ ifdh::cp( std::vector<std::string> args ) {
         if (args[i].find("/grid") == 0) {
            _debug && cerr << "need lock: " << args[i] << " /grid test\n";
  	   need_cpn_lock = true;
-           break;
+	   if ((int)i < need_lock_low) 
+	       need_lock_low = i;
+	   if ((int)i > need_lock_high)
+	       need_lock_high = i;
         }
 
         if (args[i][0] == '/' && 0 == access(parent_dir(args[i]).c_str(),R_OK) && 0 != local_access(parent_dir(args[i]).c_str(),R_OK) && 0L != args[i].find("/pnfs") && 0l != args[i].find("/scratch") ) {
            _debug && cerr << "need lock: " << args[i] << " NFS test\n";
-            // we can see it but it's not local and not /pnfs
-            //   and it isn't a nfs mounted /scratch area
-            need_cpn_lock = true;
-           break;
+           // we can see it but it's not local and not /pnfs
+           //   and it isn't a nfs mounted /scratch area
+           need_cpn_lock = true;
+	   if ((int)i < need_lock_low) 
+	       need_lock_low = i;
+	   if ((int)i > need_lock_high)
+	       need_lock_high = i;
         }
 
         if (args[i].find("gsiftp://if-gridftp") == 0 ) {
            _debug && cerr << "need lock: " << args[i] << " if-gridftp test\n";
  	   need_cpn_lock = true;
-           break;
+	   if ((int)i < need_lock_low) 
+	       need_lock_low = i;
+	   if ((int)i > need_lock_high)
+	       need_lock_high = i;
         }
 
         if (args[i].find(bestman_srm_uri) == 0) {
            _debug && cerr << "need lock: " << args[i] << " bestman_srm test\n";
  	   need_cpn_lock = true;
-           break;
+	   if ((int)i < need_lock_low) 
+	       need_lock_low = i;
+	   if ((int)i > need_lock_high)
+	       need_lock_high = i;
         }
 
         if (args[i].find(bestman_ftp_uri) == 0) {
            _debug && cerr << "need lock: " << args[i] << " bestman_ftp test\n";
  	   need_cpn_lock = true;
-           break;
+	   if ((int)i < need_lock_low) 
+	       need_lock_low = i;
+	   if ((int)i > need_lock_high)
+	       need_lock_high = i;
         }
     }
 
@@ -932,6 +949,10 @@ ifdh::cp( std::vector<std::string> args ) {
                use_cpn = false; 
                use_srm = false;
  	       need_cpn_lock = true;
+               if ((int)i < need_lock_low) 
+                   need_lock_low = i;
+               if ((int)i > need_lock_high)
+                   need_lock_high = i;
                cpngroup += args[i].substr(3,args[i].find(':',3)-3);
                setenv("CPN_LOCK_GROUP", cpngroup.c_str(),0);
                break;
@@ -979,6 +1000,10 @@ ifdh::cp( std::vector<std::string> args ) {
                 if ( 0 == access(altmount.c_str(),R_OK) ) {
                      args[i] = altmount;
                      need_cpn_lock = true;
+		     if ((int)i < need_lock_low) 
+			   need_lock_low = i;
+		     if ((int)i > need_lock_high)
+			   need_lock_high = i;
                      continue;
                 }
 	       
@@ -1087,9 +1112,6 @@ ifdh::cp( std::vector<std::string> args ) {
 	get_grid_credentials_if_needed();
      }
 
-     if (need_cpn_lock) {
-         cpn.lock();
-     }
 
      // this looks redudnant, but the proxy could have 
      // expired while we were waiting for a lock...
@@ -1161,6 +1183,9 @@ ifdh::cp( std::vector<std::string> args ) {
 
          while (curarg < args.size() && args[curarg] != ";" ) {
 
+            if ((int)curarg == need_lock_low) {
+                cpn.lock();
+            }
 
             args[curarg] = fix_recursive_arg(args[curarg],recursive);
 
@@ -1263,6 +1288,10 @@ ifdh::cp( std::vector<std::string> args ) {
 	        cmd << args[curarg] << " ";
             }
             curarg++;
+        }
+	if (need_cpn_lock && (int)curarg > need_lock_high) {
+            need_cpn_lock = false;
+            cpn.free();
         }
 
         _debug && std::cerr << "running: " << cmd.str() << endl;

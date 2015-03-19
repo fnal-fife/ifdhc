@@ -1689,7 +1689,9 @@ ifdh::lss( std::string loc, int recursion_depth, std::string force) {
            }
            // trim leading stuff from srmls/aws s3 ls
            if (use_srm || use_s3) {
-               spos = s.find_first_of("0123456789");
+               // find spos as start of size , which is after date
+               // on s3
+               spos = s.find_first_of("0123456789", use_s3?19:0);
 	       pos = s.find('/');
                if (spos != string::npos && spos < pos) {
                    // we have digits before the path...

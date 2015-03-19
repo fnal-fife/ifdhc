@@ -1964,16 +1964,21 @@ glob_2_re(string s) {
    return res;
 }
 
+
+
 vector<pair<string,long> > 
 ifdh::findMatchingFiles( string path, string glob) {
    vector<pair<string,long> >  res, batch;
+   vector<string>  plist, globparts;
    vector<string>  dlist, dlist1;
    string prefix;
-
-   glob = glob_2_re(glob);
+   size_t globslice = 0;
+   string sep;
 
    prefix = "";
    dlist1 = split(path,':',false);
+
+
    // splitting on colons breaks urls, so put them back
    for (size_t i = 0; i < dlist1.size(); ++i) {
        if (dlist1[i] == "srm" || dlist1[i] == "gsiftp" || dlist1[i] == "http") {
@@ -1983,6 +1988,30 @@ ifdh::findMatchingFiles( string path, string glob) {
             prefix = "";
        }
    }
+
+   //
+   // to prevent excessive recursive directory searching,
+   // move constant leading directories from glob onto path components.
+   //
+   globparts = split(glob,'/');
+   for (size_t i = 0; i < globparts.size(); ++i) {
+       if ( globparts[i].find('?') != string::npos || globparts[i].find('*') != string::npos ) {
+           globslice = i;
+       } else {
+           for (size_t j = 0; j < dlist1.size(); ++j) {
+               dlist[j] = dlist[j] + '/' + globparts[i];
+           }
+       }
+   }
+   glob = "";
+   sep = "";
+   for (size_t i = globslice; i < globparts.size(); ++i) {
+       glob += sep;
+       glob += globparts[i];
+       sep = "/";
+   }
+
+   glob = glob_2_re(glob);
 
    for (size_t i = 0; i < dlist.size(); ++i) {
         if (_debug) cerr << "checking dir: " << dlist[i] << endl;

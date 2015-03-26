@@ -834,7 +834,7 @@ ifdh::cp( std::vector<std::string> args ) {
 
     for( std::vector<std::string>::size_type i = curarg; i < args.size(); i++ ) {
 
-       if (args[i][0] != ';' && args[i][0] != '/' && args[i].find("srm:") != 0 && args[i].find("gsiftp:") != 0 && !is_dzero_node_path(args[i])) {
+       if (args[i][0] != ';' && args[i][0] != '/' && args[i].find("srm:") != 0 && args[i].find("gsiftp:") != 0 && args[i].find("s3") != 0 && !is_dzero_node_path(args[i])) {
            _debug && std::cerr << "adding cwd to " << args[i] << endl;
 	   args[i] = cwd + "/" + args[i];
        }
@@ -1130,7 +1130,7 @@ ifdh::cp( std::vector<std::string> args ) {
      while( keep_going ) {
          stringstream cmd;
 
-         cmd << (use_dd ? "dd bs=512k " : use_cpn ? "cp "  : use_srm ? srm_copy_command  : use_any_gridftp ? "globus-url-copy -gridftp2 -nodcau -restart -stall-timeout 14400 " :  use_irods ? "icp " :  clued0_hack ? "scp " : "false" );
+         cmd << (use_dd ? "dd bs=512k " : use_cpn ? "cp "  : use_srm ? srm_copy_command  : use_any_gridftp ? "globus-url-copy -gridftp2 -nodcau -restart -stall-timeout 14400 " :  use_irods ? "icp " :  use_s3 ? "aws s3 cp " : clued0_hack ? "scp " : "false" );
 
          if (use_any_gridftp) {
             if ( use_passive()) {
@@ -1234,6 +1234,8 @@ ifdh::cp( std::vector<std::string> args ) {
                 } else {
                    cmd << "if=" << args[curarg] << " ";
                 }
+            } else if ( use_irods || use_s3 ) {
+	        cmd << args[curarg] << " ";
             } else if (0 == local_access(args[curarg].c_str(), R_OK)) {
                 cmd << "file:///" << args[curarg] << " ";
             } else if (( curarg == args.size() - 1 || args[curarg+1] == ";" ) && (0 == local_access(parent_dir(args[curarg]).c_str(), R_OK))) {
@@ -1284,8 +1286,6 @@ ifdh::cp( std::vector<std::string> args ) {
                     cmd << bestman_ftp_uri << args[curarg] << " ";
                     did_one_endpoint = 1;
                 }
-            } else if ( use_irods || use_s3 ) {
-	        cmd << args[curarg] << " ";
             }
             curarg++;
         }

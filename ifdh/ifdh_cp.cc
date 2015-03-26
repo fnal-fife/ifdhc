@@ -1272,6 +1272,10 @@ ifdh::cp( std::vector<std::string> args ) {
                 } else {
                    cmd << "if=" << args[curarg] << " ";
                 }
+            // this is a bit of weirdness; but aws s3 cp will only write properly to a 
+            // named pipe if it is done by "aws s3 cp s3:source - > dest" so to make
+            // it behave when we use a named pipe for cross-protocol copies, we have
+            // to make non-s3: destinations be "- > destination"  Is that not festive?
             } else if ( use_s3 && !(args[curarg].find("s3:") == 0) && ((curarg == args.size() - 1 || args[curarg+1] == ";" )) ) {
                 cmd << " - > " << args[curarg] << " " ;
             } else if ( use_irods || use_s3 ) {

@@ -1272,7 +1272,7 @@ ifdh::cp( std::vector<std::string> args ) {
                 } else {
                    cmd << "if=" << args[curarg] << " ";
                 }
-            } else if ( use_s3 && ((curarg == args.size() - 1 || args[curarg+1] == ";" )) ) {
+            } else if ( use_s3 && !(args[curarg].find("s3:") == 0) && ((curarg == args.size() - 1 || args[curarg+1] == ";" )) ) {
                 cmd << " - > " << args[curarg] << " " ;
             } else if ( use_irods || use_s3 ) {
 	        cmd << args[curarg] << " ";

@@ -742,6 +742,33 @@ is_dzero_node_path( std::string path ) {
  return path.find("D0:") == 0;
 }
 
+std::string
+spinoff_copy(ifdh *handle, std::string what, int outbound) {
+
+    std::string where = handle->localPath(what);
+    const char *c_where = where.c_str();
+    int res2 ,res;
+    std::vector<std::string> args;
+    res  = mknod(c_where, 0600 | S_IFIFO, 0);
+    if (res == 0) {
+       res2 = fork();
+       if (res2 == 0) {
+          if (outbound) {
+             args.push_back(where);
+             args.push_back(what);
+          } else {
+             args.push_back(what);
+             args.push_back(where);
+          }
+          ifdh::_debug && cerr << "\nbackgrounding ifdh::cp([" << args[0] << "," << args[1] << "])\n";
+          exit(handle->cp(args));
+       } else if (res2 > 0) {
+           return where;
+       }
+   }
+   return "";
+}
+
 int 
 ifdh::cp( std::vector<std::string> args ) {
 
@@ -756,7 +783,7 @@ ifdh::cp( std::vector<std::string> args ) {
     bool cleanup_stage = false;
     bool no_zero_length = false;
     struct timeval time_before, time_after;
-
+    std::vector<std::string> cleanup_spinoffs;
 
     if (_debug) {
          std::cerr << "entering ifdh::cp( ";
@@ -1087,7 +1114,7 @@ ifdh::cp( std::vector<std::string> args ) {
      //
      // srmcp and dd only do specific srcfile,destfile copies
      //
-     if (dest_is_dir && (use_srm || use_dd || use_any_gridftp)) {
+     if (dest_is_dir && (use_s3 || use_srm || use_dd || use_any_gridftp)) {
          args = slice_directories(args, curarg);
          dest_is_dir = false;
          curarg = 0;
@@ -1187,6 +1214,17 @@ ifdh::cp( std::vector<std::string> args ) {
                 cpn.lock();
             }
 
+            // if we're a cross-protocol copy, we have to copy through
+            // a named pipe.
+            _debug && cerr << "checking fro cross protocol copy...\n";
+            _debug && cerr << "use_{srm,any_gridftp,s3} "<< use_srm << use_any_gridftp << use_s3 << "\n";
+            if ( (use_s3 && (args[curarg].find("gsiftp:") == 0 || args[curarg].find("srm:") == 0)) ||
+                (use_srm && (args[curarg].find("s3:") == 0 || args[curarg].find("gsiftp:") == 0)) ||
+                (use_any_gridftp && (args[curarg].find("s3:") == 0 || args[curarg].find(":srm") == 0))) {
+                args[curarg] = spinoff_copy(this, args[curarg], (args.size() == curarg + 1 || args[curarg+1] == ";"));
+                cleanup_spinoffs.push_back(args[curarg]);
+            }
+
             args[curarg] = fix_recursive_arg(args[curarg],recursive);
 
             if (is_directory(args[curarg])) {
@@ -1234,6 +1272,8 @@ ifdh::cp( std::vector<std::string> args ) {
                 } else {
                    cmd << "if=" << args[curarg] << " ";
                 }
+            } else if ( use_s3 && ((curarg == args.size() - 1 || args[curarg+1] == ";" )) ) {
+                cmd << " - > " << args[curarg] << " " ;
             } else if ( use_irods || use_s3 ) {
 	        cmd << args[curarg] << " ";
             } else if (0 == local_access(args[curarg].c_str(), R_OK)) {
@@ -1336,6 +1376,11 @@ ifdh::cp( std::vector<std::string> args ) {
     if (cleanup_stage) {
         _debug && std::cerr << "removing: " << args[curarg - 2 ] << endl;
         unlink( args[curarg - 2].c_str());
+    }
+
+    for( size_t i = 0; i < cleanup_spinoffs.size(); i++ ) {
+        unlink(cleanup_spinoffs[i].c_str());
+        wait(0);
     }
 
     if (need_copyback) {

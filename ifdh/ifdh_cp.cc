@@ -1208,6 +1208,8 @@ ifdh::cp( std::vector<std::string> args ) {
 
          bool did_one_endpoint = false;
 
+         _debug && cerr << "lock range: " << need_lock_low <<  ".." << need_lock_high << "\n";
+
          while (curarg < args.size() && args[curarg] != ";" ) {
 
             if ((int)curarg == need_lock_low) {
@@ -1333,10 +1335,6 @@ ifdh::cp( std::vector<std::string> args ) {
             }
             curarg++;
         }
-	if (need_cpn_lock && (int)curarg > need_lock_high) {
-            need_cpn_lock = false;
-            cpn.free();
-        }
 
         _debug && std::cerr << "running: " << cmd.str() << endl;
 
@@ -1355,6 +1353,11 @@ ifdh::cp( std::vector<std::string> args ) {
 
         if (res != 0 && rres == 0) {
             rres = res;
+        }
+
+	if (need_cpn_lock && (int)curarg > need_lock_high) {
+            need_cpn_lock = false;
+            cpn.free();
         }
  
         if (curarg < args.size() && args[curarg] == ";" ) {

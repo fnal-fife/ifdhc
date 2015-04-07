@@ -160,14 +160,14 @@ class exitcodecases(unittest.TestCase):
     def test_cpin_noexist_src(self):
         for force in self.forceMethods:
             cmd = "EXPERIMENT=%s ifdh cp %s %s  %s > /dev/null 2>&1" %\
-                    (self.experiment, self.badRemoteFile, self.goodLocalFile, force)
+                    (self.experiment, force, self.badRemoteFile, self.goodLocalFile)
             res = os.system(cmd)
             self.assertNotEqual(res, 0, cmd)
 
     def test_cpin_noexist_dst(self):
         for force in self.forceMethods:
             cmd = "EXPERIMENT=%s ifdh cp %s %s  %s > /dev/null 2>&1" %\
-                    (self.experiment, self.goodRemoteFile, self.badLocalFile, force)
+                    (self.experiment, force, self.goodRemoteFile, self.badLocalFile)
             res = os.system(cmd)
             self.assertNotEqual(res, 0, cmd)
 
@@ -175,14 +175,14 @@ class exitcodecases(unittest.TestCase):
     def test_cpout_noexist_src(self):
         for force in self.forceMethods:
             cmd = "EXPERIMENT=%s ifdh cp %s %s  %s > /dev/null 2>&1" %\
-                    (self.experiment, self.badLocalFile, self.goodRemoteFile, force)
+                    (self.experiment, force, self.badLocalFile, self.goodRemoteFile)
             res = os.system(cmd)
             self.assertNotEqual(res, 0, cmd)
 
     def test_cpout_noexist_dst(self):
         for force in self.forceMethods:
             cmd = "EXPERIMENT=%s ifdh cp %s %s  %s > /dev/null 2>&1" %\
-                    (self.experiment, self.goodLocalFile, self.badRemoteFile, force)
+                    (self.experiment, force, self.goodLocalFile, self.badRemoteFile)
             res = os.system(cmd)
             self.assertNotEqual(res, 0, cmd)
 
@@ -190,10 +190,10 @@ class exitcodecases(unittest.TestCase):
         tgt_file = self.goodLocalFile + "_tst"
         for force in self.forceMethods:
             cmd = "EXPERIMENT=%s ifdh cp %s %s  %s > /dev/null 2>&1" %\
-                    (self.experiment, self.goodRemoteFile, tgt_file, force)
+                    (self.experiment, force, self.goodRemoteFile, tgt_file)
             #8254 cp claims to accept --force but doesnt appear to
-            cmd = "EXPERIMENT=%s ifdh cp %s %s   > /dev/null 2>&1" %\
-                    (self.experiment, self.goodRemoteFile, tgt_file)
+            #cmd = "EXPERIMENT=%s ifdh cp %s %s   > /dev/null 2>&1" %\
+            #        (self.experiment, self.goodRemoteFile, tgt_file)
             res = os.system(cmd)
             self.assertEqual(res, 0, cmd)
             cmd = "EXPERIMENT=%s ifdh rm %s   %s > /dev/null 2>&1" %\
@@ -208,10 +208,10 @@ class exitcodecases(unittest.TestCase):
         tgt_file = self.goodRemoteFile + "_tst"
         for force in self.forceMethods:
             cmd = "EXPERIMENT=%s ifdh cp %s %s  %s > /dev/null 2>&1" %\
-                    (self.experiment, self.goodLocalFile, tgt_file, force)
+                    (self.experiment, force, self.goodLocalFile, tgt_file)
             #8254 cp claims to accept --force but doesnt appear to
-            cmd = "EXPERIMENT=%s ifdh cp %s %s   > /dev/null 2>&1" %\
-                    (self.experiment, self.goodLocalFile, tgt_file)
+            #cmd = "EXPERIMENT=%s ifdh cp %s %s   > /dev/null 2>&1" %\
+            #        (self.experiment, self.goodLocalFile, tgt_file)
             res = os.system(cmd)
             self.assertEqual(res, 0, cmd)
             cmd = "EXPERIMENT=%s ifdh rm %s   %s > /dev/null 2>&1" %\

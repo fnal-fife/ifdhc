@@ -2017,6 +2017,7 @@ glob_2_re(string s) {
           res.push_back(s[i]);
        }
    }
+   res.push_back('$');
    return res;
 }
 

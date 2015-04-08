@@ -14,8 +14,10 @@
 #include <errno.h>
 #include <exception>
 #include <sys/wait.h>
+#include <sys/signal.h>
 #include <map>
 #include "../util/Checksum.h"
+#include <setjmp.h>
 
 using namespace std;
 
@@ -339,13 +341,68 @@ do_url_2(int postflag, va_list ap) {
     return new WebAPI(urls, postflag, postdatas);
 }
 
+// this should probably all be in the WebAPI...
+// then it would be thread-safe-ish
+//static sighandler_t savesig;
+jmp_buf jump_here;
+static struct sigaction oldaction;
+int oldalarm;
+
+void
+clear_timeout() {
+    // this isn't exaclty right, we should subtract off
+    // the elapsed time(?), but set it to 1 if it's negative.
+    alarm(oldalarm);
+    sigaction(SIGALRM, &oldaction, 0);
+}
+
+
+void
+handle_timeout(int what) {
+    clear_timeout();
+    what = what;
+    longjmp(jump_here, 1);
+}
+
+int
+set_timeout() {
+    int timeoutafter;
+    struct sigaction action;
+    sigset_t empty;
+    sigemptyset(&empty);
+    action.sa_handler = handle_timeout;
+    action.sa_restorer = 0;
+    action.sa_mask = empty;
+    action.sa_flags = 0;
+   
+    if (getenv("IFDH_WEB_TIMEOUT")) { 
+        timeoutafter = atoi(getenv("IFDH_WEB_TIMEOUT"));
+    } else { 
+        timeoutafter = 3*60*60;
+    }
+    if (setjmp(jump_here)) {
+       std::cerr << "Timeout in ifdh web call\n";
+       throw std::runtime_error("Timeout in ifdh web call");
+    }
+    sigaction(SIGALRM, &action, &oldaction);
+    oldalarm = alarm(timeoutafter);
+    return 0;
+}
+
 int
 do_url_int(int postflag, ...) {
     va_list ap;
     int res;
+    WebAPI *wap;
     va_start(ap, postflag);
-    WebAPI *wap = do_url_2(postflag, ap);
+    try {
+    set_timeout();
+    wap = do_url_2(postflag, ap);
     res = wap->getStatus() - 200;
+    clear_timeout();
+    } catch( exception &e )  {
+       return 300;
+    }
     if (ifdh::_debug) std::cerr << "got back int result: " << res << "\n";
     delete wap;
     return res;
@@ -357,8 +414,11 @@ do_url_str(int postflag,...) {
     va_list ap;
     string res("");
     string line;
+    WebAPI *wap;
+    try {
+    set_timeout();
     va_start(ap, postflag);
-    WebAPI *wap = do_url_2(postflag, ap);
+    wap = do_url_2(postflag, ap);
     while (!wap->data().eof() && !wap->data().fail()) {
       getline(wap->data(), line);
       if (wap->data().eof()) {
@@ -366,6 +426,10 @@ do_url_str(int postflag,...) {
       } else {
          res = res + line + "\n";
       }
+    }
+    clear_timeout();
+    } catch( exception &e )  {
+       return "";
     }
     if (ifdh::_debug) std::cerr << "got back string result: " << res << "\n";
     delete wap;
@@ -376,14 +440,22 @@ vector<string>
 do_url_lst(int postflag,...) {
     va_list ap;
     string line;
+    vector<string> empty;
     vector<string> res;
+    WebAPI *wap;
+    try {
+    set_timeout();
     va_start(ap, postflag);
-    WebAPI *wap = do_url_2(postflag, ap);
+    wap = do_url_2(postflag, ap);
     while (!wap->data().eof() && !wap->data().fail()) {
         getline(wap->data(), line);
         if (! (line == "" && wap->data().eof())) {
             res.push_back(line);
         }
+    }
+    clear_timeout();
+    } catch( runtime_error &e )  {
+        return empty;
     }
     delete wap;
     return res;
@@ -678,8 +750,10 @@ ifdh::checksum(string loc) {
     cerr.flush();
     std::stringstream sumtext;
     std::string where = localPath(loc);
+    std::string path;
     const char *c_where = where.c_str();
     int res2 ,res;
+    int parentpid = getpid();
     unsigned long sum;
     res  = mknod(c_where, 0600 | S_IFIFO, 0);
     if(_debug) cerr << "made node " << c_where << endl;
@@ -688,8 +762,13 @@ ifdh::checksum(string loc) {
        if(_debug) cerr << "fork says " << res2 << endl;
        if (res2 == 0) {
             if(_debug) cerr << "starting fetchInput( " << loc << ")" << endl;
-            this-> fetchInput(loc);
-            if(_debug) cerr << "finishe fetchInput( " << loc << ")" << endl;
+            try {
+                path =  this-> fetchInput(loc);
+            } catch (exception &e) {
+                cerr << "failed fetching " << loc << "\n";
+                kill(parentpid, SIGPIPE);
+            }
+            if(_debug) cerr << "finished fetchInput( " << loc << ")" << endl;
             exit(0);
        } else if (res2 > 0) {
             if(_debug) cerr << "starting get_adler32( " << c_where << ")" << endl;

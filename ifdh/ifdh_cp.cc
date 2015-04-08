@@ -519,11 +519,19 @@ check_grid_credentials() {
     FILE *pf = popen("voms-proxy-info -all 2>/dev/null", "r");
     bool found = false;
     std::string experiment(getexperiment());
+    std::string path;
     
     ifdh::_debug && std::cerr << "check_grid_credentials:\n";
 
+
     while(fgets(buf,512,pf)) {
 	 std::string s(buf);
+
+         if ( 0 == s.find("path ")) {
+             path = s.substr(s.find(':') + 2);
+             path = path.substr(0,path.size()-1);
+             ifdh::_debug && std::cerr << "saw path" << path << "\n";
+         }
 	 if ( 0 == s.find("attribute ") && std::string::npos != s.find("Role=") && std::string::npos == s.find("Role=NULL")) { 
 	     found = true;
              if (std::string::npos ==  s.find(experiment)) {
@@ -538,6 +546,11 @@ check_grid_credentials() {
 	 }
     }
     fclose(pf);
+
+    if (found and 0 == getenv("X509_USER_PROXY")) {
+        ifdh::_debug && std::cerr << "setting X509_USER_PROXY to " << path << "\n";
+        setenv("X509_USER_PROXY", path.c_str(),1);
+    }
     return found;
 }
 
@@ -577,7 +590,7 @@ get_grid_credentials_if_needed() {
         // if we still don't have credentials, try to get some from kx509
 	ifdh::_debug && std::cerr << "trying to kx509/voms-proxy-init...\n " ;
 
-        ifdh::_debug && system("echo X509_USER_PROXY is $X509_USER_PROXY");
+        ifdh::_debug && system("echo X509_USER_PROXY is $X509_USER_PROXY >&2");
 
 	cmd = "kx509 ";
         if (ifdh::_debug) {
@@ -729,6 +742,33 @@ is_dzero_node_path( std::string path ) {
  return path.find("D0:") == 0;
 }
 
+std::string
+spinoff_copy(ifdh *handle, std::string what, int outbound) {
+
+    std::string where = handle->localPath(what);
+    const char *c_where = where.c_str();
+    int res2 ,res;
+    std::vector<std::string> args;
+    res  = mknod(c_where, 0600 | S_IFIFO, 0);
+    if (res == 0) {
+       res2 = fork();
+       if (res2 == 0) {
+          if (outbound) {
+             args.push_back(where);
+             args.push_back(what);
+          } else {
+             args.push_back(what);
+             args.push_back(where);
+          }
+          ifdh::_debug && cerr << "\nbackgrounding ifdh::cp([" << args[0] << "," << args[1] << "])\n";
+          exit(handle->cp(args));
+       } else if (res2 > 0) {
+           return where;
+       }
+   }
+   return "";
+}
+
 int 
 ifdh::cp( std::vector<std::string> args ) {
 
@@ -743,7 +783,7 @@ ifdh::cp( std::vector<std::string> args ) {
     bool cleanup_stage = false;
     bool no_zero_length = false;
     struct timeval time_before, time_after;
-
+    std::vector<std::string> cleanup_spinoffs;
 
     if (_debug) {
          std::cerr << "entering ifdh::cp( ";
@@ -821,7 +861,7 @@ ifdh::cp( std::vector<std::string> args ) {
 
     for( std::vector<std::string>::size_type i = curarg; i < args.size(); i++ ) {
 
-       if (args[i][0] != ';' && args[i][0] != '/' && args[i].find("srm:") != 0 && args[i].find("gsiftp:") != 0 && !is_dzero_node_path(args[i])) {
+       if (args[i][0] != ';' && args[i][0] != '/' && args[i].find("srm:") != 0 && args[i].find("gsiftp:") != 0 && args[i].find("s3") != 0 && !is_dzero_node_path(args[i])) {
            _debug && std::cerr << "adding cwd to " << args[i] << endl;
 	   args[i] = cwd + "/" + args[i];
        }
@@ -836,6 +876,8 @@ ifdh::cp( std::vector<std::string> args ) {
     
     // now decide whether to get a cpn lock...
     bool need_cpn_lock = false;
+    int need_lock_low = args.size() + 1;
+    int need_lock_high = -1;
     for( std::vector<std::string>::size_type i = curarg; i < args.size(); i++ ) {
         if (args[i] == ";") {
            continue;
@@ -844,33 +886,48 @@ ifdh::cp( std::vector<std::string> args ) {
         if (args[i].find("/grid") == 0) {
            _debug && cerr << "need lock: " << args[i] << " /grid test\n";
  	   need_cpn_lock = true;
-           break;
+	   if ((int)i < need_lock_low) 
+	       need_lock_low = i;
+	   if ((int)i > need_lock_high)
+	       need_lock_high = i;
         }
 
         if (args[i][0] == '/' && 0 == access(parent_dir(args[i]).c_str(),R_OK) && 0 != local_access(parent_dir(args[i]).c_str(),R_OK) && 0L != args[i].find("/pnfs") && 0l != args[i].find("/scratch") ) {
            _debug && cerr << "need lock: " << args[i] << " NFS test\n";
-            // we can see it but it's not local and not /pnfs
-            //   and it isn't a nfs mounted /scratch area
-            need_cpn_lock = true;
-           break;
+           // we can see it but it's not local and not /pnfs
+           //   and it isn't a nfs mounted /scratch area
+           need_cpn_lock = true;
+	   if ((int)i < need_lock_low) 
+	       need_lock_low = i;
+	   if ((int)i > need_lock_high)
+	       need_lock_high = i;
         }
 
         if (args[i].find("gsiftp://if-gridftp") == 0 ) {
            _debug && cerr << "need lock: " << args[i] << " if-gridftp test\n";
  	   need_cpn_lock = true;
-           break;
+	   if ((int)i < need_lock_low) 
+	       need_lock_low = i;
+	   if ((int)i > need_lock_high)
+	       need_lock_high = i;
         }
 
         if (args[i].find(bestman_srm_uri) == 0) {
            _debug && cerr << "need lock: " << args[i] << " bestman_srm test\n";
  	   need_cpn_lock = true;
-           break;
+	   if ((int)i < need_lock_low) 
+	       need_lock_low = i;
+	   if ((int)i > need_lock_high)
+	       need_lock_high = i;
         }
 
         if (args[i].find(bestman_ftp_uri) == 0) {
            _debug && cerr << "need lock: " << args[i] << " bestman_ftp test\n";
  	   need_cpn_lock = true;
-           break;
+	   if ((int)i < need_lock_low) 
+	       need_lock_low = i;
+	   if ((int)i > need_lock_high)
+	       need_lock_high = i;
         }
     }
 
@@ -885,6 +942,7 @@ ifdh::cp( std::vector<std::string> args ) {
     bool use_dd = false;
     bool use_any_gridftp = false;
     bool use_irods = false;
+    bool use_s3 = false;
 
     char *stage_via = parse_ifdh_stage_via();
 
@@ -918,11 +976,21 @@ ifdh::cp( std::vector<std::string> args ) {
                use_cpn = false; 
                use_srm = false;
  	       need_cpn_lock = true;
+               if ((int)i < need_lock_low) 
+                   need_lock_low = i;
+               if ((int)i > need_lock_high)
+                   need_lock_high = i;
                cpngroup += args[i].substr(3,args[i].find(':',3)-3);
                setenv("CPN_LOCK_GROUP", cpngroup.c_str(),0);
                break;
             }
 
+            if( args[i].find("s3:") == 0)  { 
+               use_cpn = false; 
+               use_srm = false;
+               use_s3 = true; 
+               break; 
+            }
             if( args[i].find("i:") == 0)  { 
                use_cpn = false; 
                use_srm = false;
@@ -959,6 +1027,10 @@ ifdh::cp( std::vector<std::string> args ) {
                 if ( 0 == access(altmount.c_str(),R_OK) ) {
                      args[i] = altmount;
                      need_cpn_lock = true;
+		     if ((int)i < need_lock_low) 
+			   need_lock_low = i;
+		     if ((int)i > need_lock_high)
+			   need_lock_high = i;
                      continue;
                 }
 	       
@@ -990,6 +1062,9 @@ ifdh::cp( std::vector<std::string> args ) {
                 // than this..
 	     }
 	 }
+     } else if (force[0] == 's' && force[1] == '3' ) {
+         use_cpn = false;
+         use_s3 = true;
      } else if (force[0] == 'i') {
          use_cpn = false;
          use_irods = true;
@@ -1039,7 +1114,7 @@ ifdh::cp( std::vector<std::string> args ) {
      //
      // srmcp and dd only do specific srcfile,destfile copies
      //
-     if (dest_is_dir && (use_srm || use_dd || use_any_gridftp)) {
+     if (dest_is_dir && (use_s3 || use_srm || use_dd || use_any_gridftp)) {
          args = slice_directories(args, curarg);
          dest_is_dir = false;
          curarg = 0;
@@ -1064,9 +1139,6 @@ ifdh::cp( std::vector<std::string> args ) {
 	get_grid_credentials_if_needed();
      }
 
-     if (need_cpn_lock) {
-         cpn.lock();
-     }
 
      // this looks redudnant, but the proxy could have 
      // expired while we were waiting for a lock...
@@ -1085,7 +1157,7 @@ ifdh::cp( std::vector<std::string> args ) {
      while( keep_going ) {
          stringstream cmd;
 
-         cmd << (use_dd ? "dd bs=512k " : use_cpn ? "cp "  : use_srm ? srm_copy_command  : use_any_gridftp ? "globus-url-copy -gridftp2 -nodcau -restart -stall-timeout 14400 " :  use_irods ? "icp " :  clued0_hack ? "scp " : "false" );
+         cmd << (use_dd ? "dd bs=512k " : use_cpn ? "cp "  : use_srm ? srm_copy_command  : use_any_gridftp ? "globus-url-copy -gridftp2 -nodcau -restart -stall-timeout 14400 " :  use_irods ? "icp " :  use_s3 ? "aws s3 cp " : clued0_hack ? "scp " : "false" );
 
          if (use_any_gridftp) {
             if ( use_passive()) {
@@ -1105,6 +1177,9 @@ ifdh::cp( std::vector<std::string> args ) {
             cmd << getenv("IFDH_SRM_EXTRA") << " ";
          }
          if (use_irods && getenv("IFDH_IRODS_EXTRA")) {
+            cmd << getenv("IFDH_IRODS_EXTRA") << " ";
+         }
+         if (use_s3 && getenv("IFDH_S3_EXTRA")) {
             cmd << getenv("IFDH_IRODS_EXTRA") << " ";
          }
          if (use_any_gridftp && getenv("IFDH_GRIDFTP_EXTRA")) {
@@ -1133,8 +1208,24 @@ ifdh::cp( std::vector<std::string> args ) {
 
          bool did_one_endpoint = false;
 
+         _debug && cerr << "lock range: " << need_lock_low <<  ".." << need_lock_high << "\n";
+
          while (curarg < args.size() && args[curarg] != ";" ) {
 
+            if ((int)curarg == need_lock_low) {
+                cpn.lock();
+            }
+
+            // if we're a cross-protocol copy, we have to copy through
+            // a named pipe.
+            _debug && cerr << "checking fro cross protocol copy...\n";
+            _debug && cerr << "use_{srm,any_gridftp,s3} "<< use_srm << use_any_gridftp << use_s3 << "\n";
+            if ( (use_s3 && (args[curarg].find("gsiftp:") == 0 || args[curarg].find("srm:") == 0)) ||
+                (use_srm && (args[curarg].find("s3:") == 0 || args[curarg].find("gsiftp:") == 0)) ||
+                (use_any_gridftp && (args[curarg].find("s3:") == 0 || args[curarg].find(":srm") == 0))) {
+                args[curarg] = spinoff_copy(this, args[curarg], (args.size() == curarg + 1 || args[curarg+1] == ";"));
+                cleanup_spinoffs.push_back(args[curarg]);
+            }
 
             args[curarg] = fix_recursive_arg(args[curarg],recursive);
 
@@ -1183,6 +1274,14 @@ ifdh::cp( std::vector<std::string> args ) {
                 } else {
                    cmd << "if=" << args[curarg] << " ";
                 }
+            // this is a bit of weirdness; but aws s3 cp will only write properly to a 
+            // named pipe if it is done by "aws s3 cp s3:source - > dest" so to make
+            // it behave when we use a named pipe for cross-protocol copies, we have
+            // to make non-s3: destinations be "- > destination"  Is that not festive?
+            } else if ( use_s3 && !(args[curarg].find("s3:") == 0) && ((curarg == args.size() - 1 || args[curarg+1] == ";" )) ) {
+                cmd << " - > " << args[curarg] << " " ;
+            } else if ( use_irods || use_s3 ) {
+	        cmd << args[curarg] << " ";
             } else if (0 == local_access(args[curarg].c_str(), R_OK)) {
                 cmd << "file:///" << args[curarg] << " ";
             } else if (( curarg == args.size() - 1 || args[curarg+1] == ";" ) && (0 == local_access(parent_dir(args[curarg]).c_str(), R_OK))) {
@@ -1233,8 +1332,6 @@ ifdh::cp( std::vector<std::string> args ) {
                     cmd << bestman_ftp_uri << args[curarg] << " ";
                     did_one_endpoint = 1;
                 }
-            } else if ( use_irods) {
-	        cmd << args[curarg] << " ";
             }
             curarg++;
         }
@@ -1256,6 +1353,11 @@ ifdh::cp( std::vector<std::string> args ) {
 
         if (res != 0 && rres == 0) {
             rres = res;
+        }
+
+	if (need_cpn_lock && (int)curarg > need_lock_high) {
+            need_cpn_lock = false;
+            cpn.free();
         }
  
         if (curarg < args.size() && args[curarg] == ";" ) {
@@ -1281,6 +1383,11 @@ ifdh::cp( std::vector<std::string> args ) {
     if (cleanup_stage) {
         _debug && std::cerr << "removing: " << args[curarg - 2 ] << endl;
         unlink( args[curarg - 2].c_str());
+    }
+
+    for( size_t i = 0; i < cleanup_spinoffs.size(); i++ ) {
+        unlink(cleanup_spinoffs[i].c_str());
+        wait(0);
     }
 
     if (need_copyback) {
@@ -1356,7 +1463,7 @@ ifdh::mv(vector<string> args) {
 }
 
 void
-pick_type( string &loc, string force, bool &use_fs, bool &use_gridftp, bool &use_srm, bool &use_irods) {
+pick_type( string &loc, string force, bool &use_fs, bool &use_gridftp, bool &use_srm, bool &use_irods, bool &use_s3) {
 
     if (force.length() == 0) {
        if (getenv("IFDH_FORCE")) {
@@ -1368,14 +1475,23 @@ pick_type( string &loc, string force, bool &use_fs, bool &use_gridftp, bool &use
         ifdh::_debug && std::cerr << "force type: " << force[8] << endl;
         switch(force[8]) {
         case 'e': case 'g': use_gridftp = true; break;
-        case 's':           use_srm = true;     break;
+        case 's':
+                 if (force[9] == '3') {
+                            use_s3 = true;     
+                 } else {
+                            use_srm = true;
+                 }
+                break;
         case 'i':           use_irods = true;     break;
         default:
         case 'c': case 'd': use_fs = true;      break;
         }
     }
 
-    if (loc.find(':') > 2 && loc.find(':') != string::npos) {
+    if (loc.find(':') > 1 && loc.find(':') != string::npos) {
+        if (loc.find("s3:") == 0) {
+           use_s3 = true;
+        }
         if (loc.find("i:") == 0) {
            use_irods = true;
         }
@@ -1412,7 +1528,7 @@ pick_type( string &loc, string force, bool &use_fs, bool &use_gridftp, bool &use
 
     }
 
-    if (!(use_fs || use_gridftp || use_srm || use_irods )) {
+    if (!(use_fs || use_gridftp || use_srm || use_irods || use_s3 )) {
 
         if (loc[0] != '/') {
            string cwd(get_current_dir_name());
@@ -1468,18 +1584,25 @@ ifdh::ll( std::string loc, int recursion_depth, std::string force) {
     bool use_srm = false;
     bool use_fs = false;
     bool use_irods = false;
+    bool use_s3 = false;
     std::stringstream cmd;
 
     if ( -1 == recursion_depth )
         recursion_depth = 1;
 
-    pick_type( loc, force, use_fs, use_gridftp, use_srm, use_irods);
+    pick_type( loc, force, use_fs, use_gridftp, use_srm, use_irods, use_s3);
 
 
     if (use_srm) {
        setenv("SRM_JAVA_OPTIONS", "-Xmx1024m" ,0);
        cmd << "srmls -l -2 -count=8192 ";
        cmd << "--recursion_depth " << recursion_depth << " ";
+       cmd << loc;
+    } else if (use_s3) {
+       cmd << "aws s3 ls -l ";
+       if (recursion_depth > 1) {
+           cmd << "-r ";
+       }
        cmd << loc;
     } else if (use_irods) {
        cmd << "ils -l ";
@@ -1517,6 +1640,7 @@ ifdh::lss( std::string loc, int recursion_depth, std::string force) {
     bool use_srm = false;
     bool use_fs = false;
     bool use_irods = false;
+    bool use_s3 = false;
     bool first = true;
     std::stringstream cmd;
     std::string dir, base, dir_last;
@@ -1526,7 +1650,7 @@ ifdh::lss( std::string loc, int recursion_depth, std::string force) {
         recursion_depth = 1;
 
     cpos = loc.find(':');
-    if (cpos > 2 && cpos < 8) {
+    if (cpos > 1 && cpos < 8) {
        // looks like a uri...
        spos = loc.find('/',cpos+3);
        if( spos != string::npos) {
@@ -1540,14 +1664,21 @@ ifdh::lss( std::string loc, int recursion_depth, std::string force) {
     }
     if(_debug) std::cerr << "came up with base:" << base << endl;
 
-    pick_type( loc, force, use_fs, use_gridftp, use_srm, use_irods);
-
+    pick_type( loc, force, use_fs, use_gridftp, use_srm, use_irods, use_s3);
 
     if (use_srm) {
        setenv("SRM_JAVA_OPTIONS", "-Xmx1024m" ,0);
        cmd << "srmls -2 -count=8192 ";
        cmd << "--recursion_depth " << recursion_depth << " ";
        cmd << loc;
+    } else if (use_s3) {
+       cmd << "aws s3 ls  ";
+       if (recursion_depth > 1) {
+           cmd << "--recursive ";
+       }
+       cmd << loc;
+       dir = loc.substr(loc.find("/",5));
+       base = base + dir;
     } else if (use_irods) {
        cmd << "ils  ";
        if (recursion_depth > 1) {
@@ -1608,13 +1739,17 @@ ifdh::lss( std::string loc, int recursion_depth, std::string force) {
                    }
                }
            }
-           // trim leading stuff from srmls
-           if (use_srm) {
-               spos = s.find_first_of("0123456789");
+           // trim leading stuff from srmls/aws s3 ls
+           if (use_srm || use_s3) {
+               // find spos as start of size , which is after date
+               // on s3
+               spos = s.find_first_of("0123456789", use_s3?20:0);
 	       pos = s.find('/');
                if (spos != string::npos && spos < pos) {
                    // we have digits before the path...
                    fsize = atol(s.c_str()+spos);
+                   pos = s.find(" ", spos);
+                   pos = pos + 1;
                }
 	       if (pos > 0 && pos != string::npos ) {
 		   s = s.substr(pos);
@@ -1674,14 +1809,16 @@ ifdh::mkdir(string loc, string force) {
     bool use_srm = false;
     bool use_fs = false;
     bool use_irods = false;
+    bool use_s3 = false;
     std::stringstream cmd;
 
-    pick_type( loc, force, use_fs, use_gridftp, use_srm, use_irods);
+    pick_type( loc, force, use_fs, use_gridftp, use_srm, use_irods, use_s3);
 
     if (use_fs)      cmd << "mkdir ";
     if (use_gridftp) cmd << "uberftp -mkdir ";
     if (use_srm)     cmd << "srmmkdir -2 ";
-    if (use_irods)     cmd << "imkdir ";
+    if (use_irods)   cmd << "imkdir ";
+    if (use_s3)      cmd << "aws s3 mkdir ";
 
     cmd << loc;
 
@@ -1699,14 +1836,16 @@ ifdh::rm(string loc, string force) {
     bool use_srm = false;
     bool use_fs = false;
     bool use_irods = false;
+    bool use_s3 = false;
     std::stringstream cmd;
 
-    pick_type( loc, force, use_fs, use_gridftp, use_srm, use_irods);
+    pick_type( loc, force, use_fs, use_gridftp, use_srm, use_irods, use_s3);
 
     if (use_fs)      cmd << "rm ";
     if (use_gridftp) cmd << "uberftp -rm ";
     if (use_srm)     cmd << "srmrm -2 ";
     if (use_irods)   cmd << "irm ";
+    if (use_s3)   cmd << "aws s3 rm ";
 
     cmd << loc;
 
@@ -1724,14 +1863,16 @@ ifdh::rmdir(string loc, string force) {
     bool use_srm = false;
     bool use_fs = false;
     bool use_irods = false;
+    bool use_s3 = false;
     std::stringstream cmd;
 
-    pick_type( loc, force, use_fs, use_gridftp, use_srm, use_irods);
+    pick_type( loc, force, use_fs, use_gridftp, use_srm, use_irods, use_s3);
 
     if (use_fs)      cmd << "rmdir ";
     if (use_gridftp) cmd << "uberftp -rmdir ";
     if (use_srm)     cmd << "srmrmdir -2 ";
     if (use_irods)   cmd << "irm ";
+    if (use_s3)   cmd << "aws s3 rm ";
 
     cmd << loc;
 
@@ -1761,9 +1902,10 @@ ifdh::chmod(string mode, string loc, string force) {
     bool use_srm = false;
     bool use_fs = false;
     bool use_irods = false;
+    bool use_s3 = false;
     std::stringstream cmd;
 
-    pick_type( loc, force, use_fs, use_gridftp, use_srm, use_irods);
+    pick_type( loc, force, use_fs, use_gridftp, use_srm, use_irods, use_s3);
 
     if (use_fs)      cmd << "chmod ";
     if (use_gridftp) cmd << "uberftp -chmod ";
@@ -1774,6 +1916,7 @@ ifdh::chmod(string mode, string loc, string force) {
     //if (use_srm)     cmd << "srm-permission-set ";
     if (use_srm)     cmd << "srm-set-permissions ";
     if (use_irods)   cmd << "ichmod ";
+    if (use_s3)   cmd << "aws s3 chmod "; // does this actually exist?
 
     if (use_srm) {
        int imode = strtol(mode.c_str(), 0, 8);
@@ -1801,6 +1944,7 @@ ifdh::pin(string loc, long int secs) {
     bool use_srm = false;
     bool use_fs = false;
     bool use_irods = false;
+    bool use_s3 = false;
     std::stringstream cmd;
 
     // if it is not pnfs, ignore it.
@@ -1810,7 +1954,7 @@ ifdh::pin(string loc, long int secs) {
     }
 
     // we have to do this via srm for the moment
-    pick_type( loc, "--force=srm", use_fs, use_gridftp, use_srm, use_irods);
+    pick_type( loc, "--force=srm", use_fs, use_gridftp, use_srm, use_irods, use_s3);
 
     cmd << "srm-bring-online --lifetime=" << secs << " " << loc;
     _debug && std::cerr << "running: " << cmd.str() << endl;
@@ -1827,15 +1971,17 @@ ifdh::rename(string loc, string loc2, string force) {
     bool use_srm = false;
     bool use_fs = false;
     bool use_irods = false;
+    bool use_s3 = false;
     stringstream cmd;
 
-    pick_type( loc, force, use_fs, use_gridftp, use_srm, use_irods);
-    pick_type( loc2, force, use_fs, use_gridftp, use_srm, use_irods);
+    pick_type( loc, force, use_fs, use_gridftp, use_srm, use_irods, use_s3);
+    pick_type( loc2, force, use_fs, use_gridftp, use_srm, use_irods, use_s3);
 
     if (use_fs)      cmd << "mv ";
     if (use_gridftp) cmd << "uberftp -rename ";
     if (use_srm)     cmd << "srmmv ";
     if (use_irods)   cmd << "imv ";
+    if (use_s3)      cmd << "aws s3 mv ";
 
     // uberftp doesn't want the second argument to be a full uri, 
     // but rather a path.
@@ -1871,19 +2017,25 @@ glob_2_re(string s) {
           res.push_back(s[i]);
        }
    }
+   res.push_back('$');
    return res;
 }
+
+
 
 vector<pair<string,long> > 
 ifdh::findMatchingFiles( string path, string glob) {
    vector<pair<string,long> >  res, batch;
+   vector<string>  plist, globparts;
    vector<string>  dlist, dlist1;
    string prefix;
-
-   glob = glob_2_re(glob);
+   size_t globslice = 0;
+   string sep;
 
    prefix = "";
    dlist1 = split(path,':',false);
+
+
    // splitting on colons breaks urls, so put them back
    for (size_t i = 0; i < dlist1.size(); ++i) {
        if (dlist1[i] == "srm" || dlist1[i] == "gsiftp" || dlist1[i] == "http") {
@@ -1893,6 +2045,30 @@ ifdh::findMatchingFiles( string path, string glob) {
             prefix = "";
        }
    }
+
+   //
+   // to prevent excessive recursive directory searching,
+   // move constant leading directories from glob onto path components.
+   //
+   globparts = split(glob,'/');
+   for (size_t i = 0; i < globparts.size(); ++i) {
+       if ( globparts[i].find('?') != string::npos || globparts[i].find('*') != string::npos ) {
+           globslice = i;
+       } else {
+           for (size_t j = 0; j < dlist1.size(); ++j) {
+               dlist[j] = dlist[j] + '/' + globparts[i];
+           }
+       }
+   }
+   glob = "";
+   sep = "";
+   for (size_t i = globslice; i < globparts.size(); ++i) {
+       glob += sep;
+       glob += globparts[i];
+       sep = "/";
+   }
+
+   glob = glob_2_re(glob);
 
    for (size_t i = 0; i < dlist.size(); ++i) {
         if (_debug) cerr << "checking dir: " << dlist[i] << endl;

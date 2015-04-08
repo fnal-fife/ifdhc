@@ -1818,7 +1818,7 @@ ifdh::mkdir(string loc, string force) {
     if (use_gridftp) cmd << "uberftp -mkdir ";
     if (use_srm)     cmd << "srmmkdir -2 ";
     if (use_irods)   cmd << "imkdir ";
-    if (use_s3)      cmd << "aws s3 mkdir ";
+    if (use_s3)      cmd << "aws s3 mb ";
 
     cmd << loc;
 

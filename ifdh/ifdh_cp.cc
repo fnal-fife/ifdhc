@@ -1872,7 +1872,7 @@ ifdh::rmdir(string loc, string force) {
     if (use_gridftp) cmd << "uberftp -rmdir ";
     if (use_srm)     cmd << "srmrmdir -2 ";
     if (use_irods)   cmd << "irm ";
-    if (use_s3)   cmd << "aws s3 rm ";
+    if (use_s3)   cmd << "aws s3 rb ";
 
     cmd << loc;
 

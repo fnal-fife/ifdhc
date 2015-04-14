@@ -1599,9 +1599,9 @@ ifdh::ll( std::string loc, int recursion_depth, std::string force) {
        cmd << "--recursion_depth " << recursion_depth << " ";
        cmd << loc;
     } else if (use_s3) {
-       cmd << "aws s3 ls -l ";
+       cmd << "aws s3 ls --human-readable --summarize ";
        if (recursion_depth > 1) {
-           cmd << "-r ";
+           cmd << "--recursive ";
        }
        cmd << loc;
     } else if (use_irods) {

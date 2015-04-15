@@ -1631,9 +1631,9 @@ ifdh::ll( std::string loc, int recursion_depth, std::string force) {
        cmd << "--recursion_depth " << recursion_depth << " ";
        cmd << loc;
     } else if (use_s3) {
-       cmd << "aws s3 ls -l ";
+       cmd << "aws s3 ls --human-readable --summarize ";
        if (recursion_depth > 1) {
-           cmd << "-r ";
+           cmd << "--recursive ";
        }
        cmd << loc;
     } else if (use_irods) {
@@ -1850,7 +1850,7 @@ ifdh::mkdir(string loc, string force) {
     if (use_gridftp) cmd << "uberftp -mkdir ";
     if (use_srm)     cmd << "srmmkdir -2 ";
     if (use_irods)   cmd << "imkdir ";
-    if (use_s3)      cmd << "aws s3 mkdir ";
+    if (use_s3)      cmd << "aws s3 mb ";
 
     cmd << loc;
 
@@ -1904,7 +1904,7 @@ ifdh::rmdir(string loc, string force) {
     if (use_gridftp) cmd << "uberftp -rmdir ";
     if (use_srm)     cmd << "srmrmdir -2 ";
     if (use_irods)   cmd << "irm ";
-    if (use_s3)   cmd << "aws s3 rm ";
+    if (use_s3)   cmd << "aws s3 rb ";
 
     cmd << loc;
 

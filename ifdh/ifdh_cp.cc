@@ -887,7 +887,13 @@ ifdh::cp( std::vector<std::string> args ) {
 
     for( std::vector<std::string>::size_type i = curarg; i < args.size(); i++ ) {
 
-       if (args[i][0] != ';' && args[i][0] != '/' && args[i].find("srm:") != 0 && args[i].find("gsiftp:") != 0 && args[i].find("s3") != 0 && !is_dzero_node_path(args[i])) {
+       if (args[i][0] != ';' 
+           && args[i][0] != '/' 
+           && args[i].find("srm:") != 0 
+           && args[i].find("gsiftp:") != 0 
+           && args[i].find("s3:") != 0 
+           && args[i].find("i:") != 0 
+           && !is_dzero_node_path(args[i])) {
            _debug && std::cerr << "adding cwd to " << args[i] << endl;
 	   args[i] = cwd + "/" + args[i];
        }
@@ -2075,7 +2081,7 @@ ifdh::findMatchingFiles( string path, string glob) {
 
    // splitting on colons breaks urls, so put them back
    for (size_t i = 0; i < dlist1.size(); ++i) {
-       if (dlist1[i] == "srm" || dlist1[i] == "gsiftp" || dlist1[i] == "http") {
+       if (dlist1[i] == "srm" || dlist1[i] == "gsiftp" || dlist1[i] == "http"|| dlist1[i] == "s3" || dlist1[i] == "i") {
             prefix = dlist1[i] + ':';
        } else {
             dlist.push_back(prefix + dlist1[i]);

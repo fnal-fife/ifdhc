@@ -561,11 +561,37 @@ bool
 have_kerberos_creds() {
     return 0 == system("klist -5 -s || klist -s");
 }
+
+//
+// this should possibly be factored in with get_grid_credentials_if_needed,
+// but for now lets keep it separate...
+//
+bool
+has_production_role() {
+    static char buf[512];
+    FILE *pf = popen("voms-proxy-info -all 2>/dev/null", "r");
+    bool found = false;
+    
+    ifdh::_debug && std::cerr << "has_production_role:\n";
+
+    while(fgets(buf,512,pf)) {
+	 std::string s(buf);
+    
+	 if ( s.find("Role=Production") != std::string::npos) {
+            found = true;
+         }
+    }
+    fclose(pf);
+    return found;
+}
+
 //
 // you call this if you need to do any kind of SRM or Gridftp
 // transfer, and if you're running interactive it grabs a 
 // proxy for you if you don't have one
 //
+//
+
 void
 get_grid_credentials_if_needed() {
     std::string cmd;
@@ -1046,16 +1072,22 @@ ifdh::cp( std::vector<std::string> args ) {
                        if (stage_via && has(stage_via,"srm:")) {
                            use_srm = 1;
                            _debug && cerr << "deciding to use srm due to $IFDH_STAGE_VIA and: " << args[i] << endl;
+                       } else if ( has_production_role()) {
+                           use_bst_gridftp = 1;
+                           _debug && cerr << "deciding to use bestman gridftp due to production role and : " << args[i] << endl;
                        } else {
 		           use_exp_gridftp = 1;
                            _debug && cerr << "deciding to use exp gridftp due to: " << args[i] << endl;
                        }
 		   }  
 		} else {
+                 // don't decide it is remote if its parent dir is local
+		 if (0 != access(parent_dir(args[i]).c_str(),R_OK)) {
 		   // for non-local sources, default to srm, for throttling (?)
 		   use_cpn = 0;
 		   use_srm = 1;
 	           _debug && cerr << "deciding to use bestman to: " << args[i] << endl;
+                 }
 		}
                 // don't break out here, go back around because 
                 // we might get a more specific behavior override 

@@ -1800,7 +1800,12 @@ ifdh::lss( std::string loc, int recursion_depth, std::string force) {
                pos = pos + 1;
                // find space column -- skip back over date
                // look backwards for a space, then forwards for a digit
-               spos = pos - 16;
+               // note that the format is subtly different in recursive...
+               if (recursion_depth > 0) {
+                   spos = pos - 18;
+               } else {
+                   spos = pos - 16;
+               }
                spos = s.rfind(' ', spos);		 	if (spos == string::npos) continue;
                spos = s.find_first_of("0123456789",spos);	if (spos == string::npos) continue;
                if (_debug) cerr << "spos is " << spos << endl;

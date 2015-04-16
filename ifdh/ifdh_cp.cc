@@ -1717,7 +1717,13 @@ ifdh::lss( std::string loc, int recursion_depth, std::string force) {
            cmd << "--recursive ";
        }
        cmd << loc;
-       dir = loc.substr(loc.find("/",5));
+       size_t dpos = loc.find("/",5);
+       if (dpos == string::npos) {
+           _debug && std::cerr << "no trailng slash, fixing(?)" << endl;
+           loc = loc + "/";
+           dpos = loc.size();
+       }
+       dir = loc.substr(dpos);
        base = base + dir;
     } else if (use_irods) {
        cmd << "ils  ";
@@ -1745,6 +1751,7 @@ ifdh::lss( std::string loc, int recursion_depth, std::string force) {
     if (spos != string::npos) {
       dir_last = dir.substr(spos+1);
     }
+    _debug && std::cerr << "dir_last: " << dir_last << endl;
     _debug && std::cerr << "ifdh ls: running: " << cmd.str() << endl;
 
     FILE *pf = popen(cmd.str().c_str(), "r");
@@ -1774,8 +1781,13 @@ ifdh::lss( std::string loc, int recursion_depth, std::string force) {
                first = false;
                if (dir_last.size()) {
                    pos = s.rfind(dir_last);
+                   _debug && std::cerr << "pos is:" << pos  << "s.size is" << s.size() << endl;
                    if (pos != string::npos && pos + dir_last.size() == s.size()) {
+                       
+                       base = base.substr(0,base.rfind('/')+1);
                        dir = dir.substr(0,dir.rfind('/'));
+                       _debug && std::cerr << "file case, trimming to base" << base <<  endl;
+                      
                    }
                }
            }
@@ -1783,7 +1795,7 @@ ifdh::lss( std::string loc, int recursion_depth, std::string force) {
            if (use_srm || use_s3) {
                // find spos as start of size , which is after date
                // on s3
-               spos = s.find_first_of("0123456789", use_s3?20:0);
+               spos = s.find_first_of("0123456789P", use_s3?20:0);
 	       pos = s.find('/');
                if (spos != string::npos && spos < pos) {
                    // we have digits before the path...

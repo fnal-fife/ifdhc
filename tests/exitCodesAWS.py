@@ -55,16 +55,16 @@ class exitcodecases(unittest.TestCase):
         else:
             self.experiment="nova"
         filename = "file%s.txt" % os.getpid()     
-        self.goodRemoteDir = "/pnfs/%s/scratch/users/test_ifdh_%s_%s" % (self.experiment, socket.gethostname(), os.getpid())
-        self.goodRemoteFile = "%s/%s" % (self.goodRemoteDir, filename)
-        self.badRemoteDir = "/pnfs/%s/nope/nope/nope" % self.experiment
-        self.badRemoteFile = "%s/%s" % (self.badRemoteDir, filename)
+        self.goodRemoteDir = "s3://test_ifdh_%s_%s/" % ( socket.gethostname(), os.getpid())
+        self.goodRemoteFile = "%s%s" % (self.goodRemoteDir, filename)
+        self.badRemoteDir = "s3://%s/nope/nope/nope/" % self.experiment
+        self.badRemoteFile = "%s%s" % (self.badRemoteDir, filename)
         self.goodLocalFile = "/tmp/%s" % filename
         self.badLocalFile = "/tmp/nope/nope/nope"
         f = open(self.goodLocalFile, "w")
         f.write("hello world\n")
         f.close()
-        self.forceMethods=["", "--force=gridftp","--force=srmcp","--force=expgridftp"]
+        self.forceMethods=[""]
         res = os.system("EXPERIMENT=%s ifdh mkdir %s "% (self.experiment, self.goodRemoteDir))
         res = os.system("EXPERIMENT=%s ifdh cp %s  %s "% (self.experiment, self.goodLocalFile, self.goodRemoteFile))
 

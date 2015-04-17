@@ -72,7 +72,8 @@ class ifdh_cp_cases(unittest.TestCase):
             full = '%s/%s' % ( self.data_dir, f )
             if 1 == len(self.ifdh_handle.ls(full,1,'')):
                 try:
-                    self.ifdh_handle.rm('%s/test.txt'%self.data_dir)
+                    if self.ifdh_handle.ls('%s/test.txt'%self.data_dir,0,""):
+                        self.ifdh_handle.rm('%s/test.txt'%self.data_dir)
                 except:
                     pass
 
@@ -577,8 +578,11 @@ class ifdh_cp_cases(unittest.TestCase):
     def test_dcache_bluearc(self):
          self.log(self._testMethodName)
          try: 
-             self.ifdh_handle.rm("%s/foo.txt" % self.data_dir,"")
-             self.ifdh_handle.rm("/pnfs/nova/scratch/users/mengel/foo.txt","")
+            
+             if self.ifdh_handle.ls("%s/foo.txt" % self.data_dir,0,""):
+                 self.ifdh_handle.rm("%s/foo.txt" % self.data_dir)
+             if self.ifdh_handle.ls("/pnfs/nova/scratch/users/mengel/foo.txt",0,"--force=srm"):
+                 self.ifdh_handle.rm("/pnfs/nova/scratch/users/mengel/foo.txt","--force=srm")
          except:
              pass
          f =open("%s/foo.txt" % self.work,"w") 
@@ -591,11 +595,13 @@ class ifdh_cp_cases(unittest.TestCase):
     def test_bluearc_dcache(self):
          self.log(self._testMethodName)
          try: 
-             self.ifdh_handle.rm("%s/foo.txt" % self.data_dir,"")
+             if self.ifdh_handle.ls("%s/foo.txt" % self.data_dir,0,"--force=srm"):
+                 self.ifdh_handle.rm("%s/foo.txt" % self.data_dir,"--force=srm")
          except:
              pass
          try: 
-             self.ifdh_handle.rm("/pnfs/nova/scratch/users/mengel/foo.txt","")
+             if self.ifdh_handle.ls("/pnfs/nova/scratch/users/mengel/foo.txt",0,"--force=srm"):
+                 self.ifdh_handle.rm("/pnfs/nova/scratch/users/mengel/foo.txt","--force=srm")
          except:
              pass
          f =open("%s/foo.txt" % self.work,"w") 

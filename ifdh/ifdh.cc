@@ -767,6 +767,7 @@ ifdh::checksum(string loc) {
             } catch (exception &e) {
                 cerr << "failed fetching " << loc << "\n";
                 kill(parentpid, SIGPIPE);
+                exit(1);
             }
             if(_debug) cerr << "finished fetchInput( " << loc << ")" << endl;
             exit(0);
@@ -778,15 +779,17 @@ ifdh::checksum(string loc) {
                     << "\", \"crc_type\": \"adler 32 crc type\"}"
                     << endl;
             if(_debug) cerr << "finished get_adler32( " << c_where << ")" << endl;
-            waitpid(res2, 0,0);
+            pid_t wres = waitpid(res2, 0,0);
             unlink(c_where);
+            if (wres != res2) {
+               throw( std::logic_error("background copy failed"));
+            }
        } else {
-            if(_debug) cerr << "fork failed? " << res <<endl;
+            throw( std::logic_error("fork failed"));
            
-            return "";
        }
     } else {
-       cerr <<  "mknod failed";
+       throw( std::logic_error("mknod failed"));
     }
     return sumtext.str();
 }

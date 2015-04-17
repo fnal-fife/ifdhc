@@ -1218,7 +1218,7 @@ ifdh::cp( std::vector<std::string> args ) {
             cmd << getenv("IFDH_IRODS_EXTRA") << " ";
          }
          if (use_s3 && getenv("IFDH_S3_EXTRA")) {
-            cmd << getenv("IFDH_IRODS_EXTRA") << " ";
+            cmd << getenv("IFDH_S3_EXTRA") << " ";
          }
          if (use_any_gridftp && getenv("IFDH_GRIDFTP_EXTRA")) {
             cmd << getenv("IFDH_GRIDFTP_EXTRA") << " ";

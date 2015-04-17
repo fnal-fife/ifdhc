@@ -3,37 +3,145 @@ Product=ifdhc
 
 # This is the basic table file
 # It builds with the native python, or with Minerva's python
-# Any builds against the python associated with art are handled by a different table file.
+# ups python distributions (for ifdh_art)
+# p276 -> python v2_7_6 (e5)
+# p278 -> python v2_7_8 (e6 & e5)
+# p279 -> python v2_7_9 (e6 & e7)
 
 Group:
 
   Flavor=ANY
   Qualifiers=python26
-  _fq_subdir=
 
-     Action=setupbuild
+  Action=DefineFQ
+    EnvSet(IFDHC_FQ_DIR, ${UPS_PROD_DIR} )
+
+     Action=ExtraSetup
 
   Flavor=ANY
   Qualifiers=""
-  _fq_subdir=
 
-     Action=setupbuild
+  Action=DefineFQ
+    EnvSet(IFDHC_FQ_DIR, ${UPS_PROD_DIR} )
 
+     Action=ExtraSetup
+
+Flavor=ANY
+Qualifiers=p279:e7:debug
+
+  Action=DefineFQ
+    EnvSet(IFDHC_FQ_DIR, ${UPS_PROD_DIR}/${UPS_PROD_FLAVOR}-p279-e7-debug )
+
+  Action = ExtraSetup
+    setupRequired( python v2_7_9 )
+    setupRequired( gcc v4_9_2 )
+
+Flavor=ANY
+Qualifiers=p279:e7:prof
+
+  Action=DefineFQ
+    EnvSet(IFDHC_FQ_DIR, ${UPS_PROD_DIR}/${UPS_PROD_FLAVOR}-p279-e7-prof )
+
+  Action = ExtraSetup
+    setupRequired( python v2_7_9 )
+    setupRequired( gcc v4_9_2 )
+
+Flavor=ANY
+Qualifiers=p279:e6:debug
+
+  Action=DefineFQ
+    EnvSet(IFDHC_FQ_DIR, ${UPS_PROD_DIR}/${UPS_PROD_FLAVOR}-p279-e6-debug )
+
+  Action = ExtraSetup
+    setupRequired( python v2_7_9 )
+    setupRequired( gcc v4_9_1 )
+
+Flavor=ANY
+Qualifiers=p279:e6:prof
+
+  Action=DefineFQ
+    EnvSet(IFDHC_FQ_DIR, ${UPS_PROD_DIR}/${UPS_PROD_FLAVOR}-p279-e6-prof )
+
+  Action = ExtraSetup
+    setupRequired( python v2_7_9 )
+    setupRequired( gcc v4_9_1 )
+
+Flavor=ANY
+Qualifiers=p278:e6:debug
+
+  Action=DefineFQ
+    EnvSet(IFDHC_FQ_DIR, ${UPS_PROD_DIR}/${UPS_PROD_FLAVOR}-p278-e6-debug )
+
+  Action = ExtraSetup
+    setupRequired( python v2_7_8 )
+    setupRequired( gcc v4_9_1 )
+
+Flavor=ANY
+Qualifiers=p278:e6:prof
+
+  Action=DefineFQ
+    EnvSet(IFDHC_FQ_DIR, ${UPS_PROD_DIR}/${UPS_PROD_FLAVOR}-p278-e6-prof )
+
+  Action = ExtraSetup
+    setupRequired( python v2_7_8 )
+    setupRequired( gcc v4_9_1 )
+
+Flavor=ANY
+Qualifiers=p278:e5:debug
+
+  Action=DefineFQ
+    EnvSet(IFDHC_FQ_DIR, ${UPS_PROD_DIR}/${UPS_PROD_FLAVOR}-p278-e5-debug )
+
+  Action = ExtraSetup
+    setupRequired( python v2_7_8 )
+    setupRequired( gcc v4_8_2 )
+
+Flavor=ANY
+Qualifiers=p278:e5:prof
+
+  Action=DefineFQ
+    EnvSet(IFDHC_FQ_DIR, ${UPS_PROD_DIR}/${UPS_PROD_FLAVOR}-p278-e5-prof )
+
+  Action = ExtraSetup
+    setupRequired( python v2_7_8 )
+    setupRequired( gcc v4_8_2 )
+
+Flavor=ANY
+Qualifiers=p276:e5:debug
+
+  Action=DefineFQ
+    EnvSet(IFDHC_FQ_DIR, ${UPS_PROD_DIR}/${UPS_PROD_FLAVOR}-p276-e5-debug )
+
+  Action = ExtraSetup
+    setupRequired( python v2_7_6 )
+    setupRequired( gcc v4_8_2 )
+
+Flavor=ANY
+Qualifiers=p276:e5:prof
+
+  Action=DefineFQ
+    EnvSet(IFDHC_FQ_DIR, ${UPS_PROD_DIR}/${UPS_PROD_FLAVOR}-p276-e5-prof )
+
+  Action = ExtraSetup
+    setupRequired( python v2_7_6 )
+    setupRequired( gcc v4_8_2 )
 
 Common:
 
-
   Action=setup
+    proddir()
     SetupEnv()
-    EnvSet(SETUP_IFDHC, $SETUP_IFDHC)
-    EnvSet(IFDHC_DIR,     ${UPS_PROD_DIR})
     EnvSet(IFDHC_VERSION, ${UPS_PROD_VERSION})
-    EnvSet(IFDHC_FQ_DIR , ${UPS_PROD_DIR}${_fq_subdir})
-    EnvSet(IFDHC_LIB,     ${UPS_PROD_DIR}${_fq_subdir}/lib)
-    PathPrepend(PATH           ,${UPS_PROD_DIR}${_fq_subdir}/bin)
-    PathPrepend(PYTHONPATH     , ${UPS_PROD_DIR}${_fq_subdir}/lib/python)
-    PathPrepend(LD_LIBRARY_PATH, ${UPS_PROD_DIR}${_fq_subdir}/lib)
-    ExeActionOptional(setupbuild)
+    ExeActionRequired(DefineFQ)
+    EnvSet(IFDHC_LIB,     ${IFDHC_FQ_DIR}/lib)
+    PathPrepend(PATH           ,${IFDHC_FQ_DIR}/bin)
+    PathPrepend(PYTHONPATH     , ${IFDHC_FQ_DIR}/lib/python)
+    if ( test `uname` = "Darwin" )
+	envPrepend(DYLD_LIBRARY_PATH, ${IFDHC_LIB})
+    else()
+	envPrepend(LD_LIBRARY_PATH, ${IFDHC_LIB})
+    endif ( test `uname` = "Darwin" )
+    ExeActionOptional(ExtraSetup)
     SetupOptional(cpn)
 
 End:

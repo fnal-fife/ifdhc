@@ -561,11 +561,37 @@ bool
 have_kerberos_creds() {
     return 0 == system("klist -5 -s || klist -s");
 }
+
+//
+// this should possibly be factored in with get_grid_credentials_if_needed,
+// but for now lets keep it separate...
+//
+bool
+has_production_role() {
+    static char buf[512];
+    FILE *pf = popen("voms-proxy-info -all 2>/dev/null", "r");
+    bool found = false;
+    
+    ifdh::_debug && std::cerr << "has_production_role:\n";
+
+    while(fgets(buf,512,pf)) {
+	 std::string s(buf);
+    
+	 if ( s.find("Role=Production") != std::string::npos) {
+            found = true;
+         }
+    }
+    fclose(pf);
+    return found;
+}
+
 //
 // you call this if you need to do any kind of SRM or Gridftp
 // transfer, and if you're running interactive it grabs a 
 // proxy for you if you don't have one
 //
+//
+
 void
 get_grid_credentials_if_needed() {
     std::string cmd;
@@ -861,7 +887,13 @@ ifdh::cp( std::vector<std::string> args ) {
 
     for( std::vector<std::string>::size_type i = curarg; i < args.size(); i++ ) {
 
-       if (args[i][0] != ';' && args[i][0] != '/' && args[i].find("srm:") != 0 && args[i].find("gsiftp:") != 0 && args[i].find("s3") != 0 && !is_dzero_node_path(args[i])) {
+       if (args[i][0] != ';' 
+           && args[i][0] != '/' 
+           && args[i].find("srm:") != 0 
+           && args[i].find("gsiftp:") != 0 
+           && args[i].find("s3:") != 0 
+           && args[i].find("i:") != 0 
+           && !is_dzero_node_path(args[i])) {
            _debug && std::cerr << "adding cwd to " << args[i] << endl;
 	   args[i] = cwd + "/" + args[i];
        }
@@ -1046,16 +1078,22 @@ ifdh::cp( std::vector<std::string> args ) {
                        if (stage_via && has(stage_via,"srm:")) {
                            use_srm = 1;
                            _debug && cerr << "deciding to use srm due to $IFDH_STAGE_VIA and: " << args[i] << endl;
+                       } else if ( has_production_role()) {
+                           use_bst_gridftp = 1;
+                           _debug && cerr << "deciding to use bestman gridftp due to production role and : " << args[i] << endl;
                        } else {
 		           use_exp_gridftp = 1;
                            _debug && cerr << "deciding to use exp gridftp due to: " << args[i] << endl;
                        }
 		   }  
 		} else {
+                 // don't decide it is remote if its parent dir is local
+		 if (0 != access(parent_dir(args[i]).c_str(),R_OK)) {
 		   // for non-local sources, default to srm, for throttling (?)
 		   use_cpn = 0;
 		   use_srm = 1;
 	           _debug && cerr << "deciding to use bestman to: " << args[i] << endl;
+                 }
 		}
                 // don't break out here, go back around because 
                 // we might get a more specific behavior override 
@@ -1180,7 +1218,7 @@ ifdh::cp( std::vector<std::string> args ) {
             cmd << getenv("IFDH_IRODS_EXTRA") << " ";
          }
          if (use_s3 && getenv("IFDH_S3_EXTRA")) {
-            cmd << getenv("IFDH_IRODS_EXTRA") << " ";
+            cmd << getenv("IFDH_S3_EXTRA") << " ";
          }
          if (use_any_gridftp && getenv("IFDH_GRIDFTP_EXTRA")) {
             cmd << getenv("IFDH_GRIDFTP_EXTRA") << " ";
@@ -1274,12 +1312,14 @@ ifdh::cp( std::vector<std::string> args ) {
                 } else {
                    cmd << "if=" << args[curarg] << " ";
                 }
-            // this is a bit of weirdness; but aws s3 cp will only write properly to a 
+            // this is a bit of weirdness; but aws s3 cp will only read/write properly to a 
             // named pipe if it is done by "aws s3 cp s3:source - > dest" so to make
             // it behave when we use a named pipe for cross-protocol copies, we have
             // to make non-s3: destinations be "- > destination"  Is that not festive?
             } else if ( use_s3 && !(args[curarg].find("s3:") == 0) && ((curarg == args.size() - 1 || args[curarg+1] == ";" )) ) {
                 cmd << " - > " << args[curarg] << " " ;
+            } else if ( use_s3 && !(args[curarg].find("s3:") == 0) && !((curarg == args.size() - 1 || args[curarg+1] == ";" )) ) {
+                cmd << " - < " << args[curarg] << " " ;
             } else if ( use_irods || use_s3 ) {
 	        cmd << args[curarg] << " ";
             } else if (0 == local_access(args[curarg].c_str(), R_OK)) {
@@ -1599,9 +1639,9 @@ ifdh::ll( std::string loc, int recursion_depth, std::string force) {
        cmd << "--recursion_depth " << recursion_depth << " ";
        cmd << loc;
     } else if (use_s3) {
-       cmd << "aws s3 ls -l ";
+       cmd << "aws s3 ls --human-readable --summarize ";
        if (recursion_depth > 1) {
-           cmd << "-r ";
+           cmd << "--recursive ";
        }
        cmd << loc;
     } else if (use_irods) {
@@ -1677,7 +1717,13 @@ ifdh::lss( std::string loc, int recursion_depth, std::string force) {
            cmd << "--recursive ";
        }
        cmd << loc;
-       dir = loc.substr(loc.find("/",5));
+       size_t dpos = loc.find("/",5);
+       if (dpos == string::npos) {
+           _debug && std::cerr << "no trailng slash, fixing(?)" << endl;
+           loc = loc + "/";
+           dpos = loc.size();
+       }
+       dir = loc.substr(dpos);
        base = base + dir;
     } else if (use_irods) {
        cmd << "ils  ";
@@ -1705,6 +1751,7 @@ ifdh::lss( std::string loc, int recursion_depth, std::string force) {
     if (spos != string::npos) {
       dir_last = dir.substr(spos+1);
     }
+    _debug && std::cerr << "dir_last: " << dir_last << endl;
     _debug && std::cerr << "ifdh ls: running: " << cmd.str() << endl;
 
     FILE *pf = popen(cmd.str().c_str(), "r");
@@ -1734,8 +1781,13 @@ ifdh::lss( std::string loc, int recursion_depth, std::string force) {
                first = false;
                if (dir_last.size()) {
                    pos = s.rfind(dir_last);
+                   _debug && std::cerr << "pos is:" << pos  << "s.size is" << s.size() << endl;
                    if (pos != string::npos && pos + dir_last.size() == s.size()) {
+                       
+                       base = base.substr(0,base.rfind('/')+1);
                        dir = dir.substr(0,dir.rfind('/'));
+                       _debug && std::cerr << "file case, trimming to base" << base <<  endl;
+                      
                    }
                }
            }
@@ -1743,7 +1795,7 @@ ifdh::lss( std::string loc, int recursion_depth, std::string force) {
            if (use_srm || use_s3) {
                // find spos as start of size , which is after date
                // on s3
-               spos = s.find_first_of("0123456789", use_s3?20:0);
+               spos = s.find_first_of("0123456789P", use_s3?20:0);
 	       pos = s.find('/');
                if (spos != string::npos && spos < pos) {
                    // we have digits before the path...
@@ -1768,7 +1820,12 @@ ifdh::lss( std::string loc, int recursion_depth, std::string force) {
                pos = pos + 1;
                // find space column -- skip back over date
                // look backwards for a space, then forwards for a digit
-               spos = pos - 16;
+               // note that the format is subtly different in recursive...
+               if (recursion_depth > 0) {
+                   spos = pos - 18;
+               } else {
+                   spos = pos - 16;
+               }
                spos = s.rfind(' ', spos);		 	if (spos == string::npos) continue;
                spos = s.find_first_of("0123456789",spos);	if (spos == string::npos) continue;
                if (_debug) cerr << "spos is " << spos << endl;
@@ -1818,7 +1875,7 @@ ifdh::mkdir(string loc, string force) {
     if (use_gridftp) cmd << "uberftp -mkdir ";
     if (use_srm)     cmd << "srmmkdir -2 ";
     if (use_irods)   cmd << "imkdir ";
-    if (use_s3)      cmd << "aws s3 mkdir ";
+    if (use_s3)      cmd << "aws s3 mb ";
 
     cmd << loc;
 
@@ -1872,7 +1929,7 @@ ifdh::rmdir(string loc, string force) {
     if (use_gridftp) cmd << "uberftp -rmdir ";
     if (use_srm)     cmd << "srmrmdir -2 ";
     if (use_irods)   cmd << "irm ";
-    if (use_s3)   cmd << "aws s3 rm ";
+    if (use_s3)   cmd << "aws s3 rb ";
 
     cmd << loc;
 
@@ -2038,7 +2095,7 @@ ifdh::findMatchingFiles( string path, string glob) {
 
    // splitting on colons breaks urls, so put them back
    for (size_t i = 0; i < dlist1.size(); ++i) {
-       if (dlist1[i] == "srm" || dlist1[i] == "gsiftp" || dlist1[i] == "http") {
+       if (dlist1[i] == "srm" || dlist1[i] == "gsiftp" || dlist1[i] == "http"|| dlist1[i] == "s3" || dlist1[i] == "i") {
             prefix = dlist1[i] + ':';
        } else {
             dlist.push_back(prefix + dlist1[i]);

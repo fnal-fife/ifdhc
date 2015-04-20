@@ -11,7 +11,23 @@ Product=ifdhc
 Group:
 
   Flavor=ANY
+  Qualifiers=python27
+
+  Action=DefineFQ
+    EnvSet(IFDHC_FQ_DIR, ${UPS_PROD_DIR} )
+
+     Action=ExtraSetup
+
+  Flavor=ANY
   Qualifiers=python26
+
+  Action=DefineFQ
+    EnvSet(IFDHC_FQ_DIR, ${UPS_PROD_DIR} )
+
+     Action=ExtraSetup
+  Flavor=ANY
+
+  Qualifiers=e7
 
   Action=DefineFQ
     EnvSet(IFDHC_FQ_DIR, ${UPS_PROD_DIR} )
@@ -25,6 +41,7 @@ Group:
     EnvSet(IFDHC_FQ_DIR, ${UPS_PROD_DIR} )
 
      Action=ExtraSetup
+
 
 Flavor=ANY
 Qualifiers=p279:e7:debug

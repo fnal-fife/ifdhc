@@ -1,0 +1,38 @@
+#!/bin/sh
+
+#
+# grab built tarballs from buildmaster ifdhc build project
+# Assumes you are in the ifdhc subdirectory of the
+# products area.
+#
+prod=ifdhc
+vers=$1
+top=`pwd`
+for Type in plain m32 python27 python26 e7
+do
+  for plat in SLF5 SLF6
+  do
+      cd $top
+      case $Type in
+      plain)    quals="";         base=Linux64bit;;
+      m32)      quals="";         base=Linux;;
+      python27) quals="python27"; base=Linux64bit;;
+      python26) quals="python26"; base=Linux64bit;;
+      e7)       quals="e7";       base=Linux64bit;;
+      esac
+      case $plat in
+      *5)  rest="2.5";;
+      *6)  rest="2.12";;
+      esac
+
+      pdir="${vers}/${base}_2.6_${rest}_${quals}"
+      tarfile="${prod}_${vers}_${base}+2.6-${rest}_${quals}.tar"
+      mkdir -p $pdir
+      cd $pdir
+      
+      wget "https://buildmaster.fnal.gov/job/${prod}/Type=${Type},label_exp=${plat}/lastSuccessfulBuild/artifact/${tarfile}"
+      tar xvf "${tarfile}"
+      rm -f $tarfile
+      ups declare $prod $vers -f "${base}+2.6-${rest}" -q "\"$quals\"" -r `pwd` -M ups -m $prod.table
+  done
+done

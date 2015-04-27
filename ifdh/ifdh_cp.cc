@@ -1944,6 +1944,8 @@ ifdh::rmdir(string loc, string force) {
 std::string
 mbits( int n ) {
     std::stringstream res;
+    if ( 0 == n )
+       res << "NONE";
     if ( n & 04 ) 
        res << 'R';
     if ( n & 02 ) 

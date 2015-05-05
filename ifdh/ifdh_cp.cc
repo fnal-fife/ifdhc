@@ -523,6 +523,8 @@ check_grid_credentials() {
     
     ifdh::_debug && std::cerr << "check_grid_credentials:\n";
 
+    if (experiment == "samdev")  // use fermilab for fake samdev expt
+        experiment = "fermilab";
 
     while(fgets(buf,512,pf)) {
 	 std::string s(buf);
@@ -625,6 +627,10 @@ get_grid_credentials_if_needed() {
             cmd += " >/dev/null 2>&1 ";
         }
         cmd += "&& voms-proxy-init -rfc -noregen -debug -voms ";
+
+        if (experiment == "samdev")  // use fermilab for fake samdev expt
+           experiment = "fermilab";
+
 	if (experiment != "lbne" && experiment != "dzero" && experiment != "cdf" && experiment != "lsst" && experiment != "fermilab") {
 	   cmd += "fermilab:/fermilab/" + experiment + "/Role=Analysis";
 	} else if (experiment == "dzero" ) {
@@ -1612,6 +1618,9 @@ ifdh::ls(string loc, int recursion_depth, string force) {
     for(size_t i = 0; i < llout.size(); i++) { 
        res.push_back(llout[i].first);
     }
+    if (res.size() == 0 && llout.capacity() == 1) {
+       res.reserve(1);
+    }
     return res;
 }
 
@@ -1857,6 +1866,11 @@ ifdh::lss( std::string loc, int recursion_depth, std::string force) {
     }
     int status = pclose(pf);
     if (WIFSIGNALED(status)) throw( std::logic_error("signalled while doing ls"));
+    if (WEXITSTATUS(status) == 0 && res.size() == 0) {
+        // empty directory case -- signal by reserving space?
+        res.reserve(1);
+        _debug && std::cerr << "empty directory case..\n";
+    }
     return res;
 }
    

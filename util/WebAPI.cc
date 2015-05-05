@@ -346,6 +346,10 @@ WebAPI::WebAPI(std::string url, int postflag, std::string postdata) throw(WebAPI
             sleep(retryafter);
             totaltime += retryafter;
          }
+         if (_status == 303) {
+            //redirected, but to a GET...
+            postflag = 0;
+         }
 
          if ((_status < 301 || _status > 309) && _status < 500 && _status != 202 ) {
             redirect_or_retry_flag = 0;

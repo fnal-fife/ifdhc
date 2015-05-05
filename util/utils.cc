@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include <grp.h>
 
 namespace ifdh_util_ns {
 //
@@ -16,6 +17,7 @@ char *getexperiment() {
     static char expbuf[MAXEXPBUF];
     char *p1;
     char *penv = getenv("EXPERIMENT");
+    gid_t gid = getgid();
  
     if (penv) {
         return penv;
@@ -32,7 +34,7 @@ char *getexperiment() {
              return expbuf;
          }
     }
-    switch((int)getgid()){
+    switch((int)gid){
     case 9257:
     case 9258:
     case 9259:
@@ -66,7 +68,7 @@ char *getexperiment() {
     case 9555:
        return "minerva";
     default:
-       return "other";
+       return getgrgid(gid)->gr_name;
     }
 }
 //

@@ -307,13 +307,16 @@ public:
     }
 };
 
-std::vector<std::string> expandfile( std::string fname, std::vector<std::string> oldargs, unsigned int oldcount) {
+std::vector<std::string> expandfile( std::string fname, std::vector<std::string> oldargs, unsigned int oldcount, unsigned int oldcount2) {
   std::vector<std::string> res;
   std::string line;
   size_t pos, pos2;
 
   bool first = true;
 
+  for(size_t i = 0; i < oldcount2; i++) {
+       res.push_back(oldargs[i]);
+  }
   fstream listf(fname.c_str(), fstream::in);
   getline(listf, line);
   while( !listf.eof() && !listf.fail()) {
@@ -340,8 +343,11 @@ std::vector<std::string> expandfile( std::string fname, std::vector<std::string>
       std::string basemessage("error reading list of files file: ");
       throw( std::logic_error(basemessage += fname));
   }
-  while (oldcount < oldargs.size()) {
-     res.push_back(oldargs[oldcount++]);
+  if (oldcount < oldargs.size()) {
+     res.push_back(";");
+     while (oldcount < oldargs.size()) {
+        res.push_back(oldargs[oldcount++]);
+     }
   }
  
   return res;
@@ -816,6 +822,7 @@ ifdh::cp( std::vector<std::string> args ) {
     bool cleanup_stage = false;
     bool no_zero_length = false;
     struct timeval time_before, time_after;
+    int savecurarg = -1;
     std::vector<std::string> cleanup_spinoffs;
 
     if (_debug) {
@@ -870,18 +877,23 @@ ifdh::cp( std::vector<std::string> args ) {
         // handle -f last, 'cause it rewrites arg list
         //
 	if (args[curarg].find('f') != std::string::npos) {
-	   args = expandfile(args[curarg + 1], args, curarg+2);
-	   curarg = 0;
-           // cout << "after -f args is: ";
-           // for (unsigned int k = 0; k< args.size(); k++) {
-           //     cout << '"' << args[k] << '"' << ' ' ;
-           // }
-	   // cout << '\n';
-           continue;
+           savecurarg = curarg;
+           int al = args.size() - curarg;
+	   args = expandfile(args[curarg + 1], args, curarg+2, curarg);
+	   curarg = args.size() - al + 2;
+           cout << "after -f args is: ";
+           for (unsigned int k = 0; k< args.size(); k++) {
+               cout << '"' << args[k] << '"' << ' ' ;
+           }
+	   cout << '\n';
+           cout << "curarg is " << curarg << "\n";
+	   continue;
 	}
 
         curarg++;
     }
+    if (savecurarg > 0)
+         curarg = savecurarg;
    
 
     // convert relative paths to absolute
@@ -1870,12 +1882,11 @@ ifdh::lss( std::string loc, int recursion_depth, std::string force) {
     if (res.size() == 0) {
         if (WEXITSTATUS(status) == 0 ) {
             // empty directory case -- signal by reserving space?
-            res.reserve(1);
             _debug && std::cerr << "empty directory case..\n";
         } else {
             // missing directory case
-            
-             throw( std::runtime_error("No such file or directory"));
+            _debug && std::cerr << "missing directory/file case..\n";
+            throw( std::runtime_error("No such file or directory"));
         }
     }
     return res;

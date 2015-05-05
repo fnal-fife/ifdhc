@@ -28,6 +28,7 @@
 #include <linux/nfs_fs.h>
 #include <ifaddrs.h>
 #include <../util/regwrap.h>
+#include <stdexcept>
 
 using namespace std;
 
@@ -1866,10 +1867,16 @@ ifdh::lss( std::string loc, int recursion_depth, std::string force) {
     }
     int status = pclose(pf);
     if (WIFSIGNALED(status)) throw( std::logic_error("signalled while doing ls"));
-    if (WEXITSTATUS(status) == 0 && res.size() == 0) {
-        // empty directory case -- signal by reserving space?
-        res.reserve(1);
-        _debug && std::cerr << "empty directory case..\n";
+    if (res.size() == 0) {
+        if (WEXITSTATUS(status) == 0 ) {
+            // empty directory case -- signal by reserving space?
+            res.reserve(1);
+            _debug && std::cerr << "empty directory case..\n";
+        } else {
+            // missing directory case
+            
+             throw( std::runtime_error("No such file or directory"));
+        }
     }
     return res;
 }

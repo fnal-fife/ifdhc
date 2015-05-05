@@ -21,6 +21,9 @@ namespace std {
     } catch (ifdh_util_ns::WebAPIException &e) {
         e.what();
         SWIG_exception(SWIG_RuntimeError, e.what());
+    } catch (std::runtime_error &e) {
+        e.what();
+        SWIG_exception(SWIG_IOError, e.what());
     } catch (std::logic_error &e) {
         e.what();
         SWIG_exception(SWIG_RuntimeError, e.what());

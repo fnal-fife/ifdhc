@@ -2163,7 +2163,11 @@ ifdh::findMatchingFiles( string path, string glob) {
 
    for (size_t i = 0; i < dlist.size(); ++i) {
         if (_debug) cerr << "checking dir: " << dlist[i] << endl;
-        batch = this->lss(dlist[i],10,"");
+        try {
+            batch = this->lss(dlist[i],10,"");
+        } catch ( exception &e ) {
+            continue;
+        }
         for(size_t j = 0; j < batch.size(); j++ ) {
             if (_debug) cerr << "checking file: " << batch[j].first << endl;
             regexp globre(glob);

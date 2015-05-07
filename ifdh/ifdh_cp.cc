@@ -1673,7 +1673,11 @@ ifdh::ll( std::string loc, int recursion_depth, std::string force) {
        }
        cmd << loc;
     } else if (use_gridftp) {
+#ifdef __APPLE__
+       cmd << "globus-url-copy -list ";
+#else
        cmd << "uberftp -ls ";
+#endif
        if (recursion_depth > 1) {
            cmd << "-r ";
        }
@@ -1704,6 +1708,7 @@ ifdh::lss( std::string loc, int recursion_depth, std::string force) {
     bool use_irods = false;
     bool use_s3 = false;
     bool first = true;
+    bool parse_globus = false;
     std::stringstream cmd;
     std::string dir, base, dir_last;
     size_t cpos, spos, qpos, pos, fpos;
@@ -1755,6 +1760,12 @@ ifdh::lss( std::string loc, int recursion_depth, std::string force) {
        cmd << loc;
        dir = loc.substr(loc.find("/",4));
     } else if (use_gridftp) {
+#ifdef __APPLE__
+       cmd << "globus-url-copy -list ";
+       parse_globus = true;
+#else
+       cmd << "uberftp -ls ";
+#endif
        cmd << "uberftp -ls ";
        if (recursion_depth > 1) {
            cmd << "-r ";
@@ -1831,7 +1842,17 @@ ifdh::lss( std::string loc, int recursion_depth, std::string force) {
                if (s == "")
                    continue;
            }
-           if (use_gridftp) {
+           if (use_gridftp && parse_globus ) {
+               fpos = s.rfind(' ') + 1;
+               pos=s.find("Size=");
+               spos = pos + 5;
+               fsize = atol(s.c_str()+spos);	
+               s = s.substr(fpos);
+               if (s[0] != '/') {
+                   s = dir + '/' +  s;
+               }
+           }
+           if (use_gridftp && !parse_globus ) {
                // trim long listing bits, (8 columns) add slash if dir
                  
                // find flags (i.e drwxr-xr-x...)

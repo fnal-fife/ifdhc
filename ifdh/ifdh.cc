@@ -353,7 +353,7 @@ clear_timeout() {
     // this isn't exaclty right, we should subtract off
     // the elapsed time(?), but set it to 1 if it's negative.
     alarm(oldalarm);
-    sigaction(SIGALRM, &oldaction, 0);
+    sigaction(SIGALRM, &oldaction, (struct sigaction*)0);
 }
 
 

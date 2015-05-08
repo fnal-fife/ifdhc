@@ -7,6 +7,7 @@
    * interface file instead. 
    * ----------------------------------------------------------------------------- */
 + #include <stdlib.h>
++ #include <stddef.h>
   
   #define SWIGPYTHON
   #define SWIG_PYTHON_DIRECTOR_NO_VTABLE

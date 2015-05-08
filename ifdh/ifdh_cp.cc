@@ -18,7 +18,9 @@
 #include <sys/resource.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#ifndef __APPLE__
 #include <sys/vfs.h> 
+#endif
 #include <errno.h>
 #include <netdb.h>
 #include <signal.h>

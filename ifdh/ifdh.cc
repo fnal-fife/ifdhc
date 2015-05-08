@@ -16,6 +16,7 @@
 #include <sys/wait.h>
 #include <signal.h>
 #include <sys/signal.h>
+#include <sys/param.h>
 #include <map>
 #include "../util/Checksum.h"
 #include <setjmp.h>
@@ -136,7 +137,7 @@ ifdh::cleanup() {
 }
 // file io
 
-extern "C" { const char *get_current_dir_name(); }
+// extern "C" { const char *get_current_dir_name(); }
 
 string 
 ifdh::localPath( string src_uri ) {

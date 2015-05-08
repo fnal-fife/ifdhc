@@ -18,19 +18,20 @@
 #include <sys/resource.h>
 #include <sys/types.h>
 #include <sys/stat.h>
-#ifndef __APPLE__
-#include <sys/vfs.h> 
-#endif
 #include <errno.h>
 #include <netdb.h>
 #include <signal.h>
 #include <stdio.h>
 #include <unistd.h>
 #include <sys/wait.h>
+#include <sys/param.h>
 #ifdef __APPLE__
 #include <sys/vnode.h>
+#include <sys/mount.h>
 #define NFS_SUPER_MAGIC VT_NFS
+#include <libgen.h>
 #else
+#include <sys/vfs.h> 
 #include <linux/nfs_fs.h>
 #endif
 #include <ifaddrs.h>
@@ -54,6 +55,7 @@ std::string pnfs_cdf_gsiftp_uri = "gsiftp://cdfdca1.fnal.gov/";
 std::string pnfs_d0_srm_uri = "srm://d0dca1.fnal.gov:8443/srm/managerv2?SFN=/pnfs/fnal.gov/usr/";
 std::string pnfs_d0_gsiftp_uri = "gsiftp://d0dca1.fnal.gov/";
 
+static char getcwd_buf[MAXPATHLEN];
 
 bool has(std::string s1, std::string s2) {
    return s1.find(s2) != std::string::npos;
@@ -514,7 +516,7 @@ ifdh::build_stage_list(std::vector<std::string> args, int curarg, char *stage_vi
 
    // copy our queue file in last, it means the others are ready to copy
    if ( staging_out ) {
-      std::string fullstage(get_current_dir_name());
+      std::string fullstage(getcwd(getcwd_buf, MAXPATHLEN));
       fullstage += "/" +  stagefile;
       res.push_back( fullstage );
       res.push_back( base_uri + "/ifdh_stage/queue/" + stagefile );
@@ -905,7 +907,7 @@ ifdh::cp( std::vector<std::string> args ) {
 
     // convert relative paths to absolute
     
-    string cwd(get_current_dir_name());
+    string cwd(getcwd(getcwd_buf, MAXPATHLEN));
 
     if (cwd[0] != '/') {
         throw( std::logic_error("unable to determine current working directory"));
@@ -1597,7 +1599,7 @@ pick_type( string &loc, string force, bool &use_fs, bool &use_gridftp, bool &use
     if (!(use_fs || use_gridftp || use_srm || use_irods || use_s3 )) {
 
         if (loc[0] != '/') {
-           string cwd(get_current_dir_name());
+           string cwd(getcwd(getcwd_buf, MAXPATHLEN));
            loc = cwd + '/' + loc;
          }
 

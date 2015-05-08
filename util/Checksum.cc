@@ -37,7 +37,7 @@ namespace checksum {
       msg+=filename;
       throw ChecksumSysError(msg,errno);
     }
-#ifdef POSIX_FADV_SEQUENTIAL
+#ifndef __APPLE__
     posix_fadvise(fd,0,0,POSIX_FADV_SEQUENTIAL); // may speed up reading sequentially
 #endif
     std::vector<Bytef> buffer(buffersize);

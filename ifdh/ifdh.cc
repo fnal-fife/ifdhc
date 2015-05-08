@@ -14,6 +14,7 @@
 #include <errno.h>
 #include <exception>
 #include <sys/wait.h>
+#include <signal.h>
 #include <sys/signal.h>
 #include <map>
 #include "../util/Checksum.h"

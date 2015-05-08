@@ -27,7 +27,12 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <sys/wait.h>
+#ifdef __APPLE__
+#include <sys/vnode.h>
+#define NFS_SUPER_MAGIC VT_NFS
+#else
 #include <linux/nfs_fs.h>
+#endif
 #include <ifaddrs.h>
 #include <../util/regwrap.h>
 #include <stdexcept>

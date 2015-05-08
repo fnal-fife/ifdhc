@@ -369,12 +369,11 @@ int
 set_timeout() {
     int timeoutafter;
     struct sigaction action;
+    memset(&action, 0, sizeof(struct sigaction));
     sigset_t empty;
     sigemptyset(&empty);
     action.sa_handler = handle_timeout;
-    action.sa_restorer = 0;
     action.sa_mask = empty;
-    action.sa_flags = 0;
    
     if (getenv("IFDH_WEB_TIMEOUT")) { 
         timeoutafter = atoi(getenv("IFDH_WEB_TIMEOUT"));

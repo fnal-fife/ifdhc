@@ -36,6 +36,7 @@ namespace std {
 #define SWIG_FILE_WITH_INIT
 #include "ifdh.h"
 #include <stdlib.h>
+#include <stdio.h>
 %}
 
 %include "ifdh.h"

@@ -26,7 +26,7 @@
 #include <signal.h>
 #include <stdio.h>
 #include <unistd.h>
-#include <wait.h>
+#include <sys/wait.h>
 #include <linux/nfs_fs.h>
 #include <ifaddrs.h>
 #include <../util/regwrap.h>

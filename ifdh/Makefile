@@ -44,7 +44,7 @@ ifdh: libifdh.$(SHLIB) ifdh_main.o
 
 python/_ifdh.$(SHLIB): $(PYMOD_OBJS)
 	test -d python || mkdir python 
-	g++ --shared $(ARCH) -o  $@ $(PYMOD_OBJS) $${PYTHON_LIB:-$${PYTHON_DIR:-/usr}/lib64}/python*/config/libpython*.[as]* $(LDLIBS) || g++ --shared $(ARCH) -o  $@ $(PYMOD_OBJS) $${PYTHON_LIB:-$${PYTHON_DIR:-/usr}/lib}/python*/config/libpython*.[asd]* $(LDLIBS)
+	g++ --shared $(ARCH) -o  $@ $(PYMOD_OBJS) $${PYTHON_LIB:-$${PYTHON_DIR:-/usr}/lib64}/python*/config/libpython*.[asd]* $(LDLIBS) || g++ --shared $(ARCH) -o  $@ $(PYMOD_OBJS) $${PYTHON_LIB:-$${PYTHON_DIR:-/usr}/lib}/python*/config/libpython*.[asd]* $(LDLIBS)
 
 
 libifdh.$(SHLIB): $(ALL_OBJS)

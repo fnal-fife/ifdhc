@@ -498,7 +498,7 @@ ifdh::build_stage_list(std::vector<std::string> args, int curarg, char *stage_vi
      if (0 == local_access(args[i].c_str(), R_OK) && 0 != local_access(args[i+1].c_str(), R_OK)) {
        staging_out = true;
        // we're going to keep this in our stage queue area
-       stage_location = base_uri + "/ifdh_stage/data/" + ustring + "/" +  basename(args[i].c_str());
+       stage_location = base_uri + "/ifdh_stage/data/" + ustring + "/" +  basename((char *) args[i].c_str());
 
        // we copy to the stage location
        res.push_back(args[i]);

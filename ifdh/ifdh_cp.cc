@@ -528,6 +528,12 @@ ifdh::build_stage_list(std::vector<std::string> args, int curarg, char *stage_vi
 }
 
 const char *srm_copy_command = "lcg-cp  --sendreceive-timeout 4000 -b -D srmv2 ";
+#ifdef __APPLE__
+// old globus-url-copy version, probalby...
+const char *gridftp_copy_command =  "globus-url-copy -nodcau -restart -stall-timeout 14400 ";
+#else
+const char *gridftp_copy_command =  "globus-url-copy -gridftp2 -nodcau -restart -stall-timeout 14400 ";
+#endif
 
 bool 
 check_grid_credentials() {
@@ -1223,7 +1229,14 @@ ifdh::cp( std::vector<std::string> args ) {
      while( keep_going ) {
          stringstream cmd;
 
-         cmd << (use_dd ? "dd bs=512k " : use_cpn ? "cp "  : use_srm ? srm_copy_command  : use_any_gridftp ? "globus-url-copy -gridftp2 -nodcau -restart -stall-timeout 14400 " :  use_irods ? "icp " :  use_s3 ? "aws s3 cp " : clued0_hack ? "scp " : "false" );
+         cmd << (use_dd ? "dd bs=512k " : 
+                 use_cpn ? "cp "  : 
+                 use_srm ? srm_copy_command  : 
+                 use_any_gridftp ? gridftp_copy_command :  
+                 use_irods ? "icp " :  
+                 use_s3 ? "aws s3 cp " : 
+                 clued0_hack ? "scp " : 
+                 "false" );
 
          if (use_any_gridftp) {
             if ( use_passive()) {

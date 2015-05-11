@@ -1775,7 +1775,6 @@ ifdh::lss( std::string loc, int recursion_depth, std::string force) {
 #else
        cmd << "uberftp -ls ";
 #endif
-       cmd << "uberftp -ls ";
        if (recursion_depth > 1) {
            cmd << "-r ";
        }

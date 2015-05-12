@@ -49,6 +49,8 @@ check_env() {
     if (!checked) {
         checked = 1;
 
+        srandom(getpid()*getuid());
+
         // try to find cpn even if it isn't setup
         if (!getenv("CPN_DIR")) {
            if (0 == access(cpn_basedir, R_OK)) {
@@ -597,7 +599,7 @@ int ifdh::endProject(string projecturi) {
   return do_url_int(1,projecturi.c_str(),"endProject","","","");
 }
 
-ifdh::ifdh(std::string baseuri) { 
+ifdh::ifdh(std::string baseuri) {
     check_env();
     char *debug = getenv("IFDH_DEBUG");
     if (0 != debug ) { 

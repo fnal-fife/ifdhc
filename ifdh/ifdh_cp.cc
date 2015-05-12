@@ -741,8 +741,59 @@ use_passive() {
    // people use IFDH_GRIDFTP_EXTRA to override it if needed.
 }
 
+
 string
-map_pnfs(string loc, int srmflag = 0) {
+get_pnfs_gsiftp_uri() {
+    int state = 0;
+    static vector<string> nodes;
+    static const char *cdefault_nodes[] = { "stkendca01a.fnal.gov", "stkendca02a.fnal.gov", "stkendca03a.fnal.gov" };
+    static vector<string> default_nodes(cdefault_nodes, cdefault_nodes+3);
+    string line;
+
+    if (0 == nodes.size()) {
+        ifdh::_debug && cerr << "looking for dcache doors..\n";
+        WebAPI wa("http://fndca3a.fnal.gov:2288/info/doors");
+	while (!wa.data().eof() && !wa.data().fail()) {
+	    getline(wa.data(), line);
+            // ifdh::_debug && cerr << "got: " << line << "\n";
+	    if (line.find("<door") != string::npos) {
+	       state = 1;
+	    }
+	    if (line.find("</door") != string::npos) {
+	       state = 0;
+	    }
+	    if (state == 1 && line.find("<metric name=\"family") && line.find(">gsiftp<") != string::npos) {
+	       state = 2;
+	    }
+	    if (state == 2 && line.find("<interfaces") != string::npos) {
+	       state = 3;
+	    }
+	    if (state == 3 && line.find("</interfaces") != string::npos) {
+	       state = 2;
+	    }
+	    if (state == 3 && line.find("metric name=\"FQDN") != string::npos ) {
+	       size_t p1 = line.find(">");
+	       size_t p2 = line.find("<");
+	       p2 = line.find("<", p2+1);
+               string node = line.substr(p1+1, p2-(p1+1));
+               if (node == "fndca4a.fnal.gov") 
+                   continue;
+	       nodes.push_back(node);
+               ifdh::_debug && cerr << "found dcache door: " << node << "\n";
+	    }
+	}
+    }
+    if ( nodes.size() == 0) {
+       // couldn't get nodes from website...
+       nodes = default_nodes;
+    }
+    int32_t rn;
+    rn = random();
+    return "gsiftp://" + nodes[ rn % nodes.size() ] + "/pnfs/fnal.gov/usr/";
+}
+
+string
+map_pnfs(string loc, int srmflag = 0)  {
 
       bool cdfflag = false;
       bool d0flag = false;
@@ -772,7 +823,7 @@ map_pnfs(string loc, int srmflag = 0) {
           gsiftpuri = pnfs_d0_gsiftp_uri;
       } else {
           srmuri = pnfs_srm_uri;
-          gsiftpuri = pnfs_gsiftp_uri;
+          gsiftpuri = get_pnfs_gsiftp_uri();
       }
 
       if (srmflag) {

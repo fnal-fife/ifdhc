@@ -399,9 +399,10 @@ test_dest_file() {
 }
 
 
-std::vector<std::string> slice_directories(std::vector<std::string> args, int curarg) {
+std::vector<std::string> slice_directories(std::vector<std::string> args, int curarg, int &fixoffset1, int &fixoffset2) {
     std::vector<std::string> res;
     std::vector<std::vector<std::string>::size_type> dest_slots;
+    bool did1 = false, did2 = false;
     
     //
     // find destination directory slots
@@ -423,6 +424,14 @@ std::vector<std::string> slice_directories(std::vector<std::string> args, int cu
               cur_cp++;  // if we see a ";" we move on to next copy 
               continue;
           }
+          if ((int)i == fixoffset1 && !did1) {
+             did1 = true;
+             fixoffset1 = res.size();
+          }
+          if ((int)i == fixoffset2 && !did2) {
+             did2 = true;
+             fixoffset2 = res.size();
+          }
           if( i != dest_slots[cur_cp] ) {  // don't do dest dest ";" 
               res.push_back(args[i]);   
               ifdh::_debug && std::cerr << res.back() << " "; 
@@ -435,6 +444,17 @@ std::vector<std::string> slice_directories(std::vector<std::string> args, int cu
           }
      }
      ifdh::_debug && std::cerr << endl;
+
+     if ((int)args.size()+1 == fixoffset1 && !did1) {
+	 fixoffset1 = res.size() + 1;
+         did1 = true;
+     }
+     if ((int)args.size()+1 == fixoffset2 && !did2) {
+	 fixoffset2 = res.size() + 1;
+         did2 = true;
+     }
+
+     ifdh::_debug && cerr << "after slice, range is" << fixoffset1 << ".." << fixoffset2 << "\n";
 
      return res;
 }
@@ -1234,11 +1254,12 @@ ifdh::cp( std::vector<std::string> args ) {
         gftpHost.append(".fnal.gov");
      }
 
+     _debug && cerr << "lock range: " << need_lock_low <<  ".." << need_lock_high << "\n";
      //
      // srmcp and dd only do specific srcfile,destfile copies
      //
      if (dest_is_dir && (use_s3 || use_srm || use_dd || use_any_gridftp)) {
-         args = slice_directories(args, curarg);
+         args = slice_directories(args, curarg, need_lock_low, need_lock_high);
          dest_is_dir = false;
          curarg = 0;
      }

@@ -890,10 +890,17 @@ spinoff_copy(ifdh *handle, std::string what, int outbound) {
 }
 
 int
-retry_system(const char *cmd_str, int maxtries = 7) {
+retry_system(const char *cmd_str, int maxtries = -1) {
     int res = 1;
     int tries = 0;
     int delay;
+    if (maxtries == -1) {
+        if (0 != getenv("IFDH_CP_MAXRETRIES")) {
+            maxtries = atoi(getenv("IFDH_CP_MAXRETRIES")) + 1;
+        } else {
+            maxtries = 1;
+        }
+    }
     while( res != 0 && tries < maxtries ) {
               
         res = system(cmd_str);
@@ -903,7 +910,7 @@ retry_system(const char *cmd_str, int maxtries = 7) {
             std::cerr << "program: " << cmd_str<< " died from signal " << WTERMSIG(res) << "-- exiting.\n";
             exit(-1);
         }
-        if (res != 0 && tries < 4) {
+        if (res != 0 && tries < maxtries - 1) {
             std::cerr << "program: " << cmd_str << "exited status " << res << "\n";
             delay =random() % (55 << tries);
             std::cerr << "delaying " << delay << " ...\n";

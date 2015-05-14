@@ -673,7 +673,7 @@ get_grid_credentials_if_needed() {
         if (experiment == "samdev")  // use fermilab for fake samdev expt
            experiment = "fermilab";
 
-	if (experiment != "lbne" && experiment != "dzero" && experiment != "cdf" && experiment != "lsst" && experiment != "fermilab") {
+	if (experiment != "lbne" && experiment != "dzero" && experiment != "cdf" && experiment != "lsst" && experiment != "fermilab" && experiment != "dune" && experiment != "des" ) {
 	   cmd += "fermilab:/fermilab/" + experiment + "/Role=Analysis";
 	} else if (experiment == "dzero" ) {
            // dzero has an extra "users" component

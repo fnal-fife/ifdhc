@@ -548,12 +548,7 @@ ifdh::build_stage_list(std::vector<std::string> args, int curarg, char *stage_vi
 }
 
 const char *srm_copy_command = "lcg-cp  --sendreceive-timeout 4000 -b -D srmv2 ";
-#ifdef __APPLE__
-// old globus-url-copy version, probalby...
-const char *gridftp_copy_command =  "globus-url-copy -nodcau -restart -stall-timeout 14400 ";
-#else
-const char *gridftp_copy_command =  "globus-url-copy -gridftp2 -nodcau -restart -stall-timeout 14400 ";
-#endif
+const char *gridftp_copy_command =  "globus-url-copy -rst-retries 1 -gridftp2 -nodcau -restart -stall-timeout 14400 ";
 
 bool 
 check_grid_credentials() {
@@ -892,6 +887,32 @@ spinoff_copy(ifdh *handle, std::string what, int outbound) {
        }
    }
    return "";
+}
+
+int
+retry_system(const char *cmd_str, int maxtries = 7) {
+    int res = 1;
+    int tries = 0;
+    int delay;
+    while( res != 0 && tries < maxtries ) {
+              
+        res = system(cmd_str);
+        if (WIFEXITED(res)) {
+            res = WEXITSTATUS(res);
+        } else {
+            std::cerr << "program: " << cmd_str<< " died from signal " << WTERMSIG(res) << "-- exiting.\n";
+            exit(-1);
+        }
+        if (res != 0 && tries < 4) {
+            std::cerr << "program: " << cmd_str << "exited status " << res << "\n";
+            delay =random() % (55 << tries);
+            std::cerr << "delaying " << delay << " ...\n";
+            sleep(delay);
+            std::cerr << "retrying...\n";
+        }
+        tries++;
+    }
+    return res;
 }
 
 int 
@@ -1491,13 +1512,8 @@ ifdh::cp( std::vector<std::string> args ) {
 
         _debug && std::cerr << "running: " << cmd.str() << endl;
 
-        res = system(cmd.str().c_str());
-        if (WIFEXITED(res)) {
-            res = WEXITSTATUS(res);
-        } else {
-            std::cerr << "program: " << cmd.str() << " died from signal " << WTERMSIG(res) << "-- exiting.\n";
-            exit(-1);
-        }
+        res = retry_system(cmd.str().c_str());
+
        
         if ( res != 0 && error_expected ) {
             _debug && std::cerr << "expected error...\n";

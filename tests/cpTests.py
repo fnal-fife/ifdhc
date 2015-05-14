@@ -118,11 +118,17 @@ class ifdh_cp_cases(unittest.TestCase):
         self.work="%s/work%d" % (os.environ.get('TMPDIR','/tmp'),os.getpid())
 	self.data_dir_root="/grid/data/%s/%s" % (os.environ.get('TEST_USER', os.environ['USER']), self.hostname)
 	self.data_dir="/grid/data/%s/%s/%s" % (os.environ.get('TEST_USER', os.environ['USER']), self.hostname,os.getpid())
-        if 1 != len(self.ifdh_handle.ls(self.data_dir_root,0,'')):
+        try: 
+            self.ifdh_handle.ls(self.data_dir_root,0,'')
+        except:
             self.ifdh_handle.mkdir(self.data_dir_root,'')
-        if 1 != len(self.ifdh_handle.ls(self.data_dir,0,'')):
+        try:
+            self.ifdh_handle.ls(self.data_dir,0,'')
+        except:
             self.ifdh_handle.mkdir(self.data_dir,'')
-        if 1 != len(self.ifdh_handle.ls('%s/started'%self.data_dir,0,'')):
+        try:
+            self.ifdh_handle.ls('%s/started'%self.data_dir,0,'')
+        except:
             self.ifdh_handle.mkdir('%s/started'% (self.data_dir),'')
         # setup test directory tree..
         count = 0

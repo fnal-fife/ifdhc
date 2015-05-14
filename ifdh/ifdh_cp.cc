@@ -898,7 +898,7 @@ retry_system(const char *cmd_str, int maxtries = -1) {
         if (0 != getenv("IFDH_CP_MAXRETRIES")) {
             maxtries = atoi(getenv("IFDH_CP_MAXRETRIES")) + 1;
         } else {
-            maxtries = 1;
+            maxtries = 7;
         }
     }
     while( res != 0 && tries < maxtries ) {

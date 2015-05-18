@@ -1015,9 +1015,8 @@ ifdh::cp( std::vector<std::string> args ) {
     }
     if (savecurarg >= 0) {
          curarg = savecurarg;
-         cerr << "restorring: curarg is " << curarg << "\n";
+         cerr << "restoring: curarg is " << curarg << "\n";
     }
-         cout << "curarg is " << curarg << "\n";
    
 
     // convert relative paths to absolute

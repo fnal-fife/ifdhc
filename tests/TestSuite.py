@@ -15,6 +15,7 @@ from auxFiles import aux_file_cases
 from exitCodes import exitcodecases
 
 def suite():
+    os.environ['IFDH_CP_MAXRETRIES'] = '0'
     basesuite = unittest.TestLoader().loadTestsFromTestCase(SAMCases)
     basesuite2 = unittest.TestLoader().loadTestsFromTestCase(SAMCases)
     basesuite3 =  unittest.TestLoader().loadTestsFromTestCase(ifdh_cp_cases)

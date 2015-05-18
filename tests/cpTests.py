@@ -120,6 +120,8 @@ class ifdh_cp_cases(unittest.TestCase):
         self.ifdh_handle.mkdir(self.data_dir_root,'')
         self.ifdh_handle.mkdir(self.data_dir,'')
         self.ifdh_handle.mkdir('%s/started'% (self.data_dir),'')
+        self.ifdh_handle.chmod('0775', self.data_dir,'')
+        self.ifdh_handle.chmod('0775', '%s/started'% (self.data_dir),'')
         # setup test directory tree..
         count = 0
         os.mkdir("%s" % (self.work))

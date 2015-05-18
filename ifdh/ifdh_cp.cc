@@ -114,23 +114,18 @@ is_directory(std::string dirname) {
 }
 
 bool
-have_stage_subdirs(std::string uri) {
-   std::stringstream cmd;
-   static char buf[512];
+have_stage_subdirs(std::string uri, ifdh *ih) {
    int count = 0;
-   FILE *pf;
+   vector<string> list = ih->ls(uri,1,"");
 
-   ifdh::_debug && cerr << "checking with srmls\n";
-   cmd << "srmls -2  " << uri;
-   pf = popen(cmd.str().c_str(),"r");
-   while (fgets(buf, 512, pf)) {
-       if(0 != strstr(buf,"ifdh_stage/queue/")) count++;
-       if(0 != strstr(buf,"ifdh_stage/lock/")) count++;
-       if(0 != strstr(buf,"ifdh_stage/data/")) count++;
+   for (size_t i = 0; i < list.size(); i++) {
+       if(list[i] == "ifdh_stage/queue/") count++;
+       if(list[i] == "ifdh_stage/lock/") count++;
+       if(list[i] == "ifdh_stage/data/") count++;
    }
-   pclose(pf);
    return count == 3;
 }
+
 
 bool 
 is_bestman_server(std::string uri) {
@@ -499,11 +494,13 @@ ifdh::build_stage_list(std::vector<std::string> args, int curarg, char *stage_vi
    }
 
    // make sure directory hierarchy is there..
-   if (!have_stage_subdirs(base_uri + "/ifdh_stage")) {
-       this->mkdir( base_uri + "/ifdh_stage", "");
-       this->mkdir( base_uri + "/ifdh_stage/queue" , "");
-       this->mkdir( base_uri + "/ifdh_stage/lock", "");
-       this->mkdir( base_uri + "/ifdh_stage/data", "");
+   while (!have_stage_subdirs(base_uri + "/ifdh_stage", this)) {
+       try{ this->mkdir( base_uri , "");               } catch (...) { break; };
+       try{ this->mkdir( base_uri + "/ifdh_stage", ""); } catch(...)  { break; };
+       try{ this->mkdir( base_uri + "/ifdh_stage/queue" , "");}  catch(...) {;}
+       try{ this->mkdir( base_uri + "/ifdh_stage/lock", ""); } catch(...) {;}
+       try{ this->mkdir( base_uri + "/ifdh_stage/data", ""); } catch(...) {;}
+       break;
    }
 
    this->mkdir( base_uri + "/ifdh_stage/data/" + ustring, "");

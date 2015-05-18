@@ -991,23 +991,33 @@ ifdh::cp( std::vector<std::string> args ) {
         // handle -f last, 'cause it rewrites arg list
         //
 	if (args[curarg].find('f') != std::string::npos) {
-           savecurarg = curarg;
+           if (savecurarg < 0) { 
+               savecurarg = curarg;
+               _debug && cerr << "saving arg of " << savecurarg;
+           } else {
+               _debug && cerr << "think we already saved arg of " << savecurarg;
+           }
            int al = args.size() - curarg;
 	   args = expandfile(args[curarg + 1], args, curarg+2, curarg);
 	   curarg = args.size() - al + 2;
-           cout << "after -f args is: ";
+           if (_debug) {
+           cerr << "after -f args is: ";
            for (unsigned int k = 0; k< args.size(); k++) {
-               cout << '"' << args[k] << '"' << ' ' ;
+               cerr << '"' << args[k] << '"' << ' ' ;
            }
-	   cout << '\n';
-           cout << "curarg is " << curarg << "\n";
+	   cerr << '\n';
+           cerr << "curarg is " << curarg << "\n";
+           }
 	   continue;
 	}
 
         curarg++;
     }
-    if (savecurarg > 0)
+    if (savecurarg >= 0) {
          curarg = savecurarg;
+         cerr << "restorring: curarg is " << curarg << "\n";
+    }
+         cout << "curarg is " << curarg << "\n";
    
 
     // convert relative paths to absolute

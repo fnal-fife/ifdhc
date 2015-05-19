@@ -14,7 +14,9 @@
 #include <errno.h>
 #include <exception>
 #include <sys/wait.h>
+#include <signal.h>
 #include <sys/signal.h>
+#include <sys/param.h>
 #include <map>
 #include "../util/Checksum.h"
 #include <setjmp.h>
@@ -46,6 +48,8 @@ check_env() {
 
     if (!checked) {
         checked = 1;
+
+        srandom(getpid()*getuid());
 
         // try to find cpn even if it isn't setup
         if (!getenv("CPN_DIR")) {
@@ -135,7 +139,7 @@ ifdh::cleanup() {
 }
 // file io
 
-extern "C" { const char *get_current_dir_name(); }
+// extern "C" { const char *get_current_dir_name(); }
 
 string 
 ifdh::localPath( string src_uri ) {
@@ -353,7 +357,7 @@ clear_timeout() {
     // this isn't exaclty right, we should subtract off
     // the elapsed time(?), but set it to 1 if it's negative.
     alarm(oldalarm);
-    sigaction(SIGALRM, &oldaction, 0);
+    sigaction(SIGALRM, &oldaction, (struct sigaction*)0);
 }
 
 
@@ -368,12 +372,11 @@ int
 set_timeout() {
     int timeoutafter;
     struct sigaction action;
+    memset(&action, 0, sizeof(struct sigaction));
     sigset_t empty;
     sigemptyset(&empty);
     action.sa_handler = handle_timeout;
-    action.sa_restorer = 0;
     action.sa_mask = empty;
-    action.sa_flags = 0;
    
     if (getenv("IFDH_WEB_TIMEOUT")) { 
         timeoutafter = atoi(getenv("IFDH_WEB_TIMEOUT"));
@@ -596,7 +599,7 @@ int ifdh::endProject(string projecturi) {
   return do_url_int(1,projecturi.c_str(),"endProject","","","");
 }
 
-ifdh::ifdh(std::string baseuri) { 
+ifdh::ifdh(std::string baseuri) {
     check_env();
     char *debug = getenv("IFDH_DEBUG");
     if (0 != debug ) { 

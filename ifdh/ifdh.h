@@ -12,7 +12,6 @@
 namespace ifdh_ns {
 
 class ifdh {
-       
         std::string _baseuri;
         std::string _lastinput;
         std::string unique_string();
@@ -133,6 +132,7 @@ class ifdh {
         std::map<std::string,std::vector<std::string> > locateFiles( std::vector<std::string> args );
         // cheksum file
         std::string checksum(std::string loc);
+
 };
 
 }

@@ -18,16 +18,25 @@
 #include <sys/resource.h>
 #include <sys/types.h>
 #include <sys/stat.h>
-#include <sys/vfs.h> 
 #include <errno.h>
 #include <netdb.h>
 #include <signal.h>
 #include <stdio.h>
 #include <unistd.h>
-#include <wait.h>
+#include <sys/wait.h>
+#include <sys/param.h>
+#ifdef __APPLE__
+#include <sys/vnode.h>
+#include <sys/mount.h>
+#define NFS_SUPER_MAGIC VT_NFS
+#include <libgen.h>
+#else
+#include <sys/vfs.h> 
 #include <linux/nfs_fs.h>
+#endif
 #include <ifaddrs.h>
 #include <../util/regwrap.h>
+#include <stdexcept>
 
 using namespace std;
 
@@ -46,6 +55,7 @@ std::string pnfs_cdf_gsiftp_uri = "gsiftp://cdfdca1.fnal.gov/";
 std::string pnfs_d0_srm_uri = "srm://d0dca1.fnal.gov:8443/srm/managerv2?SFN=/pnfs/fnal.gov/usr/";
 std::string pnfs_d0_gsiftp_uri = "gsiftp://d0dca1.fnal.gov/";
 
+static char getcwd_buf[MAXPATHLEN];
 
 bool has(std::string s1, std::string s2) {
    return s1.find(s2) != std::string::npos;
@@ -65,6 +75,7 @@ local_access(const char *path, int mode) {
     ifdh::_debug && std::cerr << "local_access(" << path << " , " << mode ;
     res = statfs(path, &buf);
     if (0 != res ) {
+       ifdh::_debug && std::cerr << ") -- not found \n";
        return res;
     }
     if (buf.f_type == NFS_SUPER_MAGIC) {
@@ -72,7 +83,7 @@ local_access(const char *path, int mode) {
        return -1;
     } else {
        res = access(path, mode);
-       ifdh::_debug && std::cerr << ") -- local returning " <<  res << endl;
+       ifdh::_debug && std::cerr << ") -- local returning " <<  res << "\n";
        return res;
     }
 }
@@ -104,23 +115,18 @@ is_directory(std::string dirname) {
 }
 
 bool
-have_stage_subdirs(std::string uri) {
-   std::stringstream cmd;
-   static char buf[512];
+have_stage_subdirs(std::string uri, ifdh *ih) {
    int count = 0;
-   FILE *pf;
+   vector<string> list = ih->ls(uri,1,"");
 
-   ifdh::_debug && cerr << "checking with srmls\n";
-   cmd << "srmls -2  " << uri;
-   pf = popen(cmd.str().c_str(),"r");
-   while (fgets(buf, 512, pf)) {
-       if(0 != strstr(buf,"ifdh_stage/queue/")) count++;
-       if(0 != strstr(buf,"ifdh_stage/lock/")) count++;
-       if(0 != strstr(buf,"ifdh_stage/data/")) count++;
+   for (size_t i = 0; i < list.size(); i++) {
+       if(list[i].find("ifdh_stage/queue/") != string::npos ) count++;
+       if(list[i].find("ifdh_stage/lock/") != string::npos )  count++;
+       if(list[i].find("ifdh_stage/data/") != string::npos )  count++;
    }
-   pclose(pf);
    return count == 3;
 }
+
 
 bool 
 is_bestman_server(std::string uri) {
@@ -306,13 +312,16 @@ public:
     }
 };
 
-std::vector<std::string> expandfile( std::string fname, std::vector<std::string> oldargs, unsigned int oldcount) {
+std::vector<std::string> expandfile( std::string fname, std::vector<std::string> oldargs, unsigned int oldcount, unsigned int oldcount2) {
   std::vector<std::string> res;
   std::string line;
   size_t pos, pos2;
 
   bool first = true;
 
+  for(size_t i = 0; i < oldcount2; i++) {
+       res.push_back(oldargs[i]);
+  }
   fstream listf(fname.c_str(), fstream::in);
   getline(listf, line);
   while( !listf.eof() && !listf.fail()) {
@@ -339,8 +348,11 @@ std::vector<std::string> expandfile( std::string fname, std::vector<std::string>
       std::string basemessage("error reading list of files file: ");
       throw( std::logic_error(basemessage += fname));
   }
-  while (oldcount < oldargs.size()) {
-     res.push_back(oldargs[oldcount++]);
+  if (oldcount < oldargs.size()) {
+     res.push_back(";");
+     while (oldcount < oldargs.size()) {
+        res.push_back(oldargs[oldcount++]);
+     }
   }
  
   return res;
@@ -383,9 +395,10 @@ test_dest_file() {
 }
 
 
-std::vector<std::string> slice_directories(std::vector<std::string> args, int curarg) {
+std::vector<std::string> slice_directories(std::vector<std::string> args, int curarg, int &fixoffset1, int &fixoffset2) {
     std::vector<std::string> res;
     std::vector<std::vector<std::string>::size_type> dest_slots;
+    bool did1 = false, did2 = false;
     
     //
     // find destination directory slots
@@ -407,6 +420,14 @@ std::vector<std::string> slice_directories(std::vector<std::string> args, int cu
               cur_cp++;  // if we see a ";" we move on to next copy 
               continue;
           }
+          if ((int)i == fixoffset1 && !did1) {
+             did1 = true;
+             fixoffset1 = res.size();
+          }
+          if ((int)i == fixoffset2 && !did2) {
+             did2 = true;
+             fixoffset2 = res.size();
+          }
           if( i != dest_slots[cur_cp] ) {  // don't do dest dest ";" 
               res.push_back(args[i]);   
               ifdh::_debug && std::cerr << res.back() << " "; 
@@ -419,6 +440,17 @@ std::vector<std::string> slice_directories(std::vector<std::string> args, int cu
           }
      }
      ifdh::_debug && std::cerr << endl;
+
+     if ((int)args.size()+1 == fixoffset1 && !did1) {
+	 fixoffset1 = res.size() + 1;
+         did1 = true;
+     }
+     if ((int)args.size()+1 == fixoffset2 && !did2) {
+	 fixoffset2 = res.size() + 1;
+         did2 = true;
+     }
+
+     ifdh::_debug && cerr << "after slice, range is" << fixoffset1 << ".." << fixoffset2 << "\n";
 
      return res;
 }
@@ -463,11 +495,12 @@ ifdh::build_stage_list(std::vector<std::string> args, int curarg, char *stage_vi
    }
 
    // make sure directory hierarchy is there..
-   if (!have_stage_subdirs(base_uri + "/ifdh_stage")) {
-       this->mkdir( base_uri + "/ifdh_stage", "");
-       this->mkdir( base_uri + "/ifdh_stage/queue" , "");
-       this->mkdir( base_uri + "/ifdh_stage/lock", "");
-       this->mkdir( base_uri + "/ifdh_stage/data", "");
+   if (!have_stage_subdirs(base_uri + "/ifdh_stage", this)) {
+       try{ this->mkdir( base_uri , "");               } catch (...){;};
+       try{ this->mkdir( base_uri + "/ifdh_stage", ""); } catch(...) {;};
+       try{ this->mkdir( base_uri + "/ifdh_stage/queue" , "");}  catch(...){;}
+       try{ this->mkdir( base_uri + "/ifdh_stage/lock", ""); } catch(...){;}
+       try{ this->mkdir( base_uri + "/ifdh_stage/data", ""); } catch(...){;}
    }
 
    this->mkdir( base_uri + "/ifdh_stage/data/" + ustring, "");
@@ -482,7 +515,7 @@ ifdh::build_stage_list(std::vector<std::string> args, int curarg, char *stage_vi
      if (0 == local_access(args[i].c_str(), R_OK) && 0 != local_access(args[i+1].c_str(), R_OK)) {
        staging_out = true;
        // we're going to keep this in our stage queue area
-       stage_location = base_uri + "/ifdh_stage/data/" + ustring + "/" +  basename(args[i].c_str());
+       stage_location = base_uri + "/ifdh_stage/data/" + ustring + "/" +  basename((char *) args[i].c_str());
 
        // we copy to the stage location
        res.push_back(args[i]);
@@ -500,7 +533,7 @@ ifdh::build_stage_list(std::vector<std::string> args, int curarg, char *stage_vi
 
    // copy our queue file in last, it means the others are ready to copy
    if ( staging_out ) {
-      std::string fullstage(get_current_dir_name());
+      std::string fullstage(getcwd(getcwd_buf, MAXPATHLEN));
       fullstage += "/" +  stagefile;
       res.push_back( fullstage );
       res.push_back( base_uri + "/ifdh_stage/queue/" + stagefile );
@@ -512,6 +545,7 @@ ifdh::build_stage_list(std::vector<std::string> args, int curarg, char *stage_vi
 }
 
 const char *srm_copy_command = "lcg-cp  --sendreceive-timeout 4000 -b -D srmv2 ";
+const char *gridftp_copy_command =  "globus-url-copy -rst-retries 1 -gridftp2 -nodcau -restart -stall-timeout 14400 ";
 
 bool 
 check_grid_credentials() {
@@ -523,6 +557,8 @@ check_grid_credentials() {
     
     ifdh::_debug && std::cerr << "check_grid_credentials:\n";
 
+    if (experiment == "samdev")  // use fermilab for fake samdev expt
+        experiment = "fermilab";
 
     while(fgets(buf,512,pf)) {
 	 std::string s(buf);
@@ -625,7 +661,11 @@ get_grid_credentials_if_needed() {
             cmd += " >/dev/null 2>&1 ";
         }
         cmd += "&& voms-proxy-init -rfc -noregen -debug -voms ";
-	if (experiment != "lbne" && experiment != "dzero" && experiment != "cdf" && experiment != "lsst" && experiment != "fermilab") {
+
+        if (experiment == "samdev")  // use fermilab for fake samdev expt
+           experiment = "fermilab";
+
+	if (experiment != "lbne" && experiment != "dzero" && experiment != "cdf" && experiment != "lsst" && experiment != "fermilab" && experiment != "dune" && experiment != "des" ) {
 	   cmd += "fermilab:/fermilab/" + experiment + "/Role=Analysis";
 	} else if (experiment == "dzero" ) {
            // dzero has an extra "users" component
@@ -713,8 +753,64 @@ use_passive() {
    // people use IFDH_GRIDFTP_EXTRA to override it if needed.
 }
 
+
 string
-map_pnfs(string loc, int srmflag = 0) {
+get_pnfs_gsiftp_uri() {
+    int state = 0;
+    static vector<string> nodes;
+    static const char *cdefault_nodes[] = { "stkendca01a.fnal.gov", "stkendca02a.fnal.gov", "stkendca03a.fnal.gov" };
+    static vector<string> default_nodes(cdefault_nodes, cdefault_nodes+3);
+    string line;
+    static string cached_result;
+
+    //if (cached_result != "")
+    //    return cached_result;
+
+    if (0 == nodes.size()) {
+        ifdh::_debug && cerr << "looking for dcache doors..\n";
+        WebAPI wa("http://fndca3a.fnal.gov:2288/info/doors");
+	while (!wa.data().eof() && !wa.data().fail()) {
+	    getline(wa.data(), line);
+            // ifdh::_debug && cerr << "got: " << line << "\n";
+	    if (line.find("<door") != string::npos) {
+	       state = 1;
+	    }
+	    if (line.find("</door") != string::npos) {
+	       state = 0;
+	    }
+	    if (state == 1 && line.find("<metric name=\"family") && line.find(">gsiftp<") != string::npos) {
+	       state = 2;
+	    }
+	    if (state == 2 && line.find("<interfaces") != string::npos) {
+	       state = 3;
+	    }
+	    if (state == 3 && line.find("</interfaces") != string::npos) {
+	       state = 2;
+	    }
+	    if (state == 3 && line.find("metric name=\"FQDN") != string::npos ) {
+	       size_t p1 = line.find(">");
+	       size_t p2 = line.find("<");
+	       p2 = line.find("<", p2+1);
+               string node = line.substr(p1+1, p2-(p1+1));
+               if (node == "fndca4a.fnal.gov") 
+                   continue;
+	       nodes.push_back(node);
+               ifdh::_debug && cerr << "found dcache door: " << node << "\n";
+	    }
+	}
+    }
+    if ( nodes.size() == 0) {
+       // couldn't get nodes from website...
+       nodes = default_nodes;
+    }
+    int32_t rn;
+    rn = random();
+    cached_result = "gsiftp://" + nodes[ rn % nodes.size() ] + "/pnfs/fnal.gov/usr/";
+    return cached_result;
+}
+
+string
+map_pnfs(string loc, int srmflag = 0)  {
 
       bool cdfflag = false;
       bool d0flag = false;
@@ -744,7 +840,7 @@ map_pnfs(string loc, int srmflag = 0) {
           gsiftpuri = pnfs_d0_gsiftp_uri;
       } else {
           srmuri = pnfs_srm_uri;
-          gsiftpuri = pnfs_gsiftp_uri;
+          gsiftpuri = get_pnfs_gsiftp_uri();
       }
 
       if (srmflag) {
@@ -795,6 +891,39 @@ spinoff_copy(ifdh *handle, std::string what, int outbound) {
    return "";
 }
 
+int
+retry_system(const char *cmd_str, int maxtries = -1) {
+    int res = 1;
+    int tries = 0;
+    int delay;
+    if (maxtries == -1) {
+        if (0 != getenv("IFDH_CP_MAXRETRIES")) {
+            maxtries = atoi(getenv("IFDH_CP_MAXRETRIES")) + 1;
+        } else {
+            maxtries = 8;
+        }
+    }
+    while( res != 0 && tries < maxtries ) {
+              
+        res = system(cmd_str);
+        if (WIFEXITED(res)) {
+            res = WEXITSTATUS(res);
+        } else {
+            std::cerr << "program: " << cmd_str<< " died from signal " << WTERMSIG(res) << "-- exiting.\n";
+            exit(-1);
+        }
+        if (res != 0 && tries < maxtries - 1) {
+            std::cerr << "program: " << cmd_str << "exited status " << res << "\n";
+            delay =random() % (55 << tries);
+            std::cerr << "delaying " << delay << " ...\n";
+            sleep(delay);
+            std::cerr << "retrying...\n";
+        }
+        tries++;
+    }
+    return res;
+}
+
 int 
 ifdh::cp( std::vector<std::string> args ) {
 
@@ -809,6 +938,7 @@ ifdh::cp( std::vector<std::string> args ) {
     bool cleanup_stage = false;
     bool no_zero_length = false;
     struct timeval time_before, time_after;
+    int savecurarg = -1;
     std::vector<std::string> cleanup_spinoffs;
 
     if (_debug) {
@@ -863,23 +993,37 @@ ifdh::cp( std::vector<std::string> args ) {
         // handle -f last, 'cause it rewrites arg list
         //
 	if (args[curarg].find('f') != std::string::npos) {
-	   args = expandfile(args[curarg + 1], args, curarg+2);
-	   curarg = 0;
-           // cout << "after -f args is: ";
-           // for (unsigned int k = 0; k< args.size(); k++) {
-           //     cout << '"' << args[k] << '"' << ' ' ;
-           // }
-	   // cout << '\n';
-           continue;
+           if (savecurarg < 0) { 
+               savecurarg = curarg;
+               _debug && cerr << "saving arg of " << savecurarg;
+           } else {
+               _debug && cerr << "think we already saved arg of " << savecurarg;
+           }
+           int al = args.size() - curarg;
+	   args = expandfile(args[curarg + 1], args, curarg+2, curarg);
+	   curarg = args.size() - al + 2;
+           if (_debug) {
+           cerr << "after -f args is: ";
+           for (unsigned int k = 0; k< args.size(); k++) {
+               cerr << '"' << args[k] << '"' << ' ' ;
+           }
+	   cerr << '\n';
+           cerr << "curarg is " << curarg << "\n";
+           }
+	   continue;
 	}
 
         curarg++;
+    }
+    if (savecurarg >= 0) {
+         curarg = savecurarg;
+         cerr << "restoring: curarg is " << curarg << "\n";
     }
    
 
     // convert relative paths to absolute
     
-    string cwd(get_current_dir_name());
+    string cwd(getcwd(getcwd_buf, MAXPATHLEN));
 
     if (cwd[0] != '/') {
         throw( std::logic_error("unable to determine current working directory"));
@@ -1068,7 +1212,6 @@ ifdh::cp( std::vector<std::string> args ) {
 	       
 		if ( i == args.size() - 1 || args[i+1] == ";" ) {
 
-
 		   if (0 != access(parent_dir(args[i]).c_str(),R_OK)) {
 		       // if last one (destination)  and parent isn't 
 		       // local either default to per-experiment gridftp 
@@ -1149,17 +1292,37 @@ ifdh::cp( std::vector<std::string> args ) {
         gftpHost.append(".fnal.gov");
      }
 
+     _debug && cerr << "lock range: " << need_lock_low <<  ".." << need_lock_high << "\n";
      //
      // srmcp and dd only do specific srcfile,destfile copies
      //
      if (dest_is_dir && (use_s3 || use_srm || use_dd || use_any_gridftp)) {
-         args = slice_directories(args, curarg);
+         args = slice_directories(args, curarg, need_lock_low, need_lock_high);
          dest_is_dir = false;
          curarg = 0;
      }
 
      if ( stage_via ) {
+         if ( has(stage_via,"s3:")) {
+            use_cpn = 0;
+            use_dd = 0;
+	    use_s3 = 1;
+         }
+         if ( has(stage_via,"srm:")) {
+            use_cpn = 0;
+            use_dd = 0;
+	    use_srm = 1;
+         }
+         if ( has(stage_via,"gsiftp:")) {
+            use_cpn = 0;
+            use_dd = 0;
+	    use_bst_gridftp = 1;
+	    use_any_gridftp = 1;
+         }
          args = build_stage_list(args, curarg, stage_via);
+         need_cpn_lock = false;
+         need_lock_low = args.size()+1;
+         need_lock_high = -1;
 	 // we now have a stage back file to clean up later...
          cleanup_stage = true;
          curarg = 0;
@@ -1195,7 +1358,14 @@ ifdh::cp( std::vector<std::string> args ) {
      while( keep_going ) {
          stringstream cmd;
 
-         cmd << (use_dd ? "dd bs=512k " : use_cpn ? "cp "  : use_srm ? srm_copy_command  : use_any_gridftp ? "globus-url-copy -gridftp2 -nodcau -restart -stall-timeout 14400 " :  use_irods ? "icp " :  use_s3 ? "aws s3 cp " : clued0_hack ? "scp " : "false" );
+         cmd << (use_dd ? "dd bs=512k " : 
+                 use_cpn ? "cp "  : 
+                 use_srm ? srm_copy_command  : 
+                 use_any_gridftp ? gridftp_copy_command :  
+                 use_irods ? "icp " :  
+                 use_s3 ? "aws s3 cp " : 
+                 clued0_hack ? "scp " : 
+                 "false" );
 
          if (use_any_gridftp) {
             if ( use_passive()) {
@@ -1378,13 +1548,8 @@ ifdh::cp( std::vector<std::string> args ) {
 
         _debug && std::cerr << "running: " << cmd.str() << endl;
 
-        res = system(cmd.str().c_str());
-        if (WIFEXITED(res)) {
-            res = WEXITSTATUS(res);
-        } else {
-            std::cerr << "program: " << cmd.str() << " died from signal " << WTERMSIG(res) << "-- exiting.\n";
-            exit(-1);
-        }
+        res = retry_system(cmd.str().c_str());
+
        
         if ( res != 0 && error_expected ) {
             _debug && std::cerr << "expected error...\n";
@@ -1571,7 +1736,7 @@ pick_type( string &loc, string force, bool &use_fs, bool &use_gridftp, bool &use
     if (!(use_fs || use_gridftp || use_srm || use_irods || use_s3 )) {
 
         if (loc[0] != '/') {
-           string cwd(get_current_dir_name());
+           string cwd(getcwd(getcwd_buf, MAXPATHLEN));
            loc = cwd + '/' + loc;
          }
 
@@ -1612,6 +1777,9 @@ ifdh::ls(string loc, int recursion_depth, string force) {
     for(size_t i = 0; i < llout.size(); i++) { 
        res.push_back(llout[i].first);
     }
+    if (res.size() == 0 && llout.capacity() == 1) {
+       res.reserve(1);
+    }
     return res;
 }
 
@@ -1651,7 +1819,11 @@ ifdh::ll( std::string loc, int recursion_depth, std::string force) {
        }
        cmd << loc;
     } else if (use_gridftp) {
+#ifdef __APPLE__
+       cmd << "globus-url-copy -list ";
+#else
        cmd << "uberftp -ls ";
+#endif
        if (recursion_depth > 1) {
            cmd << "-r ";
        }
@@ -1676,12 +1848,15 @@ ifdh::lss( std::string loc, int recursion_depth, std::string force) {
 
     std::vector<std::pair<std::string,long> >  res;
 
+    string origloc(loc);
+
     bool use_gridftp = false;
     bool use_srm = false;
     bool use_fs = false;
     bool use_irods = false;
     bool use_s3 = false;
     bool first = true;
+    bool parse_globus = false;
     std::stringstream cmd;
     std::string dir, base, dir_last;
     size_t cpos, spos, qpos, pos, fpos;
@@ -1689,8 +1864,12 @@ ifdh::lss( std::string loc, int recursion_depth, std::string force) {
     if ( -1 == recursion_depth )
         recursion_depth = 1;
 
+    pick_type( loc, force, use_fs, use_gridftp, use_srm, use_irods, use_s3);
+
+    _debug && cerr << "after pick_type, loc is " << loc << "\n";
+
     cpos = loc.find(':');
-    if (cpos > 1 && cpos < 8) {
+    if (cpos > 1 && cpos < 9) {
        // looks like a uri...
        spos = loc.find('/',cpos+3);
        if( spos != string::npos) {
@@ -1704,7 +1883,6 @@ ifdh::lss( std::string loc, int recursion_depth, std::string force) {
     }
     if(_debug) std::cerr << "came up with base:" << base << endl;
 
-    pick_type( loc, force, use_fs, use_gridftp, use_srm, use_irods, use_s3);
 
     if (use_srm) {
        setenv("SRM_JAVA_OPTIONS", "-Xmx1024m" ,0);
@@ -1733,7 +1911,12 @@ ifdh::lss( std::string loc, int recursion_depth, std::string force) {
        cmd << loc;
        dir = loc.substr(loc.find("/",4));
     } else if (use_gridftp) {
+#ifdef __APPLE__
+       cmd << "globus-url-copy -list ";
+       parse_globus = true;
+#else
        cmd << "uberftp -ls ";
+#endif
        if (recursion_depth > 1) {
            cmd << "-r ";
        }
@@ -1775,7 +1958,7 @@ ifdh::lss( std::string loc, int recursion_depth, std::string force) {
            // to ls /d1/d2/d3/file and we see 'file'
            // otherwise we would see /d1/d2/d3/d4/ (trailing slash) 
            // if it is a directory...
-           // Anhow if we see this, trim a component off of base so
+           // Anhow if we see this, trim a component off of dir so
            // we dont make it /d1/d2/d3/file/file when we list it.
            if (first) {
                first = false;
@@ -1784,7 +1967,7 @@ ifdh::lss( std::string loc, int recursion_depth, std::string force) {
                    _debug && std::cerr << "pos is:" << pos  << "s.size is" << s.size() << endl;
                    if (pos != string::npos && pos + dir_last.size() == s.size()) {
                        
-                       base = base.substr(0,base.rfind('/')+1);
+                       //base = base.substr(0,base.rfind('/')+1);
                        dir = dir.substr(0,dir.rfind('/'));
                        _debug && std::cerr << "file case, trimming to base" << base <<  endl;
                       
@@ -1809,7 +1992,17 @@ ifdh::lss( std::string loc, int recursion_depth, std::string force) {
                if (s == "")
                    continue;
            }
-           if (use_gridftp) {
+           if (use_gridftp && parse_globus ) {
+               fpos = s.rfind(' ') + 1;
+               pos=s.find("Size=");
+               spos = pos + 5;
+               fsize = atol(s.c_str()+spos);	
+               s = s.substr(fpos);
+               if (s[0] != '/') {
+                   s = dir + '/' +  s;
+               }
+           }
+           if (use_gridftp && !parse_globus ) {
                // trim long listing bits, (8 columns) add slash if dir
                  
                // find flags (i.e drwxr-xr-x...)
@@ -1857,6 +2050,38 @@ ifdh::lss( std::string loc, int recursion_depth, std::string force) {
     }
     int status = pclose(pf);
     if (WIFSIGNALED(status)) throw( std::logic_error("signalled while doing ls"));
+    // various gymnastics to deal with directory listings
+    // srm ls lists the directory itself with a slash at the
+    // beginning of the result; others don't.  So try to figure
+    // out
+    if (res.size() == 0) {
+        if (WEXITSTATUS(status) == 0 ) {
+            // empty directory case -- signal by reserving space?
+            _debug && std::cerr << "empty directory case..\n";
+            loc = loc + "/";           
+            res.push_back(pair<string,long>(loc, 0));
+        } else {
+            // missing directory case
+            _debug && std::cerr << "missing directory/file case..\n";
+            throw( std::runtime_error("No such file or directory"));
+        }
+    } else {
+        if (res[0].first.size() == loc.size() + 1 && res[0].first == loc + "/" ) {
+            _debug && std::cerr << "directory already listed..\n";
+            //already lists directory
+            ;
+        } else if ( res.size() > 1 || ( res[0].first.find(loc) != string::npos  && res[0].first.size() > loc.size() + 2)) {
+            _debug && std::cerr << "directory needs prepending .."  << res[0].first << "," << loc << "\n";
+            // location is a proper substring of the first item, so it
+            // is a directory listing and needs the location on the front
+            dir = res[0].first.substr(0,res[0].first.rfind('/')+1);
+            res.insert(res.begin(), pair<string,long>(dir, 0));
+        } else {
+            _debug && std::cerr << "not a directory case ..\n";
+            // its exactly the location.  be happy, do nothing
+            ;
+        }
+    }
     return res;
 }
    
@@ -1944,6 +2169,8 @@ ifdh::rmdir(string loc, string force) {
 std::string
 mbits( int n ) {
     std::stringstream res;
+    if ( 0 == n )
+       res << "NONE";
     if ( n & 04 ) 
        res << 'R';
     if ( n & 02 ) 
@@ -2129,7 +2356,11 @@ ifdh::findMatchingFiles( string path, string glob) {
 
    for (size_t i = 0; i < dlist.size(); ++i) {
         if (_debug) cerr << "checking dir: " << dlist[i] << endl;
-        batch = this->lss(dlist[i],10,"");
+        try {
+            batch = this->lss(dlist[i],10,"");
+        } catch ( exception &e ) {
+            continue;
+        }
         for(size_t j = 0; j < batch.size(); j++ ) {
             if (_debug) cerr << "checking file: " << batch[j].first << endl;
             regexp globre(glob);

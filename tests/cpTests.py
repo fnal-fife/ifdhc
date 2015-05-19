@@ -70,12 +70,11 @@ class ifdh_cp_cases(unittest.TestCase):
     def clean_dest(self):
         for f in ('test.txt', 'f1', 'f2'):
             full = '%s/%s' % ( self.data_dir, f )
-            if 1 == len(self.ifdh_handle.ls(full,1,'')):
-                try:
-                    if self.ifdh_handle.ls('%s/test.txt'%self.data_dir,0,""):
-                        self.ifdh_handle.rm('%s/test.txt'%self.data_dir)
-                except:
-                    pass
+            try:
+               self.ifdh_handle.ls(full,1,'')
+	       self.ifdh_handle.rm(full,'')
+            except:
+               pass
 
     def make_local_test_txt(self):
         self.clean_dest();
@@ -118,12 +117,24 @@ class ifdh_cp_cases(unittest.TestCase):
         self.work="%s/work%d" % (os.environ.get('TMPDIR','/tmp'),os.getpid())
 	self.data_dir_root="/grid/data/%s/%s" % (os.environ.get('TEST_USER', os.environ['USER']), self.hostname)
 	self.data_dir="/grid/data/%s/%s/%s" % (os.environ.get('TEST_USER', os.environ['USER']), self.hostname,os.getpid())
-        if 1 != len(self.ifdh_handle.ls(self.data_dir_root,0,'')):
+        try:
             self.ifdh_handle.mkdir(self.data_dir_root,'')
-        if 1 != len(self.ifdh_handle.ls(self.data_dir,0,'')):
+        except:
+            pass
+        try:
             self.ifdh_handle.mkdir(self.data_dir,'')
-        if 1 != len(self.ifdh_handle.ls('%s/started'%self.data_dir,0,'')):
+        except:
+            pass
+        try:
             self.ifdh_handle.mkdir('%s/started'% (self.data_dir),'')
+        except:
+            pass
+        try:
+            self.ifdh_handle.mkdir('/pnfs/nova/scratch/ifdh_stage/test','')
+        except:
+            pass
+        self.ifdh_handle.chmod('0775', self.data_dir,'')
+        self.ifdh_handle.chmod('0775', '%s/started'% (self.data_dir),'')
         # setup test directory tree..
         count = 0
         os.mkdir("%s" % (self.work))
@@ -341,6 +352,7 @@ class ifdh_cp_cases(unittest.TestCase):
         # shouldn't need this one, but we seem to?
         list1 = self.ifdh_handle.ls(self.data_dir,1,"")
         list = self.ifdh_handle.ls("%s/test.txt" % self.data_dir, 1,"")
+        print "got list: ", list
         self.assertEqual(len(list),1, self._testMethodName)  # not sure how to verify if it is remote..
 
     def test_01_default_in(self):
@@ -476,7 +488,7 @@ class ifdh_cp_cases(unittest.TestCase):
         self.clean_dest()
         expsave = os.environ.get('EXPERIMENT','')
         os.environ['EXPERIMENT'] = "nova"
-        os.environ['IFDH_STAGE_VIA'] = "srm://fndca1.fnal.gov:8443/srm/managerv2?SFN=/pnfs/fnal.gov/usr/nova/ifdh_stage/test_multi"
+        os.environ['IFDH_STAGE_VIA'] = "srm://fndca1.fnal.gov:8443/srm/managerv2?SFN=/pnfs/fnal.gov/usr/nova/scratch/ifdh_stage/test_multi"
         self.ifdh_handle.addOutputFile('%s/a/f1' % self.work)
         self.ifdh_handle.addOutputFile('%s/a/f2' % self.work)
         self.ifdh_handle.copyBackOutput(self.data_dir)
@@ -506,20 +518,23 @@ class ifdh_cp_cases(unittest.TestCase):
 
     def test_pnfs_rewrite_1(self):
          self.log(self._testMethodName)
-         res = self.ifdh_handle.cp(['-D','%s/a/f1' % self.work,'%s/a/f2' % self.work,'/pnfs/nova/ifdh_stage/test'])
-         r1 = len(self.ifdh_handle.ls('/pnfs/nova/ifdh_stage/test/f1',1,''))
-         r2 = len(self.ifdh_handle.ls('/pnfs/nova/ifdh_stage/test/f2',1,''))
-         self.ifdh_handle.rm('/pnfs/nova/ifdh_stage/test/f1','')
-         self.ifdh_handle.rm('/pnfs/nova/ifdh_stage/test/f2','')
+         res = self.ifdh_handle.cp(['-D','%s/a/f1' % self.work,'%s/a/f2' % self.work,'/pnfs/nova/scratch/ifdh_stage/test'])
+         time.sleep(1)
+         r1 = len(self.ifdh_handle.ls('/pnfs/nova/scratch/ifdh_stage/test/f1',1,''))
+         r2 = len(self.ifdh_handle.ls('/pnfs/nova/scratch/ifdh_stage/test/f2',1,''))
+         self.ifdh_handle.rm('/pnfs/nova/scratch/ifdh_stage/test/f1','')
+         self.ifdh_handle.rm('/pnfs/nova/scratch/ifdh_stage/test/f2','')
          self.assertEqual(r1==1 and r2==1,True, self._testMethodName)
 
     def test_pnfs_rewrite_2(self):
          self.log(self._testMethodName)
-         res = self.ifdh_handle.cp(['-D','%s/a/f1' % self.work,'%s/a/f2' % self.work,'/pnfs/fnal.gov/usr/nova/ifdh_stage/test'])
-         r1 = len(self.ifdh_handle.ls('/pnfs/nova/ifdh_stage/test/f1',1,''))
-         r2 = len(self.ifdh_handle.ls('/pnfs/nova/ifdh_stage/test/f2',1,''))
-         self.ifdh_handle.rm('/pnfs/nova/ifdh_stage/test/f1','')
-         self.ifdh_handle.rm('/pnfs/nova/ifdh_stage/test/f2','')
+         res = self.ifdh_handle.cp(['-D','%s/a/f1' % self.work,'%s/a/f2' % self.work,'/pnfs/fnal.gov/usr/nova/scratch/ifdh_stage/test'])
+         time.sleep(1)
+         self.ifdh_handle.ll('/pnfs/nova/scratch/ifdh_stage/test/',1,'')
+         r1 = len(self.ifdh_handle.ls('/pnfs/nova/scratch/ifdh_stage/test/f1',1,''))
+         r2 = len(self.ifdh_handle.ls('/pnfs/nova/scratch/ifdh_stage/test/f2',1,''))
+         self.ifdh_handle.rm('/pnfs/nova/scratch/ifdh_stage/test/f1','')
+         self.ifdh_handle.rm('/pnfs/nova/scratch/ifdh_stage/test/f2','')
          self.assertEqual(r1==1 and r2==1,True, self._testMethodName)
         
     def test_pnfs_ls(self):

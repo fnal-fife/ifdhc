@@ -1847,6 +1847,8 @@ ifdh::lss( std::string loc, int recursion_depth, std::string force) {
 
     std::vector<std::pair<std::string,long> >  res;
 
+    string origloc(loc);
+
     bool use_gridftp = false;
     bool use_srm = false;
     bool use_fs = false;
@@ -1861,8 +1863,10 @@ ifdh::lss( std::string loc, int recursion_depth, std::string force) {
     if ( -1 == recursion_depth )
         recursion_depth = 1;
 
+    pick_type( loc, force, use_fs, use_gridftp, use_srm, use_irods, use_s3);
+
     cpos = loc.find(':');
-    if (cpos > 1 && cpos < 8) {
+    if (cpos > 1 && cpos < 9) {
        // looks like a uri...
        spos = loc.find('/',cpos+3);
        if( spos != string::npos) {
@@ -1876,7 +1880,6 @@ ifdh::lss( std::string loc, int recursion_depth, std::string force) {
     }
     if(_debug) std::cerr << "came up with base:" << base << endl;
 
-    pick_type( loc, force, use_fs, use_gridftp, use_srm, use_irods, use_s3);
 
     if (use_srm) {
        setenv("SRM_JAVA_OPTIONS", "-Xmx1024m" ,0);
@@ -2044,14 +2047,36 @@ ifdh::lss( std::string loc, int recursion_depth, std::string force) {
     }
     int status = pclose(pf);
     if (WIFSIGNALED(status)) throw( std::logic_error("signalled while doing ls"));
+    // various gymnastics to deal with directory listings
+    // srm ls lists the directory itself with a slash at the
+    // beginning of the result; others don't.  So try to figure
+    // out
     if (res.size() == 0) {
         if (WEXITSTATUS(status) == 0 ) {
             // empty directory case -- signal by reserving space?
             _debug && std::cerr << "empty directory case..\n";
+            loc = loc + "/";           
+            res.push_back(pair<string,long>(loc, 0));
         } else {
             // missing directory case
             _debug && std::cerr << "missing directory/file case..\n";
             throw( std::runtime_error("No such file or directory"));
+        }
+    } else {
+        if (res[0].first.size() == loc.size() + 1 && res[0].first == loc + "/" ) {
+            _debug && std::cerr << "directory already listed..\n";
+            //already lists directory
+            ;
+        } else if ( res.size() > 0 || ( res[0].first.find(loc) != string::npos  && res[0].first.size() > loc.size() + 1)) {
+            _debug && std::cerr << "directory needs prepending .."  << res[0].first << "," << loc << "\n";
+            // location is a proper substring of the first item, so it
+            // is a directory listing and needs the location on the front
+            dir = res[0].first.substr(0,res[0].first.rfind('/')+1);
+            res.insert(res.begin(), pair<string,long>(dir, 0));
+        } else {
+            _debug && std::cerr << "not a directory case ..\n";
+            // its exactly the location.  be happy, do nothing
+            ;
         }
     }
     return res;

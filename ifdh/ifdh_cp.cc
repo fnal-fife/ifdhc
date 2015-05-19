@@ -119,9 +119,9 @@ have_stage_subdirs(std::string uri, ifdh *ih) {
    vector<string> list = ih->ls(uri,1,"");
 
    for (size_t i = 0; i < list.size(); i++) {
-       if(list[i] == "ifdh_stage/queue/") count++;
-       if(list[i] == "ifdh_stage/lock/") count++;
-       if(list[i] == "ifdh_stage/data/") count++;
+       if(list[i].find("ifdh_stage/queue/") != string::npos ) count++;
+       if(list[i].find("ifdh_stage/lock/") != string::npos )  count++;
+       if(list[i].find("ifdh_stage/data/") != string::npos )  count++;
    }
    return count == 3;
 }
@@ -494,13 +494,12 @@ ifdh::build_stage_list(std::vector<std::string> args, int curarg, char *stage_vi
    }
 
    // make sure directory hierarchy is there..
-   while (!have_stage_subdirs(base_uri + "/ifdh_stage", this)) {
-       try{ this->mkdir( base_uri , "");               } catch (...) { break; };
-       try{ this->mkdir( base_uri + "/ifdh_stage", ""); } catch(...)  { break; };
-       try{ this->mkdir( base_uri + "/ifdh_stage/queue" , "");}  catch(...) {;}
-       try{ this->mkdir( base_uri + "/ifdh_stage/lock", ""); } catch(...) {;}
-       try{ this->mkdir( base_uri + "/ifdh_stage/data", ""); } catch(...) {;}
-       break;
+   if (!have_stage_subdirs(base_uri + "/ifdh_stage", this)) {
+       try{ this->mkdir( base_uri , "");               } catch (...){;};
+       try{ this->mkdir( base_uri + "/ifdh_stage", ""); } catch(...) {;};
+       try{ this->mkdir( base_uri + "/ifdh_stage/queue" , "");}  catch(...){;}
+       try{ this->mkdir( base_uri + "/ifdh_stage/lock", ""); } catch(...){;}
+       try{ this->mkdir( base_uri + "/ifdh_stage/data", ""); } catch(...){;}
    }
 
    this->mkdir( base_uri + "/ifdh_stage/data/" + ustring, "");

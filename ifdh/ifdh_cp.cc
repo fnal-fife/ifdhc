@@ -764,6 +764,10 @@ get_pnfs_gsiftp_uri() {
     static const char *cdefault_nodes[] = { "stkendca01a.fnal.gov", "stkendca02a.fnal.gov", "stkendca03a.fnal.gov" };
     static vector<string> default_nodes(cdefault_nodes, cdefault_nodes+3);
     string line;
+    static string cached_result;
+
+    //if (cached_result != "")
+    //    return cached_result;
 
     if (0 == nodes.size()) {
         ifdh::_debug && cerr << "looking for dcache doors..\n";
@@ -804,7 +808,8 @@ get_pnfs_gsiftp_uri() {
     }
     int32_t rn;
     rn = random();
-    return "gsiftp://" + nodes[ rn % nodes.size() ] + "/pnfs/fnal.gov/usr/";
+    cached_result = "gsiftp://" + nodes[ rn % nodes.size() ] + "/pnfs/fnal.gov/usr/";
+    return cached_result;
 }
 
 string

@@ -117,9 +117,22 @@ class ifdh_cp_cases(unittest.TestCase):
         self.work="%s/work%d" % (os.environ.get('TMPDIR','/tmp'),os.getpid())
 	self.data_dir_root="/grid/data/%s/%s" % (os.environ.get('TEST_USER', os.environ['USER']), self.hostname)
 	self.data_dir="/grid/data/%s/%s/%s" % (os.environ.get('TEST_USER', os.environ['USER']), self.hostname,os.getpid())
-        self.ifdh_handle.mkdir(self.data_dir_root,'')
-        self.ifdh_handle.mkdir(self.data_dir,'')
-        self.ifdh_handle.mkdir('%s/started'% (self.data_dir),'')
+        try:
+            self.ifdh_handle.mkdir(self.data_dir_root,'')
+        except:
+            pass
+        try:
+            self.ifdh_handle.mkdir(self.data_dir,'')
+        except:
+            pass
+        try:
+            self.ifdh_handle.mkdir('%s/started'% (self.data_dir),'')
+        except:
+            pass
+        try:
+            self.ifdh_handle.mkdir('/pnfs/nova/scratch/ifdh_stage/test','')
+        except:
+            pass
         self.ifdh_handle.chmod('0775', self.data_dir,'')
         self.ifdh_handle.chmod('0775', '%s/started'% (self.data_dir),'')
         # setup test directory tree..
@@ -506,6 +519,7 @@ class ifdh_cp_cases(unittest.TestCase):
     def test_pnfs_rewrite_1(self):
          self.log(self._testMethodName)
          res = self.ifdh_handle.cp(['-D','%s/a/f1' % self.work,'%s/a/f2' % self.work,'/pnfs/nova/scratch/ifdh_stage/test'])
+         time.sleep(1)
          r1 = len(self.ifdh_handle.ls('/pnfs/nova/scratch/ifdh_stage/test/f1',1,''))
          r2 = len(self.ifdh_handle.ls('/pnfs/nova/scratch/ifdh_stage/test/f2',1,''))
          self.ifdh_handle.rm('/pnfs/nova/scratch/ifdh_stage/test/f1','')
@@ -514,7 +528,9 @@ class ifdh_cp_cases(unittest.TestCase):
 
     def test_pnfs_rewrite_2(self):
          self.log(self._testMethodName)
-         res = self.ifdh_handle.cp(['-D','%s/a/f1' % self.work,'%s/a/f2' % self.work,'/pnfs/fnal.gov/usr/nova/ifdh_stage/test'])
+         res = self.ifdh_handle.cp(['-D','%s/a/f1' % self.work,'%s/a/f2' % self.work,'/pnfs/fnal.gov/usr/nova/scratch/ifdh_stage/test'])
+         time.sleep(1)
+         self.ifdh_handle.ll('/pnfs/nova/scratch/ifdh_stage/test/',1,'')
          r1 = len(self.ifdh_handle.ls('/pnfs/nova/scratch/ifdh_stage/test/f1',1,''))
          r2 = len(self.ifdh_handle.ls('/pnfs/nova/scratch/ifdh_stage/test/f2',1,''))
          self.ifdh_handle.rm('/pnfs/nova/scratch/ifdh_stage/test/f1','')

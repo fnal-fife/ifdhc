@@ -1211,7 +1211,6 @@ ifdh::cp( std::vector<std::string> args ) {
 	       
 		if ( i == args.size() - 1 || args[i+1] == ";" ) {
 
-
 		   if (0 != access(parent_dir(args[i]).c_str(),R_OK)) {
 		       // if last one (destination)  and parent isn't 
 		       // local either default to per-experiment gridftp 
@@ -1303,6 +1302,17 @@ ifdh::cp( std::vector<std::string> args ) {
      }
 
      if ( stage_via ) {
+         if ( has(stage_via,"srm:")) {
+            use_cpn = 0;
+            use_dd = 0;
+	    use_srm = 1;
+         }
+         if ( has(stage_via,"gsiftp:")) {
+            use_cpn = 0;
+            use_dd = 0;
+	    use_bst_gridftp = 1;
+	    use_any_gridftp = 1;
+         }
          args = build_stage_list(args, curarg, stage_via);
          need_cpn_lock = false;
          need_lock_low = args.size()+1;

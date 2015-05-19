@@ -761,6 +761,10 @@ get_pnfs_gsiftp_uri() {
     static const char *cdefault_nodes[] = { "stkendca01a.fnal.gov", "stkendca02a.fnal.gov", "stkendca03a.fnal.gov" };
     static vector<string> default_nodes(cdefault_nodes, cdefault_nodes+3);
     string line;
+    static string cached_result;
+
+    //if (cached_result != "")
+    //    return cached_result;
 
     if (0 == nodes.size()) {
         ifdh::_debug && cerr << "looking for dcache doors..\n";
@@ -801,7 +805,8 @@ get_pnfs_gsiftp_uri() {
     }
     int32_t rn;
     rn = random();
-    return "gsiftp://" + nodes[ rn % nodes.size() ] + "/pnfs/fnal.gov/usr/";
+    cached_result = "gsiftp://" + nodes[ rn % nodes.size() ] + "/pnfs/fnal.gov/usr/";
+    return cached_result;
 }
 
 string
@@ -1300,6 +1305,9 @@ ifdh::cp( std::vector<std::string> args ) {
 
      if ( stage_via ) {
          args = build_stage_list(args, curarg, stage_via);
+         need_cpn_lock = false;
+         need_lock_low = args.size()+1;
+         need_lock_high = -1;
 	 // we now have a stage back file to clean up later...
          cleanup_stage = true;
          curarg = 0;

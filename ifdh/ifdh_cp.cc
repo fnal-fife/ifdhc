@@ -75,6 +75,7 @@ local_access(const char *path, int mode) {
     ifdh::_debug && std::cerr << "local_access(" << path << " , " << mode ;
     res = statfs(path, &buf);
     if (0 != res ) {
+       ifdh::_debug && std::cerr << ") -- not found \n";
        return res;
     }
     if (buf.f_type == NFS_SUPER_MAGIC) {
@@ -82,7 +83,7 @@ local_access(const char *path, int mode) {
        return -1;
     } else {
        res = access(path, mode);
-       ifdh::_debug && std::cerr << ") -- local returning " <<  res << endl;
+       ifdh::_debug && std::cerr << ") -- local returning " <<  res << "\n";
        return res;
     }
 }
@@ -1865,6 +1866,8 @@ ifdh::lss( std::string loc, int recursion_depth, std::string force) {
 
     pick_type( loc, force, use_fs, use_gridftp, use_srm, use_irods, use_s3);
 
+    _debug && cerr << "after pick_type, loc is " << loc << "\n";
+
     cpos = loc.find(':');
     if (cpos > 1 && cpos < 9) {
        // looks like a uri...
@@ -1955,7 +1958,7 @@ ifdh::lss( std::string loc, int recursion_depth, std::string force) {
            // to ls /d1/d2/d3/file and we see 'file'
            // otherwise we would see /d1/d2/d3/d4/ (trailing slash) 
            // if it is a directory...
-           // Anhow if we see this, trim a component off of base so
+           // Anhow if we see this, trim a component off of dir so
            // we dont make it /d1/d2/d3/file/file when we list it.
            if (first) {
                first = false;
@@ -1964,7 +1967,7 @@ ifdh::lss( std::string loc, int recursion_depth, std::string force) {
                    _debug && std::cerr << "pos is:" << pos  << "s.size is" << s.size() << endl;
                    if (pos != string::npos && pos + dir_last.size() == s.size()) {
                        
-                       base = base.substr(0,base.rfind('/')+1);
+                       //base = base.substr(0,base.rfind('/')+1);
                        dir = dir.substr(0,dir.rfind('/'));
                        _debug && std::cerr << "file case, trimming to base" << base <<  endl;
                       
@@ -2067,7 +2070,7 @@ ifdh::lss( std::string loc, int recursion_depth, std::string force) {
             _debug && std::cerr << "directory already listed..\n";
             //already lists directory
             ;
-        } else if ( res.size() > 0 || ( res[0].first.find(loc) != string::npos  && res[0].first.size() > loc.size() + 1)) {
+        } else if ( res.size() > 1 || ( res[0].first.find(loc) != string::npos  && res[0].first.size() > loc.size() + 2)) {
             _debug && std::cerr << "directory needs prepending .."  << res[0].first << "," << loc << "\n";
             // location is a proper substring of the first item, so it
             // is a directory listing and needs the location on the front

@@ -1302,6 +1302,11 @@ ifdh::cp( std::vector<std::string> args ) {
      }
 
      if ( stage_via ) {
+         if ( has(stage_via,"s3:")) {
+            use_cpn = 0;
+            use_dd = 0;
+	    use_s3 = 1;
+         }
          if ( has(stage_via,"srm:")) {
             use_cpn = 0;
             use_dd = 0;

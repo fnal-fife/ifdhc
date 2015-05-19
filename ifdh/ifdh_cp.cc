@@ -1305,6 +1305,9 @@ ifdh::cp( std::vector<std::string> args ) {
 
      if ( stage_via ) {
          args = build_stage_list(args, curarg, stage_via);
+         need_cpn_lock = false;
+         need_lock_low = args.size()+1;
+         need_lock_high = -1;
 	 // we now have a stage back file to clean up later...
          cleanup_stage = true;
          curarg = 0;

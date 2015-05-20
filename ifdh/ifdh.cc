@@ -515,7 +515,7 @@ string ifdh::startProject( string name, string station,  string defname_or_id,  
   if (name == "" && getenv("SAM_PROJECT"))
       name = getenv("SAM_PROJECT}");
 
-  if (station == "" && getenv("SAM_STATIOn"))
+  if (station == "" && getenv("SAM_STATION"))
       station = getenv("SAM_STATION}");
 
   return do_url_str(1,ssl_uri(_baseuri).c_str(),"startProject","","name",name.c_str(),"station",station.c_str(),"defname",defname_or_id.c_str(),"username",user.c_str(),"group",group.c_str(),"","");

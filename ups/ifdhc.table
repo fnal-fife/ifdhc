@@ -160,6 +160,6 @@ Common:
     endif ( test `uname` = "Darwin" )
     ExeActionOptional(ExtraSetup)
     SetupOptional(cpn)
-    SetupOptional(ifdh_plagform_pkgs) 
+    SetupOptional(ifdh_platform_pkgs) 
 
 End:

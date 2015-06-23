@@ -127,7 +127,7 @@ string datadir() {
 	   getenv("TMPDIR")?getenv("TMPDIR"):
            "/var/tmp"
         )
-       << "/ifdh_" << getuid() << "_" << pgrp;
+       << "/ifdh_" << getuid() << "_" << useid;
     }
 
     if ( 0 != access(dirmaker.str().c_str(), W_OK) ) {

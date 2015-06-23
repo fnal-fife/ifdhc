@@ -98,6 +98,24 @@ find_end(std::string s, char c, int pos, bool quotes ) {
     return s.find(c, possible_end+1);
 }
 
+std::string
+join( std::vector<std::string> list, char sep ) {
+    std::string res;
+    size_t lsize = list.size();
+    size_t rsize = lsize;
+    for (size_t i = 0; i < lsize; i++ ) {
+         rsize += list[i].size();
+    }
+    res.reserve(rsize);
+    for (size_t i = 0; i < lsize; i++ ) {
+         res += list[i];
+         if (i < lsize - 1) {
+             res += sep;
+         }
+    }
+   return res;
+}
+
 std::vector<std::string>
 split(std::string s, char c, bool quotes ){
    size_t pos, p2;

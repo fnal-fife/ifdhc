@@ -104,6 +104,20 @@ string datadir() {
     stringstream dirmaker;
     string localpath;
     int res;
+    int pgrp, pid;
+    int useid;
+
+    pid = getpid();
+    pgrp = getpgrp();
+
+    // if we are our own proccess group, we assume our
+    // parent is a job-control shell, and use it's pid.
+    // otherwise use process group.
+    if (pgrp == pid) {
+       useid = getppid();
+    } else {
+       useid = pgrp;
+    }
     
     if (getenv("IFDH_DATA_DIR")) {
        dirmaker << getenv("IFDH_DATA_DIR");
@@ -113,7 +127,7 @@ string datadir() {
 	   getenv("TMPDIR")?getenv("TMPDIR"):
            "/var/tmp"
         )
-       << "/ifdh_" << getuid() << "_" << getpgrp();
+       << "/ifdh_" << getuid() << "_" << pgrp;
     }
 
     if ( 0 != access(dirmaker.str().c_str(), W_OK) ) {
@@ -281,8 +295,14 @@ ifdh::copyBackOutput(string dest_dir) {
 // logging
 int 
 ifdh::log( string message ) {
+
   if (!numsg::getMsg()) {
-      numsg::init(getexperiment(),1);
+      const char *user;
+      (user = getenv("GRID_USER")) || (user = getenv("USER"))|| (user = "unknown");
+      string idstring(user);
+      idstring += "/";
+      idstring += getexperiment();
+      numsg::init(idstring.c_str(),1);
   }
   numsg::getMsg()->printf("ifdh: %s", message.c_str());
   return 0;

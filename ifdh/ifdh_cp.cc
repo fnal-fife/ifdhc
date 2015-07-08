@@ -197,8 +197,12 @@ class cpn_lock {
 private:
 
     int _heartbeat_pid;
+    int _locked;
 
 public:
+
+    int
+    locked() { return _locked; }
 
     void
     lock() {
@@ -264,6 +268,7 @@ public:
 	    throw( std::logic_error("Could not get CPN lock."));
 	}
      
+        _locked = 1;
 	_heartbeat_pid = fork();
 	if (_heartbeat_pid == 0) {
 	    parent_pid = getppid();
@@ -292,6 +297,7 @@ public:
         waitpid(_heartbeat_pid, &res, 0);
         res2 = system("exec $CPN_DIR/bin/lock free >&2");
         _heartbeat_pid = -1;
+        _locked = 0;
         if (!((WIFSIGNALED(res) && 9 == WTERMSIG(res)) || (WIFEXITED(res) &&WEXITSTATUS(res)==0))) {
             stringstream basemessage;
             basemessage <<"lock touch process exited code " << res << " signalled: " << WIFSIGNALED(res) << " signal: " << WTERMSIG(res);
@@ -302,7 +308,7 @@ public:
         }
     }
 
-    cpn_lock() : _heartbeat_pid(-1) { ; }
+    cpn_lock() : _heartbeat_pid(-1), _locked(0) { ; }
  
     ~cpn_lock()  {
 
@@ -892,10 +898,11 @@ spinoff_copy(ifdh *handle, std::string what, int outbound) {
 }
 
 int
-retry_system(const char *cmd_str, int error_expected = 0, int maxtries = -1) {
+retry_system(const char *cmd_str, int error_expected, cpn_lock &locker,  int maxtries = -1) {
     int res = 1;
     int tries = 0;
     int delay;
+    int dolock = locker.locked();
     if (maxtries == -1) {
         if (0 != getenv("IFDH_CP_MAXRETRIES")) {
             maxtries = atoi(getenv("IFDH_CP_MAXRETRIES")) + 1;
@@ -916,11 +923,15 @@ retry_system(const char *cmd_str, int error_expected = 0, int maxtries = -1) {
            return res;
         }
         if (res != 0 && tries < maxtries - 1) {
+            if (dolock)
+                locker.free();
             std::cerr << "program: " << cmd_str << "exited status " << res << "\n";
             delay =random() % (55 << tries);
             std::cerr << "delaying " << delay << " ...\n";
             sleep(delay);
             std::cerr << "retrying...\n";
+            if (dolock)
+                locker.lock();
         }
         tries++;
     }
@@ -1561,7 +1572,7 @@ ifdh::cp( std::vector<std::string> args ) {
 
         _debug && std::cerr << "running: " << cmd.str() << endl;
 
-        res = retry_system(cmd.str().c_str(), error_expected);
+        res = retry_system(cmd.str().c_str(), error_expected, cpn);
        
         if ( res != 0 && error_expected ) {
             _debug && std::cerr << "expected error...\n";

@@ -302,7 +302,19 @@ ifdh::log( string message ) {
       string idstring(user);
       idstring += "/";
       idstring += getexperiment();
-      numsg::init(idstring.c_str(),1);
+      if (getenv("POMS_TASK_ID")) {
+          idstring += ':';
+          idstring += getenv("POMS_TASK_ID");
+      }
+      if (getenv("CLUSTER")) {
+          idstring += '/';
+          idstring += getenv("CLUSTER");
+      }
+      if (getenv("PROCESS")) {
+          idstring += '.';
+          idstring += getenv("PROCESS");
+      }
+      numsg::init(idstring.c_str(),0);
   }
   numsg::getMsg()->printf("ifdh: %s", message.c_str());
   return 0;
@@ -756,9 +768,21 @@ ifdh::more(string loc) {
        if (res2 == 0) {
             execlp( "more", "more", c_where,  NULL);
        } else if (res2 > 0) {
+            // turn off retries
+            char envbuf[] = "IFDH_CP_MAXRETRIES=0\0\0\0\0";
+            const char *was = getenv("IFDH_CP_MAXRETRIES");
+            putenv(envbuf);
+
+            // now fetch the file to the named pipe
             this-> fetchInput(loc);
             waitpid(res2, 0,0);
             unlink(c_where);
+
+            // put back retries
+            if (!was)
+               was = "0";
+            strcpy(envbuf+17,was);
+            putenv(envbuf);
        } else {
             return -1;
        }

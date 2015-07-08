@@ -104,6 +104,20 @@ string datadir() {
     stringstream dirmaker;
     string localpath;
     int res;
+    int pgrp, pid;
+    int useid;
+
+    pid = getpid();
+    pgrp = getpgrp();
+
+    // if we are our own proccess group, we assume our
+    // parent is a job-control shell, and use it's pid.
+    // otherwise use process group.
+    if (pgrp == pid) {
+       useid = getppid();
+    } else {
+       useid = pgrp;
+    }
     
     if (getenv("IFDH_DATA_DIR")) {
        dirmaker << getenv("IFDH_DATA_DIR");
@@ -113,7 +127,7 @@ string datadir() {
 	   getenv("TMPDIR")?getenv("TMPDIR"):
            "/var/tmp"
         )
-       << "/ifdh_" << getuid() << "_" << getpgrp();
+       << "/ifdh_" << getuid() << "_" << useid;
     }
 
     if ( 0 != access(dirmaker.str().c_str(), W_OK) ) {
@@ -281,8 +295,26 @@ ifdh::copyBackOutput(string dest_dir) {
 // logging
 int 
 ifdh::log( string message ) {
+
   if (!numsg::getMsg()) {
-      numsg::init(getexperiment(),1);
+      const char *user;
+      (user = getenv("GRID_USER")) || (user = getenv("USER"))|| (user = "unknown");
+      string idstring(user);
+      idstring += "/";
+      idstring += getexperiment();
+      if (getenv("POMS_TASK_ID")) {
+          idstring += ':';
+          idstring += getenv("POMS_TASK_ID");
+      }
+      if (getenv("CLUSTER")) {
+          idstring += '/';
+          idstring += getenv("CLUSTER");
+      }
+      if (getenv("PROCESS")) {
+          idstring += '.';
+          idstring += getenv("PROCESS");
+      }
+      numsg::init(idstring.c_str(),0);
   }
   numsg::getMsg()->printf("ifdh: %s", message.c_str());
   return 0;
@@ -515,7 +547,7 @@ string ifdh::startProject( string name, string station,  string defname_or_id,  
   if (name == "" && getenv("SAM_PROJECT"))
       name = getenv("SAM_PROJECT}");
 
-  if (station == "" && getenv("SAM_STATIOn"))
+  if (station == "" && getenv("SAM_STATION"))
       station = getenv("SAM_STATION}");
 
   return do_url_str(1,ssl_uri(_baseuri).c_str(),"startProject","","name",name.c_str(),"station",station.c_str(),"defname",defname_or_id.c_str(),"username",user.c_str(),"group",group.c_str(),"","");
@@ -736,9 +768,21 @@ ifdh::more(string loc) {
        if (res2 == 0) {
             execlp( "more", "more", c_where,  NULL);
        } else if (res2 > 0) {
+            // turn off retries
+            char envbuf[] = "IFDH_CP_MAXRETRIES=0\0\0\0\0";
+            const char *was = getenv("IFDH_CP_MAXRETRIES");
+            putenv(envbuf);
+
+            // now fetch the file to the named pipe
             this-> fetchInput(loc);
             waitpid(res2, 0,0);
             unlink(c_where);
+
+            // put back retries
+            if (!was)
+               was = "0";
+            strcpy(envbuf+17,was);
+            putenv(envbuf);
        } else {
             return -1;
        }

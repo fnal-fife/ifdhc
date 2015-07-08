@@ -75,6 +75,7 @@ local_access(const char *path, int mode) {
     ifdh::_debug && std::cerr << "local_access(" << path << " , " << mode ;
     res = statfs(path, &buf);
     if (0 != res ) {
+       ifdh::_debug && std::cerr << ") -- not found \n";
        return res;
     }
     if (buf.f_type == NFS_SUPER_MAGIC) {
@@ -82,7 +83,7 @@ local_access(const char *path, int mode) {
        return -1;
     } else {
        res = access(path, mode);
-       ifdh::_debug && std::cerr << ") -- local returning " <<  res << endl;
+       ifdh::_debug && std::cerr << ") -- local returning " <<  res << "\n";
        return res;
     }
 }
@@ -196,8 +197,12 @@ class cpn_lock {
 private:
 
     int _heartbeat_pid;
+    int _locked;
 
 public:
+
+    int
+    locked() { return _locked; }
 
     void
     lock() {
@@ -263,6 +268,7 @@ public:
 	    throw( std::logic_error("Could not get CPN lock."));
 	}
      
+        _locked = 1;
 	_heartbeat_pid = fork();
 	if (_heartbeat_pid == 0) {
 	    parent_pid = getppid();
@@ -291,6 +297,7 @@ public:
         waitpid(_heartbeat_pid, &res, 0);
         res2 = system("exec $CPN_DIR/bin/lock free >&2");
         _heartbeat_pid = -1;
+        _locked = 0;
         if (!((WIFSIGNALED(res) && 9 == WTERMSIG(res)) || (WIFEXITED(res) &&WEXITSTATUS(res)==0))) {
             stringstream basemessage;
             basemessage <<"lock touch process exited code " << res << " signalled: " << WIFSIGNALED(res) << " signal: " << WTERMSIG(res);
@@ -301,7 +308,7 @@ public:
         }
     }
 
-    cpn_lock() : _heartbeat_pid(-1) { ; }
+    cpn_lock() : _heartbeat_pid(-1), _locked(0) { ; }
  
     ~cpn_lock()  {
 
@@ -495,14 +502,14 @@ ifdh::build_stage_list(std::vector<std::string> args, int curarg, char *stage_vi
 
    // make sure directory hierarchy is there..
    if (!have_stage_subdirs(base_uri + "/ifdh_stage", this)) {
-       try{ this->mkdir( base_uri , "");               } catch (...){;};
-       try{ this->mkdir( base_uri + "/ifdh_stage", ""); } catch(...) {;};
-       try{ this->mkdir( base_uri + "/ifdh_stage/queue" , "");}  catch(...){;}
-       try{ this->mkdir( base_uri + "/ifdh_stage/lock", ""); } catch(...){;}
-       try{ this->mkdir( base_uri + "/ifdh_stage/data", ""); } catch(...){;}
+       try{ mkdir( base_uri , "");               } catch (...){;};
+       try{ mkdir( base_uri + "/ifdh_stage", ""); } catch(...) {;};
+       try{ mkdir( base_uri + "/ifdh_stage/queue" , "");}  catch(...){;}
+       try{ mkdir( base_uri + "/ifdh_stage/lock", ""); } catch(...){;}
+       try{ mkdir( base_uri + "/ifdh_stage/data", ""); } catch(...){;}
    }
 
-   this->mkdir( base_uri + "/ifdh_stage/data/" + ustring, "");
+   mkdir( base_uri + "/ifdh_stage/data/" + ustring, "");
 
    // open our stageout queue file/copy back instructions
    fstream stageout(stagefile.c_str(), fstream::out);
@@ -891,10 +898,11 @@ spinoff_copy(ifdh *handle, std::string what, int outbound) {
 }
 
 int
-retry_system(const char *cmd_str, int maxtries = -1) {
+retry_system(const char *cmd_str, int error_expected, cpn_lock &locker,  int maxtries = -1) {
     int res = 1;
     int tries = 0;
     int delay;
+    int dolock = locker.locked();
     if (maxtries == -1) {
         if (0 != getenv("IFDH_CP_MAXRETRIES")) {
             maxtries = atoi(getenv("IFDH_CP_MAXRETRIES")) + 1;
@@ -911,12 +919,19 @@ retry_system(const char *cmd_str, int maxtries = -1) {
             std::cerr << "program: " << cmd_str<< " died from signal " << WTERMSIG(res) << "-- exiting.\n";
             exit(-1);
         }
+        if (res != 0 && error_expected) {
+           return res;
+        }
         if (res != 0 && tries < maxtries - 1) {
+            if (dolock)
+                locker.free();
             std::cerr << "program: " << cmd_str << "exited status " << res << "\n";
             delay =random() % (55 << tries);
             std::cerr << "delaying " << delay << " ...\n";
             sleep(delay);
             std::cerr << "retrying...\n";
+            if (dolock)
+                locker.lock();
         }
         tries++;
     }
@@ -939,12 +954,16 @@ ifdh::cp( std::vector<std::string> args ) {
     struct timeval time_before, time_after;
     int savecurarg = -1;
     std::vector<std::string> cleanup_spinoffs;
+    int error_expected;
+
+    std::string logmsg("starting ifdh::cp( ");
+    logmsg += ifdh_util_ns::join(args, ' ');
+    logmsg += ");\n";
+
+    log(logmsg.c_str());
 
     if (_debug) {
-         std::cerr << "entering ifdh::cp( ";
-         for( std::vector<std::string>::size_type i = 0; i < args.size(); i++ ) {
-             std::cerr << args[i] << " ";
-         }
+         std::cerr << logmsg;
     }
 
     if (args.size() == 0)
@@ -1123,13 +1142,13 @@ ifdh::cp( std::vector<std::string> args ) {
 
     if (stage_via && !ping_se(stage_via)) {
        _debug && cerr << "ignoring $IFDH_STAGE_VIA due to ping failure \n";
-       this->log("ignoring $IFDH_STAGE_VIA due to ping failure");
-       this->log(stage_via);
+       log("ignoring $IFDH_STAGE_VIA due to ping failure");
+       log(stage_via);
        stage_via = 0;
     }
     if (stage_via && !getenv("EXPERIMENT")) {
        _debug && cerr << "ignoring $IFDH_STAGE_VIA: $EXPERIMENT not set\n";
-       this->log("ignoring $IFDH_STAGE_VIA-- $EXPERIMENT not set  ");
+       log("ignoring $IFDH_STAGE_VIA-- $EXPERIMENT not set  ");
        stage_via = 0;
     }
 
@@ -1235,7 +1254,7 @@ ifdh::cp( std::vector<std::string> args ) {
 		   use_cpn = 0;
 		   use_srm = 1;
 	           _debug && cerr << "deciding to use bestman to: " << args[i] << endl;
-                 }
+                 } 
 		}
                 // don't break out here, go back around because 
                 // we might get a more specific behavior override 
@@ -1329,7 +1348,6 @@ ifdh::cp( std::vector<std::string> args ) {
          setenv("SRM_JAVA_OPTIONS", "-Xmx1024m" ,0);
      }
 
-     int error_expected;
      int keep_going = 1;
  
      // get the proxy before we get the lock, so the
@@ -1356,6 +1374,7 @@ ifdh::cp( std::vector<std::string> args ) {
 
      while( keep_going ) {
          stringstream cmd;
+         error_expected  = 0;
 
          cmd << (use_dd ? "dd bs=512k " : 
                  use_cpn ? "cp "  : 
@@ -1401,7 +1420,6 @@ ifdh::cp( std::vector<std::string> args ) {
              cmd << "-cd ";
          }
 
-         error_expected  = 0;
 
          // check if source is local and zero length, and skip if 
          // we were told to not copy empty files.
@@ -1412,6 +1430,13 @@ ifdh::cp( std::vector<std::string> args ) {
 	 	continue;
 	     }
 	 }
+
+         // if source is not visible but parent dir is, we probably
+         // got directory/* for an empty directory, or some such, so
+         // expect it to fail.
+	 if (0 != access(args[curarg].c_str(),R_OK) && 0 == access(parent_dir(args[curarg]).c_str(),R_OK)) {
+             error_expected = 1;
+         }
 
          bool did_one_endpoint = false;
 
@@ -1547,8 +1572,7 @@ ifdh::cp( std::vector<std::string> args ) {
 
         _debug && std::cerr << "running: " << cmd.str() << endl;
 
-        res = retry_system(cmd.str().c_str());
-
+        res = retry_system(cmd.str().c_str(), error_expected, cpn);
        
         if ( res != 0 && error_expected ) {
             _debug && std::cerr << "expected error...\n";
@@ -1602,34 +1626,35 @@ ifdh::cp( std::vector<std::string> args ) {
     // only report statistics if the copy succeeded!
     if (rres == 0) {
 
-    long int copysize;
-    stringstream logmessage;
-    // if we didn't get numbers from getrusage, try the sums of
-    // the stat() st_size values for in and out.
-    if (srcsize > dstsize) {
-        copysize = srcsize ;
+	long int copysize;
+	stringstream logmessage;
+	// if we didn't get numbers from getrusage, try the sums of
+	// the stat() st_size values for in and out.
+	if (srcsize > dstsize) {
+	    copysize = srcsize ;
+	} else {
+	    copysize = dstsize ;
+	}
+
+	long int delta_t = time_after.tv_sec - time_before.tv_sec;
+	long int delta_ut = time_after.tv_usec - time_before.tv_usec;
+	// borrow from seconds if needed
+	if (delta_ut < 0) {
+	    delta_ut += 1000000;
+	    delta_t--;
+	}
+	double fdelta_t = ((double)delta_ut / 100000.0) + delta_t;
+	logmessage << "ifdh cp: transferred: " <<  copysize << " bytes in " <<  fdelta_t << " seconds \n";
+	_debug && cerr << logmessage.str();
+	log(logmessage.str());
+
     } else {
-        copysize = dstsize ;
-    }
 
-    long int delta_t = time_after.tv_sec - time_before.tv_sec;
-    long int delta_ut = time_after.tv_usec - time_before.tv_usec;
-    // borrow from seconds if needed
-    if (delta_ut < 0) {
-        delta_ut += 1000000;
-        delta_t--;
-    }
-    double fdelta_t = ((double)delta_ut / 100000.0) + delta_t;
-    logmessage << "ifdh cp: transferred: " <<  copysize << " bytes in " <<  fdelta_t << " seconds \n";
-    _debug && cerr << logmessage.str();
-    this->log(logmessage.str());
-
-    }
-
-    if (rres != 0) {
-        cerr << "ifdh cp failed at: " << ctime(&time_after.tv_sec) << endl;
+        std::cerr << "ifdh cp failed at: " << ctime(&time_after.tv_sec) << endl;
+        log("ifdh cp failed.");
     }
    
+    // if we  got a lock and haven't freed it, clean up
     if (need_cpn_lock) {
         cpn.free();
     }
@@ -1772,7 +1797,7 @@ ifdh::ls(string loc, int recursion_depth, string force) {
     std::vector<std::pair<std::string,long> > llout;
 
     // return just the names from lss's output
-    llout = this->lss(loc, recursion_depth, force );
+    llout = lss(loc, recursion_depth, force );
     for(size_t i = 0; i < llout.size(); i++) { 
        res.push_back(llout[i].first);
     }
@@ -1847,6 +1872,8 @@ ifdh::lss( std::string loc, int recursion_depth, std::string force) {
 
     std::vector<std::pair<std::string,long> >  res;
 
+    string origloc(loc);
+
     bool use_gridftp = false;
     bool use_srm = false;
     bool use_fs = false;
@@ -1861,8 +1888,12 @@ ifdh::lss( std::string loc, int recursion_depth, std::string force) {
     if ( -1 == recursion_depth )
         recursion_depth = 1;
 
+    pick_type( loc, force, use_fs, use_gridftp, use_srm, use_irods, use_s3);
+
+    _debug && cerr << "after pick_type, loc is " << loc << "\n";
+
     cpos = loc.find(':');
-    if (cpos > 1 && cpos < 8) {
+    if (cpos > 1 && cpos < 9) {
        // looks like a uri...
        spos = loc.find('/',cpos+3);
        if( spos != string::npos) {
@@ -1876,7 +1907,6 @@ ifdh::lss( std::string loc, int recursion_depth, std::string force) {
     }
     if(_debug) std::cerr << "came up with base:" << base << endl;
 
-    pick_type( loc, force, use_fs, use_gridftp, use_srm, use_irods, use_s3);
 
     if (use_srm) {
        setenv("SRM_JAVA_OPTIONS", "-Xmx1024m" ,0);
@@ -1952,7 +1982,7 @@ ifdh::lss( std::string loc, int recursion_depth, std::string force) {
            // to ls /d1/d2/d3/file and we see 'file'
            // otherwise we would see /d1/d2/d3/d4/ (trailing slash) 
            // if it is a directory...
-           // Anhow if we see this, trim a component off of base so
+           // Anhow if we see this, trim a component off of dir so
            // we dont make it /d1/d2/d3/file/file when we list it.
            if (first) {
                first = false;
@@ -1961,7 +1991,7 @@ ifdh::lss( std::string loc, int recursion_depth, std::string force) {
                    _debug && std::cerr << "pos is:" << pos  << "s.size is" << s.size() << endl;
                    if (pos != string::npos && pos + dir_last.size() == s.size()) {
                        
-                       base = base.substr(0,base.rfind('/')+1);
+                       //base = base.substr(0,base.rfind('/')+1);
                        dir = dir.substr(0,dir.rfind('/'));
                        _debug && std::cerr << "file case, trimming to base" << base <<  endl;
                       
@@ -2044,14 +2074,36 @@ ifdh::lss( std::string loc, int recursion_depth, std::string force) {
     }
     int status = pclose(pf);
     if (WIFSIGNALED(status)) throw( std::logic_error("signalled while doing ls"));
+    // various gymnastics to deal with directory listings
+    // srm ls lists the directory itself with a slash at the
+    // beginning of the result; others don't.  So try to figure
+    // out
     if (res.size() == 0) {
         if (WEXITSTATUS(status) == 0 ) {
             // empty directory case -- signal by reserving space?
             _debug && std::cerr << "empty directory case..\n";
+            loc = loc + "/";           
+            res.push_back(pair<string,long>(loc, 0));
         } else {
             // missing directory case
             _debug && std::cerr << "missing directory/file case..\n";
             throw( std::runtime_error("No such file or directory"));
+        }
+    } else {
+        if (res[0].first.size() == loc.size() + 1 && res[0].first == loc + "/" ) {
+            _debug && std::cerr << "directory already listed..\n";
+            //already lists directory
+            ;
+        } else if ( res.size() > 1 || ( res[0].first.find(loc) != string::npos  && res[0].first.size() > loc.size() + 2)) {
+            _debug && std::cerr << "directory needs prepending .."  << res[0].first << "," << loc << "\n";
+            // location is a proper substring of the first item, so it
+            // is a directory listing and needs the location on the front
+            dir = res[0].first.substr(0,res[0].first.rfind('/')+1);
+            res.insert(res.begin(), pair<string,long>(dir, 0));
+        } else {
+            _debug && std::cerr << "not a directory case ..\n";
+            // its exactly the location.  be happy, do nothing
+            ;
         }
     }
     return res;
@@ -2329,7 +2381,7 @@ ifdh::findMatchingFiles( string path, string glob) {
    for (size_t i = 0; i < dlist.size(); ++i) {
         if (_debug) cerr << "checking dir: " << dlist[i] << endl;
         try {
-            batch = this->lss(dlist[i],10,"");
+            batch = lss(dlist[i],10,"");
         } catch ( exception &e ) {
             continue;
         }
@@ -2363,7 +2415,7 @@ ifdh::fetchSharedFiles( vector<pair<string,long> > list, string schema ) {
            if (schema == "xrootd" && list[i].first.find("/pnfs") == 0) {
                f = rdpath + list[i].first;
            } else {
-               f = this->fetchInput( list[i].first );
+               f = fetchInput( list[i].first );
            }
        }
        res.push_back( pair<string,long>(f, list[i].second));

@@ -1574,14 +1574,15 @@ ifdh::cp( std::vector<std::string> args ) {
 
         res = retry_system(cmd.str().c_str(), error_expected, cpn);
        
+        if (res != 0 && rres == 0) {
+            rres = res;
+        }
+
         if ( res != 0 && error_expected ) {
             _debug && std::cerr << "expected error...\n";
             res = 0;
         }
 
-        if (res != 0 && rres == 0) {
-            rres = res;
-        }
 
 	if (need_cpn_lock && (int)curarg > need_lock_high) {
             need_cpn_lock = false;

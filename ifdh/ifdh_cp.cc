@@ -1576,7 +1576,7 @@ ifdh::cp( std::vector<std::string> args ) {
        
         if ( res != 0 && error_expected ) {
             _debug && std::cerr << "expected error...\n";
-            res = 0;
+            continue;
         }
 
         if (res != 0 && rres == 0) {
@@ -2080,14 +2080,14 @@ ifdh::lss( std::string loc, int recursion_depth, std::string force) {
     // out
     if (res.size() == 0) {
         if (WEXITSTATUS(status) == 0 ) {
-            // empty directory case -- signal by reserving space?
+            // empty directory case -- signal by putting directory name in result
             _debug && std::cerr << "empty directory case..\n";
             loc = loc + "/";           
             res.push_back(pair<string,long>(loc, 0));
         } else {
             // missing directory case
             _debug && std::cerr << "missing directory/file case..\n";
-            throw( std::runtime_error("No such file or directory"));
+            // throw( std::runtime_error("No such file or directory"));
         }
     } else {
         if (res[0].first.size() == loc.size() + 1 && res[0].first == loc + "/" ) {

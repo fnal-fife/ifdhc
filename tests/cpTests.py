@@ -484,12 +484,26 @@ class ifdh_cp_cases(unittest.TestCase):
         l6 = glob.glob("%s/d/c/f*" % self.work)
         self.assertEqual(len(l4)+len(l5)+len(l6), 6, self._testMethodName)
  
-    def test_stage_copyback(self):
+    def test_stage_copyback_srm(self):
         self.log(self._testMethodName)
         self.clean_dest()
         expsave = os.environ.get('EXPERIMENT','')
         os.environ['EXPERIMENT'] = "nova"
         os.environ['IFDH_STAGE_VIA'] = "srm://fndca1.fnal.gov:8443/srm/managerv2?SFN=/pnfs/fnal.gov/usr/nova/scratch/ifdh_stage/test_multi"
+        self.ifdh_handle.addOutputFile('%s/a/f1' % self.work)
+        self.ifdh_handle.addOutputFile('%s/a/f2' % self.work)
+        self.ifdh_handle.copyBackOutput(self.data_dir)
+        self.ifdh_handle.cleanup()
+        os.environ['EXPERIMENT'] = expsave
+        del os.environ['IFDH_STAGE_VIA']
+        self.assertEqual(self.check_data_f1_f2(), True, self._testMethodName)
+
+    def test_stage_copyback_gsiftp(self):
+        self.log(self._testMethodName)
+        self.clean_dest()
+        expsave = os.environ.get('EXPERIMENT','')
+        os.environ['EXPERIMENT'] = "nova"
+        os.environ['IFDH_STAGE_VIA'] = "gsiftp://fndca1.fnal.gov/pnfs/fnal.gov/usr/nova/scratch/ifdh_stage/test_multi"
         self.ifdh_handle.addOutputFile('%s/a/f1' % self.work)
         self.ifdh_handle.addOutputFile('%s/a/f2' % self.work)
         self.ifdh_handle.copyBackOutput(self.data_dir)

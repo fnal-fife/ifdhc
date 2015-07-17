@@ -835,7 +835,7 @@ map_pnfs(string loc, int srmflag = 0)  {
       if (0L == loc.find("cdfen/")) 
 	    cdfflag = true;
 
-      if (0L == loc.find("d0en/")) 
+      if (0L == loc.find("dzero/")) 
 	    d0flag = true;
       
       if (cdfflag) {
@@ -1368,6 +1368,11 @@ ifdh::cp( std::vector<std::string> args ) {
      gettimeofday(&time_before, 0);
 
      bool need_copyback = false;
+     if (use_any_gridftp || use_srm || use_irods || use_s3) {
+	if (stage_via) {
+	    need_copyback = true;
+	}
+     }
 
      long int srcsize = 0, dstsize = 0;
      struct stat *sbp;
@@ -1521,9 +1526,6 @@ ifdh::cp( std::vector<std::string> args ) {
             } else if (( curarg == args.size() - 1 || args[curarg+1] == ";" ) && (0 == local_access(parent_dir(args[curarg]).c_str(), R_OK))) {
                 cmd << "file:///" << args[curarg] << " ";
             } else if (use_srm) {
-                if (stage_via) {
-                    need_copyback = true;
-                }
 
                 if( curarg + 1 < args.size() && args[curarg+1].find("srm:") == 0) {
                     did_one_endpoint = 1;

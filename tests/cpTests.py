@@ -29,11 +29,11 @@ class ifdh_cp_cases(unittest.TestCase):
 
     def mk_remote_dir(self,dir,opts=''):
         try:
-            os.system('uberftp -mkdir "gsiftp://fg-bestman1.fnal.gov:2811%s" > /dev/null 2>&1' % (dir))
+            os.system('(test -d %s || mkdir %s || uberftp -mkdir "gsiftp://fg-bestman1.fnal.gov:2811%s") > /dev/null 2>&1' % (dir, dir, dir))
         except:
             pass
         try:
-            os.system('uberftp -chmod 777 "gsiftp://fg-bestman1.fnal.gov:2811%s" > /dev/null 2>&1' % (dir))
+            os.system('(chmod 777 %s || uberftp -chmod 777 "gsiftp://fg-bestman1.fnal.gov:2811%s" > /dev/null 2>&1' % (dir, dir))
         except:
             pass
 
@@ -113,6 +113,7 @@ class ifdh_cp_cases(unittest.TestCase):
     def setUp(self):
         os.environ['IFDH_CP_MAXRETRIES'] = "2"
         os.environ['EXPERIMENT'] =  ifdh_cp_cases.experiment
+        os.environ['CPN_DIR'] = '/no/such/dir'
         self.ifdh_handle = ifdh.ifdh(base_uri_fmt % ifdh_cp_cases.experiment)
         self.hostname = socket.gethostname()
         self.work="%s/work%d" % (os.environ.get('TMPDIR','/tmp'),os.getpid())

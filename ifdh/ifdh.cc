@@ -306,13 +306,18 @@ ifdh::log( string message ) {
           idstring += ':';
           idstring += getenv("POMS_TASK_ID");
       }
-      if (getenv("CLUSTER")) {
+      if (getenv("JOBSUBJOBID")) {
           idstring += '/';
-          idstring += getenv("CLUSTER");
-      }
-      if (getenv("PROCESS")) {
-          idstring += '.';
-          idstring += getenv("PROCESS");
+          idstring += getenv("JOBSUBJOBID");
+      } else {
+	  if (getenv("CLUSTER")) {
+	      idstring += '/';
+	      idstring += getenv("CLUSTER");
+	  }
+	  if (getenv("PROCESS")) {
+	      idstring += '.';
+	      idstring += getenv("PROCESS");
+	  }
       }
       numsg::init(idstring.c_str(),0);
   }

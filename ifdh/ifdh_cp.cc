@@ -1582,7 +1582,12 @@ ifdh::cp( std::vector<std::string> args ) {
 
         if ( res != 0 && error_expected ) {
             _debug && std::cerr << "expected error...\n";
-            continue;
+            if (curarg < args.size() && args[curarg] == ";" ) {
+                curarg++;
+                continue;
+            } else {
+                break;
+            }
         }
 
 

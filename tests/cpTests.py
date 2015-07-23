@@ -29,11 +29,11 @@ class ifdh_cp_cases(unittest.TestCase):
 
     def mk_remote_dir(self,dir,opts=''):
         try:
-            os.system('(test -d %s || mkdir %s || uberftp -mkdir "gsiftp://fg-bestman1.fnal.gov:2811%s") > /dev/null 2>&1' % (dir, dir, dir))
+            os.system('(test -d "%s" || mkdir "%s" || uberftp -mkdir "gsiftp://fg-bestman1.fnal.gov:2811%s") > /dev/null 2>&1' % (dir, dir, dir))
         except:
             pass
         try:
-            os.system('(chmod 777 %s || uberftp -chmod 777 "gsiftp://fg-bestman1.fnal.gov:2811%s" > /dev/null 2>&1' % (dir, dir))
+            os.system('(chmod 777 %s || uberftp -chmod 777 "gsiftp://fg-bestman1.fnal.gov:2811%s") > /dev/null 2>&1' % (dir, dir))
         except:
             pass
 

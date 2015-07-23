@@ -53,7 +53,7 @@ std::string pnfs_gsiftp_uri = "gsiftp://fndca1.fnal.gov/";
 std::string pnfs_cdf_srm_uri = "srm://cdfdca1.fnal.gov:8443/srm/managerv2?SFN=/pnfs/fnal.gov/usr/";
 std::string pnfs_cdf_gsiftp_uri = "gsiftp://cdfdca1.fnal.gov/";
 std::string pnfs_d0_srm_uri = "srm://d0dca1.fnal.gov:8443/srm/managerv2?SFN=/pnfs/fnal.gov/usr/";
-std::string pnfs_d0_gsiftp_uri = "gsiftp://d0dca1.fnal.gov/";
+std::string pnfs_d0_gsiftp_uri = "gsiftp://d0dca1.fnal.gov/pnfs/fnal.gov/usr/";
 
 static char getcwd_buf[MAXPATHLEN];
 

@@ -2410,6 +2410,9 @@ ifdh::fetchSharedFiles( vector<pair<string,long> > list, string schema ) {
    vector<pair<string,long> >  res;
    string f;
    string rdpath("root://fndca.fnal.gov:1094/pnfs/fnal.gov");
+   if (getenv("IFDH_STASH_CACHE")) {
+       rdpath = getenv("IFDH_STASH_CACHE");
+   }
 
    if (_debug) cerr << "fetchShared -- schema is " << schema << endl;
 

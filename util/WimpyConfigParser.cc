@@ -175,5 +175,9 @@ main() {
    std::cout << "test have y?" << cp.has_option("test", "y") << std::endl;
    std::cout << "test's x?" << cp.get("test", "x") << std::endl;
    cp.dump();
+
+   WimpyConfigParser ifdh_cfg;
+   ifdh_cfg.read("../ifdh.cfg");
+   ifdh_cfg.dump();
 }
 #endif

@@ -1,7 +1,4 @@
-
-#ifndef WIMPYCONFIGPARSER_H
 #include "WimpyConfigParser.h"
-#endif
 #include <fstream>
 #include <iostream>
 
@@ -20,15 +17,21 @@ WimpyConfigParser::read(std::string filename) {
 void
 WimpyConfigParser::readfp(std::istream &s) {
     std::string cur_section(""), line, cur_val, cur_key;
-    size_t p;
+    size_t p, p2, p3; // string positions
     add_section(cur_section);
     bool have_partial = false;
     while( !s.eof() && !s.fail()) {
        getline(s, line);
+       // deal with comments
        p = line.find_first_not_of(" \t");
-       if (line[p] == '#' || line[p] == ';' ) {
-          // it is a comment line
+       if (line == "" || line[p] == '#' || line[p] == ';' ) {
+          // it is an all comment or blank line
           continue;
+       }
+       p = line.find('#');
+       if (p != std::string::npos && line[p-1] != '\\') {
+          // it has a comment on the end, trim it
+          line = line.substr(0,p);
        }
        if (line[0] == '[') {
           if (have_partial) {
@@ -42,7 +45,9 @@ WimpyConfigParser::readfp(std::istream &s) {
           add_section(cur_section);
        } else if (line[0] == ' ') {
           //continued line
-          cur_val += line;
+          p = line.find_first_not_of(" \t", 0);
+          cur_val += '\n';
+          cur_val += line.substr(p);
        } else  {
           //should be name = value
           if (have_partial) {
@@ -53,9 +58,15 @@ WimpyConfigParser::readfp(std::istream &s) {
           }
           p = line.find('=');
           if (p != std::string::npos) {
-              cur_key = line.substr(0,p);
+              p2 = line.find_last_not_of(" \t", p-1);
+              cur_key = line.substr(0,p2+1);
               p = line.find_first_not_of(" \t", p+1);
-              cur_val = line.substr(p);
+              p3 = line.find_last_not_of(" \t");
+              if (p != std::string::npos && p3 != std::string::npos && p3 >= p) {
+                  cur_val = line.substr(p,p3 - p+1);
+              } else {
+                  cur_val = "";
+              }
               have_partial = true;
           } else {
               std::cerr << "Error! line: " << line << std::endl;
@@ -74,14 +85,18 @@ WimpyConfigParser::dump() {
    std::map<std::string, std::string> ::iterator di;
 
    try {
-	   std::cout << "# dump of map start " << std::endl;
+	   std::cout << "# ------ config dump start ------- " << std::endl;
 	   for( si = _data.begin(); si != _data.end(); si++) {
-	       std::cout << "[" << si->first << "]" << std::endl;
+
+               if (si->first != "") 
+	           std::cout << "[" << si->first << "]" << std::endl;
+
 	       for (di = si->second.begin(); di != si->second.end(); di++) {
 		   std::cout << di->first  << "=" << di->second << std::endl;
 	       }
+
 	   }
-	   std::cout << "# dump of map finisht" << std::endl;
+	   std::cout << "# ------ config dump end ------ " << std::endl;
     } catch (...) {
         std::cout << "exception in dump!" << std::endl;
     }
@@ -137,6 +152,28 @@ WimpyConfigParser::has_option(std::string sectionname, std::string optionname) {
        di = si->second.find(optionname);
        return di != si->second.end();
    }
+   return false;
 }
 
 }
+
+#ifdef UNITTEST
+
+#include <iostream>
+extern "C" int exit(int);
+
+using namespace ifdh_util_ns;
+
+int
+main() {
+   WimpyConfigParser cp;
+   cp.read("test.ini");
+   std::cout << "global have x?" << cp.has_option("global", "x") << std::endl;
+   std::cout << "global have y?" << cp.has_option("global", "y") << std::endl;
+   std::cout << "global's y?" << cp.get("global", "y") << std::endl;
+   std::cout << "test have x?" << cp.has_option("test", "x") << std::endl;
+   std::cout << "test have y?" << cp.has_option("test", "y") << std::endl;
+   std::cout << "test's x?" << cp.get("test", "x") << std::endl;
+   cp.dump();
+}
+#endif

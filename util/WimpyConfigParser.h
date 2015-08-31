@@ -14,16 +14,18 @@
 namespace ifdh_util_ns {
 
 class WimpyConfigParser {
-         std::Map<std::string, std::Map<std::string, std::string> > _data;
+     private:
+         std::map<std::string, std::map<std::string, std::string> > _data;
      public:
-         WimpyConfigParser() : _data();
+         WimpyConfigParser();
          void read(std::string filename);
-         void readfp(std::istream s);
+         void readfp(std::istream &s);
          void add_section(std::string sectionname);
          std::string get(std::string sectionname, std::string optionname);
-         std::string set(std::string sectionname, std::string optionname, std::string value);
+         void set(std::string sectionname, std::string optionname, std::string value);
          bool has_section(std::string sectionname);
          bool has_option(std::string sectionname, std::string optionname);
+         void dump();
 };
 
 }

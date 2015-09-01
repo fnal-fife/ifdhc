@@ -1896,9 +1896,6 @@ ifdh::lss( std::string loc, int recursion_depth, std::string force) {
     if ( -1 == recursion_depth )
         recursion_depth = 1;
 
-    pick_type( loc, force, use_fs, use_gridftp, use_srm, use_irods, use_s3);
-
-    _debug && cerr << "after pick_type, loc is " << loc << "\n";
 
     cpos = loc.find(':');
     if (cpos > 1 && cpos < 9) {
@@ -1915,6 +1912,9 @@ ifdh::lss( std::string loc, int recursion_depth, std::string force) {
     }
     if(_debug) std::cerr << "came up with base:" << base << endl;
 
+    pick_type( loc, force, use_fs, use_gridftp, use_srm, use_irods, use_s3);
+
+    _debug && cerr << "after pick_type, loc is " << loc << "\n";
 
     if (use_srm) {
        setenv("SRM_JAVA_OPTIONS", "-Xmx1024m" ,0);
@@ -2409,7 +2409,7 @@ vector<pair<string,long> >
 ifdh::fetchSharedFiles( vector<pair<string,long> > list, string schema ) {
    vector<pair<string,long> >  res;
    string f;
-   string rdpath("root://fndca.fnal.gov:1094/pnfs/fnal.gov");
+   string rdpath("root://fndca1.fnal.gov:1094/pnfs/fnal.gov");
    if (getenv("IFDH_STASH_CACHE")) {
        rdpath = getenv("IFDH_STASH_CACHE");
        if (rdpath.find("root:") == 0) {
@@ -2427,7 +2427,7 @@ ifdh::fetchSharedFiles( vector<pair<string,long> > list, string schema ) {
            f = list[i].first;
        } else {
            if (schema == "xrootd" && list[i].first.find("/pnfs") == 0) {
-               f = rdpath + list[i].first;
+               f = fetchInput(rdpath + list[i].first);
            } else {
                f = fetchInput( list[i].first );
            }

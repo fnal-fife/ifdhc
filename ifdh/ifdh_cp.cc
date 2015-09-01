@@ -2427,7 +2427,7 @@ ifdh::fetchSharedFiles( vector<pair<string,long> > list, string schema ) {
            f = list[i].first;
        } else {
            if (schema == "xrootd" && list[i].first.find("/pnfs") == 0) {
-               f = rdpath + list[i].first;
+               f = fetchInput(rdpath + list[i].first);
            } else {
                f = fetchInput( list[i].first );
            }

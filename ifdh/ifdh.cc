@@ -662,6 +662,8 @@ ifdh::ifdh(std::string baseuri) {
      } else {
        _baseuri = baseuri;
     }
+    std::string cffile(getenv("IFDHC_DIR"));
+    _config.read(cffile + "/ifdh.cfg");
     _debug && std::cerr << "ifdh constructor: _baseuri is '" << _baseuri << "'\n";
 }
 

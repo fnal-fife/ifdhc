@@ -1896,9 +1896,6 @@ ifdh::lss( std::string loc, int recursion_depth, std::string force) {
     if ( -1 == recursion_depth )
         recursion_depth = 1;
 
-    pick_type( loc, force, use_fs, use_gridftp, use_srm, use_irods, use_s3);
-
-    _debug && cerr << "after pick_type, loc is " << loc << "\n";
 
     cpos = loc.find(':');
     if (cpos > 1 && cpos < 9) {
@@ -1915,6 +1912,9 @@ ifdh::lss( std::string loc, int recursion_depth, std::string force) {
     }
     if(_debug) std::cerr << "came up with base:" << base << endl;
 
+    pick_type( loc, force, use_fs, use_gridftp, use_srm, use_irods, use_s3);
+
+    _debug && cerr << "after pick_type, loc is " << loc << "\n";
 
     if (use_srm) {
        setenv("SRM_JAVA_OPTIONS", "-Xmx1024m" ,0);

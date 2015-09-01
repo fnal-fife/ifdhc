@@ -22,7 +22,6 @@ ifdh_version.h: FORCE
 
 FORCE:
 
-
 %-test: %.cc
 	g++ -o $@ $(TESTDEFS) $(CXXFLAGS) $< utils.o
 

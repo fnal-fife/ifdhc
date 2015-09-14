@@ -438,6 +438,14 @@ std::vector<std::string> slice_directories(std::vector<std::string> args, int cu
               res.push_back(args[i]);   
               ifdh::_debug && std::cerr << res.back() << " "; 
               res.push_back(dest_file(args[i], args[dest_slots[cur_cp]]));   
+	      if ((int)dest_slots[cur_cp] ==  fixoffset1 && !did1) {
+		 did1 = true;
+		 fixoffset1 = res.size();
+	      }
+	      if ((int)dest_slots[cur_cp] == fixoffset2 && !did2) {
+		 did2 = true;
+		 fixoffset2 = res.size();
+	      }
               ifdh::_debug && std::cerr << res.back() << " ";
               if (i != args.size() - 2) {
                   res.push_back(";");
@@ -1200,18 +1208,10 @@ ifdh::cp( std::vector<std::string> args ) {
             if( args[i].find("gsiftp:") == 0) {
                 use_cpn = false; 
                 use_srm = false;
-		if ( i == args.size() - 1 || args[i+1] == ";" ) {
-                    _debug && cerr << "deciding to use bestman gridftp due to " << args[i] << " \n";
-                    // our destination is a specified gridftp server
-                    // so use bestman for (input) rewrites
-                    use_bst_gridftp = true; 
-                } else {
-                    // our source is a specified gridftp server
-                    // so use per-experiment gridftp for (output) rewrites
-                    _debug && cerr << "deciding to use exp gridftp due to " << args[i] << " \n";
-                    use_exp_gridftp = true; 
-                }
-                break; 
+                // don't pick experiment or bestman here we don't
+                // actually know enough to pick; just mark that we
+                // are going to use some gridftp, and go on
+                use_any_gridftp = true;
             }
 
 	    if( 0 != access(args[i].c_str(),R_OK) ) {

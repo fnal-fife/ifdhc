@@ -1204,6 +1204,7 @@ ifdh::cp( std::vector<std::string> args ) {
             if( args[i].find("srm:") == 0)  { 
                use_cpn = false; 
                use_srm = true; 
+               _debug && std::cerr << "turning on use_srm case 1" << std::endl;
                break; 
             }
 
@@ -1239,22 +1240,27 @@ ifdh::cp( std::vector<std::string> args ) {
 		       use_cpn = 0;
                            
                        if (stage_via && has(stage_via,"srm:")) {
-                           use_srm = 1;
+                           use_srm = true;
                            _debug && cerr << "deciding to use srm due to $IFDH_STAGE_VIA and: " << args[i] << endl;
+                           continue;
                        } else if ( has_production_role()) {
-                           use_bst_gridftp = 1;
+                           use_bst_gridftp = true;
+                           use_srm = false;
                            _debug && cerr << "deciding to use bestman gridftp due to production role and : " << args[i] << endl;
+                           continue;
                        } else {
-		           use_exp_gridftp = 1;
+		           use_exp_gridftp = true;
+                           use_srm = false;
                            _debug && cerr << "deciding to use exp gridftp due to: " << args[i] << endl;
+                           continue;
                        }
 		   }  
 		} else {
                  // don't decide it is remote if its parent dir is local
 		 if (0 != access(parent_dir(args[i]).c_str(),R_OK)) {
 		   // for non-local sources, default to srm, for throttling (?)
-		   use_cpn = 0;
-		   use_srm = 1;
+		   use_cpn = false;
+		   use_bst_gridftp = true;
 	           _debug && cerr << "deciding to use bestman to: " << args[i] << endl;
                  } 
 		}
@@ -1266,15 +1272,16 @@ ifdh::cp( std::vector<std::string> args ) {
      } else if (force[0] == 's' && force[1] == '3' ) {
          use_cpn = false;
          use_s3 = true;
+     } else if (force[0] == 's') {
+         use_cpn = false;
+         use_srm = true;
+         _debug && std::cerr << "turning on use_srm case 3" << std::endl;
      } else if (force[0] == 'i') {
          use_cpn = false;
          use_irods = true;
      } else if (force[0] == 'd') {
          use_cpn = false;
          use_dd = true;
-     } else if (force[0] == 's') {
-         use_cpn = false;
-         use_srm = true;
      } else if (force[0] == 'g') {
          use_cpn = false;
          use_bst_gridftp = true;
@@ -1332,6 +1339,7 @@ ifdh::cp( std::vector<std::string> args ) {
             use_cpn = 0;
             use_dd = 0;
 	    use_srm = 1;
+            _debug && std::cerr << "turning on use_srm case 5" << std::endl;
          }
          if ( has(stage_via,"gsiftp:")) {
             use_cpn = 0;
@@ -2108,7 +2116,7 @@ ifdh::lss( std::string loc, int recursion_depth, std::string force) {
             _debug && std::cerr << "directory needs prepending .."  << res[0].first << "," << loc << "\n";
             // location is a proper substring of the first item, so it
             // is a directory listing and needs the location on the front
-            dir = res[0].first.substr(0,res[0].first.rfind('/')+1);
+            dir = res[0].first.substr(0,res[0].first.rfind('/',res[0].first.size()-2)+1);
             res.insert(res.begin(), pair<string,long>(dir, 0));
         } else {
             _debug && std::cerr << "not a directory case ..\n";

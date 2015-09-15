@@ -59,7 +59,7 @@ init() {
     esac
 
     host=`hostname --fqdn`
-    filelist=${TMPDIR:-/tmp}/filelist$$
+    filelist=${TMPDIR:-/var/tmp}/filelist$$
     wprefix="${IFDH_STAGE_VIA}/${EXPERIMENT:-nova}/ifdh_stage"
 
     #

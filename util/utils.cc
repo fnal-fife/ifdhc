@@ -56,6 +56,7 @@ char *getexperiment() {
        return "mu2e";
     case 9113:
     case 9950:
+    case 9167:
        return "gm2";
     case 5111:
        return "minos";
@@ -67,8 +68,31 @@ char *getexperiment() {
     case 9253:
     case 9555:
        return "minerva";
+    case 9157:
+       return "lsst";
+    case 9010:
+        return "dune";
+    case 9660:
+        return "lbne"; //later fall through to...
+    case 9620:
+        return "des";
+    case 9469:
+        return "larp";
+    case 9467:
+        return "annie";
+    case 9471:
+        return "next";
+    case 9985:
+        return "darkside";
     default:
-       return getgrgid(gid)->gr_name;
+       struct group *pg;
+       pg = getgrgid(gid);
+       if (pg && pg->gr_name) {
+           return pg->gr_name;
+       } else {
+           // we *really * don't know who they are...
+           return "fermilab";
+       }
     }
 }
 //

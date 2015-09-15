@@ -442,7 +442,9 @@ std::vector<std::string> slice_directories(std::vector<std::string> args, int cu
 		 did1 = true;
 		 fixoffset1 = res.size();
 	      }
-	      if ((int)dest_slots[cur_cp] == fixoffset2 && !did2) {
+	      if ((int)dest_slots[cur_cp] == fixoffset2 ) {
+                 // note the lack of "did2" check here -- we should keep
+                 // moving the end range up each time we use the same destination...
 		 did2 = true;
 		 fixoffset2 = res.size();
 	      }

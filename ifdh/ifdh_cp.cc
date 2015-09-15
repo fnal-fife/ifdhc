@@ -1237,7 +1237,7 @@ ifdh::cp( std::vector<std::string> args ) {
 		       // if last one (destination)  and parent isn't 
 		       // local either default to per-experiment gridftp 
 		       // to get desired ownership. 
-		       use_cpn = 0;
+		       use_cpn = false;
                            
                        if (stage_via && has(stage_via,"srm:")) {
                            use_srm = true;
@@ -1310,8 +1310,8 @@ ifdh::cp( std::vector<std::string> args ) {
      // default to dd for non-recursive copies.
      // 
      if (use_cpn && !recursive) {
-         use_cpn = 0;
-         use_dd = 1;
+         use_cpn = false;
+         use_dd = true;
      }
 
      if (use_exp_gridftp) {
@@ -1331,21 +1331,21 @@ ifdh::cp( std::vector<std::string> args ) {
 
      if ( stage_via ) {
          if ( has(stage_via,"s3:")) {
-            use_cpn = 0;
-            use_dd = 0;
-	    use_s3 = 1;
+            use_cpn = false;
+            use_dd = false;
+	    use_s3 = true;
          }
          if ( has(stage_via,"srm:")) {
-            use_cpn = 0;
-            use_dd = 0;
-	    use_srm = 1;
+            use_cpn = false;
+            use_dd = false;
+	    use_srm = true;
             _debug && std::cerr << "turning on use_srm case 5" << std::endl;
          }
          if ( has(stage_via,"gsiftp:")) {
-            use_cpn = 0;
-            use_dd = 0;
-	    use_bst_gridftp = 1;
-	    use_any_gridftp = 1;
+            use_cpn = false;
+            use_dd = false;
+	    use_bst_gridftp = true;
+	    use_any_gridftp = true;
          }
          args = build_stage_list(args, curarg, stage_via);
          need_cpn_lock = false;

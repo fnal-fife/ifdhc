@@ -2120,6 +2120,22 @@ ifdh::lss( std::string loc, int recursion_depth, std::string force) {
 }
    
 int
+ifdh::mkdir_p(string loc, string force, int depth) {
+   if (depth > 5) {
+      std::cerr << "ifdh::mkdir_p: won't make more than 5 levels deep";
+      return -1;
+   }
+   std::vector<std::string> res = ls(loc, 0, force);
+   if (res.size() == 0) {
+      // parent does not exist
+      mkdir_p(parent_dir(loc), force, depth + 1);
+      return mkdir(loc, force);
+   } else {
+      return 0;
+   }
+}
+
+int
 ifdh::mkdir(string loc, string force) {
     bool use_gridftp = false;
     bool use_srm = false;

@@ -507,10 +507,11 @@ do_url_lst(int postflag,...) {
             res.push_back(line);
         }
     }
-    clear_timeout();
     } catch( runtime_error &e )  {
+        clear_timeout();
         return empty;
     }
+    clear_timeout();
     delete wap;
     return res;
 }

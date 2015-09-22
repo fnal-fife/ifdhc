@@ -174,10 +174,24 @@ ifdh::fetchInput( string src_uri ) {
     std::vector<std::string> args;
 
     if (0 == src_uri.find("xrootd:") || 0 == src_uri.find("root:")) {
+        char *icx = getenv("IFDH_COPY_XROOTD");
+        if (icx && atoi(icx)) {
+             path = localPath( src_uri );
+             string cmd("xrdcp ");
+             cmd += src_uri + " ";
+             cmd += path + " ";
+             _debug && std::cerr << "running: " << cmd << std::endl;
+             int status = system(cmd.c_str());
+             if (WIFEXITED(status) && WEXITSTATUS(status) == 0)
+                 return path;
+             else
+                 return "";
+        } else {
         // we don't do anything for xrootd, just pass
         // it back, and let the application layer open
         // it that way.
         return src_uri;
+        }
     }
     path = localPath( src_uri );
     if (0 == src_uri.find("file:///"))
@@ -493,10 +507,11 @@ do_url_lst(int postflag,...) {
             res.push_back(line);
         }
     }
-    clear_timeout();
     } catch( runtime_error &e )  {
+        clear_timeout();
         return empty;
     }
+    clear_timeout();
     delete wap;
     return res;
 }

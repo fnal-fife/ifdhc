@@ -438,6 +438,16 @@ std::vector<std::string> slice_directories(std::vector<std::string> args, int cu
               res.push_back(args[i]);   
               ifdh::_debug && std::cerr << res.back() << " "; 
               res.push_back(dest_file(args[i], args[dest_slots[cur_cp]]));   
+	      if ((int)dest_slots[cur_cp] ==  fixoffset1 && !did1) {
+		 did1 = true;
+		 fixoffset1 = res.size();
+	      }
+	      if ((int)dest_slots[cur_cp] == fixoffset2 ) {
+                 // note the lack of "did2" check here -- we should keep
+                 // moving the end range up each time we use the same destination...
+		 did2 = true;
+		 fixoffset2 = res.size();
+	      }
               ifdh::_debug && std::cerr << res.back() << " ";
               if (i != args.size() - 2) {
                   res.push_back(";");
@@ -1194,24 +1204,17 @@ ifdh::cp( std::vector<std::string> args ) {
             if( args[i].find("srm:") == 0)  { 
                use_cpn = false; 
                use_srm = true; 
+               _debug && std::cerr << "turning on use_srm case 1" << std::endl;
                break; 
             }
 
             if( args[i].find("gsiftp:") == 0) {
                 use_cpn = false; 
                 use_srm = false;
-		if ( i == args.size() - 1 || args[i+1] == ";" ) {
-                    _debug && cerr << "deciding to use bestman gridftp due to " << args[i] << " \n";
-                    // our destination is a specified gridftp server
-                    // so use bestman for (input) rewrites
-                    use_bst_gridftp = true; 
-                } else {
-                    // our source is a specified gridftp server
-                    // so use per-experiment gridftp for (output) rewrites
-                    _debug && cerr << "deciding to use exp gridftp due to " << args[i] << " \n";
-                    use_exp_gridftp = true; 
-                }
-                break; 
+                // don't pick experiment or bestman here we don't
+                // actually know enough to pick; just mark that we
+                // are going to use some gridftp, and go on
+                use_any_gridftp = true;
             }
 
 	    if( 0 != access(args[i].c_str(),R_OK) ) {
@@ -1234,25 +1237,30 @@ ifdh::cp( std::vector<std::string> args ) {
 		       // if last one (destination)  and parent isn't 
 		       // local either default to per-experiment gridftp 
 		       // to get desired ownership. 
-		       use_cpn = 0;
+		       use_cpn = false;
                            
                        if (stage_via && has(stage_via,"srm:")) {
-                           use_srm = 1;
+                           use_srm = true;
                            _debug && cerr << "deciding to use srm due to $IFDH_STAGE_VIA and: " << args[i] << endl;
+                           continue;
                        } else if ( has_production_role()) {
-                           use_bst_gridftp = 1;
+                           use_bst_gridftp = true;
+                           use_srm = false;
                            _debug && cerr << "deciding to use bestman gridftp due to production role and : " << args[i] << endl;
+                           continue;
                        } else {
-		           use_exp_gridftp = 1;
+		           use_exp_gridftp = true;
+                           use_srm = false;
                            _debug && cerr << "deciding to use exp gridftp due to: " << args[i] << endl;
+                           continue;
                        }
 		   }  
 		} else {
                  // don't decide it is remote if its parent dir is local
 		 if (0 != access(parent_dir(args[i]).c_str(),R_OK)) {
 		   // for non-local sources, default to srm, for throttling (?)
-		   use_cpn = 0;
-		   use_srm = 1;
+		   use_cpn = false;
+		   use_bst_gridftp = true;
 	           _debug && cerr << "deciding to use bestman to: " << args[i] << endl;
                  } 
 		}
@@ -1264,15 +1272,16 @@ ifdh::cp( std::vector<std::string> args ) {
      } else if (force[0] == 's' && force[1] == '3' ) {
          use_cpn = false;
          use_s3 = true;
+     } else if (force[0] == 's') {
+         use_cpn = false;
+         use_srm = true;
+         _debug && std::cerr << "turning on use_srm case 3" << std::endl;
      } else if (force[0] == 'i') {
          use_cpn = false;
          use_irods = true;
      } else if (force[0] == 'd') {
          use_cpn = false;
          use_dd = true;
-     } else if (force[0] == 's') {
-         use_cpn = false;
-         use_srm = true;
      } else if (force[0] == 'g') {
          use_cpn = false;
          use_bst_gridftp = true;
@@ -1301,8 +1310,8 @@ ifdh::cp( std::vector<std::string> args ) {
      // default to dd for non-recursive copies.
      // 
      if (use_cpn && !recursive) {
-         use_cpn = 0;
-         use_dd = 1;
+         use_cpn = false;
+         use_dd = true;
      }
 
      if (use_exp_gridftp) {
@@ -1322,20 +1331,21 @@ ifdh::cp( std::vector<std::string> args ) {
 
      if ( stage_via ) {
          if ( has(stage_via,"s3:")) {
-            use_cpn = 0;
-            use_dd = 0;
-	    use_s3 = 1;
+            use_cpn = false;
+            use_dd = false;
+	    use_s3 = true;
          }
          if ( has(stage_via,"srm:")) {
-            use_cpn = 0;
-            use_dd = 0;
-	    use_srm = 1;
+            use_cpn = false;
+            use_dd = false;
+	    use_srm = true;
+            _debug && std::cerr << "turning on use_srm case 5" << std::endl;
          }
          if ( has(stage_via,"gsiftp:")) {
-            use_cpn = 0;
-            use_dd = 0;
-	    use_bst_gridftp = 1;
-	    use_any_gridftp = 1;
+            use_cpn = false;
+            use_dd = false;
+	    use_bst_gridftp = true;
+	    use_any_gridftp = true;
          }
          args = build_stage_list(args, curarg, stage_via);
          need_cpn_lock = false;
@@ -1896,9 +1906,6 @@ ifdh::lss( std::string loc, int recursion_depth, std::string force) {
     if ( -1 == recursion_depth )
         recursion_depth = 1;
 
-    pick_type( loc, force, use_fs, use_gridftp, use_srm, use_irods, use_s3);
-
-    _debug && cerr << "after pick_type, loc is " << loc << "\n";
 
     cpos = loc.find(':');
     if (cpos > 1 && cpos < 9) {
@@ -1915,6 +1922,9 @@ ifdh::lss( std::string loc, int recursion_depth, std::string force) {
     }
     if(_debug) std::cerr << "came up with base:" << base << endl;
 
+    pick_type( loc, force, use_fs, use_gridftp, use_srm, use_irods, use_s3);
+
+    _debug && cerr << "after pick_type, loc is " << loc << "\n";
 
     if (use_srm) {
        setenv("SRM_JAVA_OPTIONS", "-Xmx1024m" ,0);
@@ -2106,7 +2116,7 @@ ifdh::lss( std::string loc, int recursion_depth, std::string force) {
             _debug && std::cerr << "directory needs prepending .."  << res[0].first << "," << loc << "\n";
             // location is a proper substring of the first item, so it
             // is a directory listing and needs the location on the front
-            dir = res[0].first.substr(0,res[0].first.rfind('/')+1);
+            dir = res[0].first.substr(0,res[0].first.rfind('/',res[0].first.size()-2)+1);
             res.insert(res.begin(), pair<string,long>(dir, 0));
         } else {
             _debug && std::cerr << "not a directory case ..\n";
@@ -2117,6 +2127,22 @@ ifdh::lss( std::string loc, int recursion_depth, std::string force) {
     return res;
 }
    
+int
+ifdh::mkdir_p(string loc, string force, int depth) {
+   if (depth > 5) {
+      std::cerr << "ifdh::mkdir_p: won't make more than 5 levels deep";
+      return -1;
+   }
+   std::vector<std::string> res = ls(loc, 0, force);
+   if (res.size() == 0) {
+      // parent does not exist
+      mkdir_p(parent_dir(loc), force, depth + 1);
+      return mkdir(loc, force);
+   } else {
+      return 0;
+   }
+}
+
 int
 ifdh::mkdir(string loc, string force) {
     bool use_gridftp = false;
@@ -2409,7 +2435,7 @@ vector<pair<string,long> >
 ifdh::fetchSharedFiles( vector<pair<string,long> > list, string schema ) {
    vector<pair<string,long> >  res;
    string f;
-   string rdpath("root://fndca.fnal.gov:1094/pnfs/fnal.gov");
+   string rdpath("root://fndca1.fnal.gov:1094/pnfs/fnal.gov");
    if (getenv("IFDH_STASH_CACHE")) {
        rdpath = getenv("IFDH_STASH_CACHE");
        if (rdpath.find("root:") == 0) {
@@ -2427,7 +2453,7 @@ ifdh::fetchSharedFiles( vector<pair<string,long> > list, string schema ) {
            f = list[i].first;
        } else {
            if (schema == "xrootd" && list[i].first.find("/pnfs") == 0) {
-               f = rdpath + list[i].first;
+               f = fetchInput(rdpath + list[i].first);
            } else {
                f = fetchInput( list[i].first );
            }

@@ -428,12 +428,14 @@ class timeoutobj {
 	} else { 
 	    timeoutafter = 3*60*60;
 	}
+        ifdh::_debug && std::cerr << "set_timeout: setting alarm to " << timeoutafter << "\n";
 	sigaction(SIGALRM, &action, &oldaction);
 	oldalarm = alarm(timeoutafter);
     }
 
     void
     clear_timeout() {
+        ifdh::_debug && std::cerr << "set_timeout: setting alarm to " << oldalarm  << "\n";
 	alarm(oldalarm);
 	sigaction(SIGALRM, &oldaction, (struct sigaction*)0);
     }
@@ -446,13 +448,13 @@ int
 do_url_int(int postflag, ...) {
     va_list ap;
     int res;
-    class timeoutobj to;
 
     va_start(ap, postflag);
     try {
+       class timeoutobj to;
        auto_ptr<WebAPI> wap(do_url_2(postflag, ap));
        res = wap->getStatus() - 200;
-    } catch( std::runtime_error &e )  {
+    } catch( exception &e )  {
        res = 300;
     }
     if (ifdh::_debug) std::cerr << "got back int result: " << res << "\n";
@@ -465,8 +467,8 @@ do_url_str(int postflag,...) {
     va_list ap;
     string res("");
     string line;
-    class timeoutobj to;
     try {
+        class timeoutobj to;
 	va_start(ap, postflag);
 	auto_ptr<WebAPI> wap(do_url_2(postflag, ap));
 	while (!wap->data().eof() && !wap->data().fail()) {
@@ -477,7 +479,7 @@ do_url_str(int postflag,...) {
 		 res = res + line + "\n";
 	    }
 	}
-    } catch( std::runtime_error &e )  {
+    } catch( exception &e )  {
        return "";
     }
     if (ifdh::_debug) std::cerr << "got back string result: " << res << "\n";
@@ -491,6 +493,7 @@ do_url_lst(int postflag,...) {
     vector<string> empty;
     vector<string> res;
     try {
+        class timeoutobj to;
 	va_start(ap, postflag);
 	auto_ptr<WebAPI> wap(do_url_2(postflag, ap));
 	while (!wap->data().eof() && !wap->data().fail()) {
@@ -499,7 +502,7 @@ do_url_lst(int postflag,...) {
 		res.push_back(line);
 	    }
 	}
-    } catch( std::runtime_error &e )  {
+    } catch( exception &e )  {
         return empty;
     }
     return res;

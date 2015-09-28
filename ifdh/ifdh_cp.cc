@@ -825,6 +825,25 @@ get_pnfs_gsiftp_uri() {
     return cached_result;
 }
 
+const char *
+get_another_dcache_door( std::string &cmd ) {
+    size_t spos = 0, upos, ppos, epos;
+    std::string path;
+   
+    while( std::string::npos != ( upos = cmd.find("gsiftp://stkendca",spos))) {
+         ppos = cmd.find("/pnfs/", upos);
+         if (ppos == std::string::npos)
+            break;
+         epos = cmd.find("/usr/", ppos);
+         if (epos == std::string::npos)
+             epos = cmd.size();
+         ifdh::_debug && cerr << "replacing: " << cmd.substr(upos, epos+5 - upos) << endl;
+         cmd.replace(upos, epos + 5 - upos, get_pnfs_gsiftp_uri());
+         spos = epos + 4;
+    }
+    return cmd.c_str();
+}
+
 string
 map_pnfs(string loc, int srmflag = 0)  {
 
@@ -913,6 +932,7 @@ retry_system(const char *cmd_str, int error_expected, cpn_lock &locker,  int max
     int tries = 0;
     int delay;
     int dolock = locker.locked();
+    std::string cmd_str_string;
     if (maxtries == -1) {
         if (0 != getenv("IFDH_CP_MAXRETRIES")) {
             maxtries = atoi(getenv("IFDH_CP_MAXRETRIES")) + 1;
@@ -936,6 +956,10 @@ retry_system(const char *cmd_str, int error_expected, cpn_lock &locker,  int max
             if (dolock)
                 locker.free();
             std::cerr << "program: " << cmd_str << "exited status " << res << "\n";
+            cmd_str_string = cmd_str;
+	    if (cmd_str_string.find("gsiftp://stkendca") != std::string::npos ) {
+                cmd_str = get_another_dcache_door(cmd_str_string);   
+            }
             delay =random() % (55 << tries);
             std::cerr << "delaying " << delay << " ...\n";
             sleep(delay);
@@ -2126,18 +2150,47 @@ ifdh::lss( std::string loc, int recursion_depth, std::string force) {
     }
     return res;
 }
+
+// figure out how many directories deep a path is
+int count_slashes(std::string loc) {
+    size_t start = 0, p;
+    int res = 0;
+    // if it is a url, start looking further in...
+    if (std::string::npos != (p = loc.find("://"))) {
+        start = p + 4;
+    }
+    while (std::string::npos != (p = loc.find("/", start))) {
+        res = res + 1;
+        start = p + 1;
+    }
+    return res;
+}
    
 int
 ifdh::mkdir_p(string loc, string force, int depth) {
-   if (depth > 5) {
-      std::cerr << "ifdh::mkdir_p: won't make more than 5 levels deep";
-      return -1;
+   _debug && cerr << "mkdir_p(" << loc << "," << force << "," << "," << depth << ")\n";
+   if (depth == -1) {
+      // we weren't given a depth, assume first 3 dirs
+      // from root must exist -- i.e /nova/app/users or
+      // /pnfs/experiment/scratch...
+      depth = count_slashes(loc) - 3;
+      _debug && cerr << "mkdir_l: depth is " << depth << "\n";
    }
+   if (depth == 0) {
+      return 0;
+   }
+
    std::vector<std::string> res = ls(loc, 0, force);
    if (res.size() == 0) {
+      int m;
       // parent does not exist
-      mkdir_p(parent_dir(loc), force, depth + 1);
-      return mkdir(loc, force);
+      mkdir_p(parent_dir(loc), force, depth - 1 );
+      try {
+         m = mkdir(loc, force);
+      } catch (exception e) {
+         m = -1;
+      }
+      return m;
    } else {
       return 0;
    }
@@ -2151,6 +2204,7 @@ ifdh::mkdir(string loc, string force) {
     bool use_irods = false;
     bool use_s3 = false;
     std::stringstream cmd;
+    cpn_lock locker;  // we need this to pass into retry_system 
 
     pick_type( loc, force, use_fs, use_gridftp, use_srm, use_irods, use_s3);
 
@@ -2164,7 +2218,8 @@ ifdh::mkdir(string loc, string force) {
 
     _debug && std::cerr << "running: " << cmd.str() << endl;
 
-    int status = system(cmd.str().c_str());
+    // retry, but only 1 time...
+    int status = retry_system(cmd.str().c_str(), 0, locker, 1);
     if (WIFSIGNALED(status)) throw( std::logic_error("signalled while doing mkdir"));
     if (WIFEXITED(status) && WEXITSTATUS(status) != 0) throw( std::logic_error("mkdir failed"));
     return 0;

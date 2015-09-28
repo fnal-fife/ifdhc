@@ -1,1 +1,1 @@
-#define IFDH_VERSION "v1_8_6"
+#define IFDH_VERSION "v1_8_7"

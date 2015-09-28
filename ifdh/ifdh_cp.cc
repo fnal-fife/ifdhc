@@ -825,6 +825,25 @@ get_pnfs_gsiftp_uri() {
     return cached_result;
 }
 
+const char *
+get_another_dcache_door( std::string &cmd ) {
+    size_t spos = 0, upos, ppos, epos;
+    std::string path;
+   
+    while( std::string::npos != ( upos = cmd.find("gsiftp://stkendca",spos))) {
+         ppos = cmd.find("/pnfs/", upos);
+         if (ppos == std::string::npos)
+            break;
+         epos = cmd.find("/usr/", ppos);
+         if (epos == std::string::npos)
+             epos = cmd.size();
+         ifdh::_debug && cerr << "replacing: " << cmd.substr(upos, epos+5 - upos) << endl;
+         cmd.replace(upos, epos + 5 - upos, get_pnfs_gsiftp_uri());
+         spos = epos + 4;
+    }
+    return cmd.c_str();
+}
+
 string
 map_pnfs(string loc, int srmflag = 0)  {
 
@@ -913,6 +932,7 @@ retry_system(const char *cmd_str, int error_expected, cpn_lock &locker,  int max
     int tries = 0;
     int delay;
     int dolock = locker.locked();
+    std::string cmd_str_string;
     if (maxtries == -1) {
         if (0 != getenv("IFDH_CP_MAXRETRIES")) {
             maxtries = atoi(getenv("IFDH_CP_MAXRETRIES")) + 1;
@@ -936,6 +956,10 @@ retry_system(const char *cmd_str, int error_expected, cpn_lock &locker,  int max
             if (dolock)
                 locker.free();
             std::cerr << "program: " << cmd_str << "exited status " << res << "\n";
+            cmd_str_string = cmd_str;
+	    if (cmd_str_string.find("gsiftp://stkendca") != std::string::npos ) {
+                cmd_str = get_another_dcache_door(cmd_str_string);   
+            }
             delay =random() % (55 << tries);
             std::cerr << "delaying " << delay << " ...\n";
             sleep(delay);

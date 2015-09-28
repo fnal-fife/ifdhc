@@ -2204,6 +2204,7 @@ ifdh::mkdir(string loc, string force) {
     bool use_irods = false;
     bool use_s3 = false;
     std::stringstream cmd;
+    cpn_lock locker;  // we need this to pass into retry_system 
 
     pick_type( loc, force, use_fs, use_gridftp, use_srm, use_irods, use_s3);
 
@@ -2217,7 +2218,8 @@ ifdh::mkdir(string loc, string force) {
 
     _debug && std::cerr << "running: " << cmd.str() << endl;
 
-    int status = system(cmd.str().c_str());
+    // retry, but only 3 times...
+    int status = retry_system(cmd.str().c_str(), 0, locker, 3);
     if (WIFSIGNALED(status)) throw( std::logic_error("signalled while doing mkdir"));
     if (WIFEXITED(status) && WEXITSTATUS(status) != 0) throw( std::logic_error("mkdir failed"));
     return 0;

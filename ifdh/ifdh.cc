@@ -22,6 +22,10 @@
 #include <setjmp.h>
 #include <memory>
 
+#if __cplusplus <= 199711L
+#define unique_ptr auto_ptr
+#endif
+
 using namespace std;
 
 namespace ifdh_ns {
@@ -452,7 +456,7 @@ do_url_int(int postflag, ...) {
     va_start(ap, postflag);
     try {
        class timeoutobj to;
-       auto_ptr<WebAPI> wap(do_url_2(postflag, ap));
+       unique_ptr<WebAPI> wap(do_url_2(postflag, ap));
        res = wap->getStatus() - 200;
     } catch( exception &e )  {
        res = 300;
@@ -470,7 +474,7 @@ do_url_str(int postflag,...) {
     try {
         class timeoutobj to;
 	va_start(ap, postflag);
-	auto_ptr<WebAPI> wap(do_url_2(postflag, ap));
+	unique_ptr<WebAPI> wap(do_url_2(postflag, ap));
 	while (!wap->data().eof() && !wap->data().fail()) {
 	    getline(wap->data(), line);
 	    if (wap->data().eof()) {
@@ -495,7 +499,7 @@ do_url_lst(int postflag,...) {
     try {
         class timeoutobj to;
 	va_start(ap, postflag);
-	auto_ptr<WebAPI> wap(do_url_2(postflag, ap));
+	unique_ptr<WebAPI> wap(do_url_2(postflag, ap));
 	while (!wap->data().eof() && !wap->data().fail()) {
 	    getline(wap->data(), line);
 	    if (! (line == "" && wap->data().eof())) {

@@ -216,8 +216,8 @@ WebAPI::WebAPI(std::string url, int postflag, std::string postdata) throw(WebAPI
 	     }
 	     _tosite.std::ios::rdbuf(buf_out);
 
-
-	     close(s);		      // don't need original dd anymore...
+             if (addrp)
+	         close(s);	     // don't need original dd anymore...
 	     // end of black magic
          } else if (pu.type == "https") {
 

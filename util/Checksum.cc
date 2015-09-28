@@ -37,7 +37,9 @@ namespace checksum {
       msg+=filename;
       throw ChecksumSysError(msg,errno);
     }
+#if defined(POSIX_FADV_SEQUENTIAL)
     posix_fadvise(fd,0,0,POSIX_FADV_SEQUENTIAL); // may speed up reading sequentially
+#endif
     std::vector<Bytef> buffer(buffersize);
     ssize_t length;
     unsigned long adler = 0L; // seed value for enstore compatibility

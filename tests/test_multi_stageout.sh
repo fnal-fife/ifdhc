@@ -5,8 +5,10 @@
 # check output files to make sure only one runs the copyback
 #
 export EXPERIMENT=nova
-export IFDH_STAGE_VIA="srm://fndca1.fnal.gov:8443/srm/managerv2?SFN=/pnfs/fnal.gov/usr/nova/ifdh_stage/test_multi"
+export IFDH_STAGE_VIA="srm://fndca1.fnal.gov:8443/srm/managerv2?SFN=/pnfs/fnal.gov/usr/nova/scratch/ifdh_stage/test_multi"
 export IFDH_DEBUG=1
+
+ifdh ls $IFDH_STAGE_VIA || ifdh mkdir $IFDH_STAGE_VIA
 
 #watch ps --forest &
 #watchpid=$!

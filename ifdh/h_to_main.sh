@@ -52,8 +52,8 @@ do
         printf "static int has_args_thru(char **argv, int i) { for(int j = 0; j <= i; j++) if (!argv[j]) return 0; return 1;}\n"
         printf "static int di(int i)\t\t{ exit(i);  return 1; }\n"
         printf "static int ds(string s)\t\t{ cout << s << \"\\\\n\"; return 1; }\n"
-        printf "static int dv(vector<string> v)\t\t{ for(size_t i = 0; i < v.size(); i++) { cout << v[i] << \"\\\\n\"; } exit(v.empty()); }\n"
-        printf "static int dvpsl(vector<pair<string, long int> > v)\t{ for(size_t i = 0; i < v.size(); i++) { cout << v[i].first << "'"\\t"'" << v[i].second << \"\\\\n\"; } exit(v.empty());}\n"
+        printf "static int dv(vector<string> v)\t\t{ for(size_t i = 0; i < v.size(); i++) { cout << v[i] << \"\\\\n\"; } exit(v.size() == 0); }\n"
+        printf "static int dvpsl(vector<pair<string, long int> > v)\t{ for(size_t i = 0; i < v.size(); i++) { cout << v[i].first << "'"\\t"'" << v[i].second << \"\\\\n\"; } exit(0);}\n"
         printf "static int dvmsvs(map<string,vector<string> > m)\t{for( map<string,vector<string> >:: iterator i  = m.begin(); i != m.end(); ++i) { cout << i->first << "'":\\n"'"; for (size_t j = 0; j < i->second.size(); ++j) { cout << "'"\\t"'" <<  i->second[j] << "'"\\n"'";}  } exit(m.empty()); }\n"
         printf "static vector<string> argvec(int argc, char **argv) { vector<string> v; for(int i = 0; i < argc; i++ ) { v.push_back(argv[i]); } return v; }\n"
         printf "static vector<pair<string,long> > argvecpair(int argc, char **argv) { vector<pair<string,long> > v; int i; for(i = 0; i < argc - 1; i+=2 ) { v.push_back(pair<string,long>(argv[i],atol(argv[i+1]))); } return v; }\n"
@@ -131,8 +131,8 @@ do
           ;;
         *)
           echo "usual case: $args" >&2 
-          cargs=`echo $args | perl -pe 's/std::string//g; s/= ".*?"//g; s/= -1//g; s/;.*//; s/(long )?int ([a-z]*)/atol_$2/g;'`
-          args=`echo $args | perl -pe 's/std::string//g; s/= ".*?"//g; s/= -1//g; s/;.*//; s/(long )?int//g;'`
+          cargs=`echo $args | perl -pe 's/std::string//g; s/= ".*?"//g; s/= 0//g; s/= -1//g; s/;.*//; s/(long )?int ([a-z]*)/atol_$2/g;'`
+          args=`echo $args | perl -pe 's/std::string//g; s/= ".*?"//g; s/= 0//g; s/= -1//g; s/;.*//; s/(long )?int//g;'`
           ;;
         esac
         echo "cargs are now: $cargs" >&2

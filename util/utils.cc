@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include <grp.h>
 
 namespace ifdh_util_ns {
 //
@@ -16,6 +17,7 @@ char *getexperiment() {
     static char expbuf[MAXEXPBUF];
     char *p1;
     char *penv = getenv("EXPERIMENT");
+    gid_t gid = getgid();
  
     if (penv) {
         return penv;
@@ -32,7 +34,7 @@ char *getexperiment() {
              return expbuf;
          }
     }
-    switch((int)getgid()){
+    switch((int)gid){
     case 9257:
     case 9258:
     case 9259:
@@ -54,6 +56,7 @@ char *getexperiment() {
        return "mu2e";
     case 9113:
     case 9950:
+    case 9167:
        return "gm2";
     case 5111:
        return "minos";
@@ -65,8 +68,31 @@ char *getexperiment() {
     case 9253:
     case 9555:
        return "minerva";
+    case 9157:
+       return "lsst";
+    case 9010:
+        return "dune";
+    case 9660:
+        return "lbne"; //later fall through to...
+    case 9620:
+        return "des";
+    case 9469:
+        return "larp";
+    case 9467:
+        return "annie";
+    case 9471:
+        return "next";
+    case 9985:
+        return "darkside";
     default:
-       return "other";
+       struct group *pg;
+       pg = getgrgid(gid);
+       if (pg && pg->gr_name) {
+           return pg->gr_name;
+       } else {
+           // we *really * don't know who they are...
+           return "fermilab";
+       }
     }
 }
 //
@@ -94,6 +120,24 @@ find_end(std::string s, char c, int pos, bool quotes ) {
     }
     
     return s.find(c, possible_end+1);
+}
+
+std::string
+join( std::vector<std::string> list, char sep ) {
+    std::string res;
+    size_t lsize = list.size();
+    size_t rsize = lsize;
+    for (size_t i = 0; i < lsize; i++ ) {
+         rsize += list[i].size();
+    }
+    res.reserve(rsize);
+    for (size_t i = 0; i < lsize; i++ ) {
+         res += list[i];
+         if (i < lsize - 1) {
+             res += sep;
+         }
+    }
+   return res;
 }
 
 std::vector<std::string>

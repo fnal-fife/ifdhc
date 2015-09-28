@@ -23,7 +23,7 @@ install: install-headers install-libs
 
 install-libs: all
 	rm -rf $(DESTDIR)lib 
-	test -d $(DESTDIR)lib || mkdir -p  $(DESTDIR)lib && cp [inu]*/*.so [inu]*/*.a  $(DESTDIR)lib
+	test -d $(DESTDIR)lib || mkdir -p  $(DESTDIR)lib && (cp [inu]*/*.{so,a} $(DESTDIR)lib || cp [inu]*/*.{dylib,a} $(DESTDIR)lib)
 	test -d $(DESTDIR)lib/python || mkdir -p  $(DESTDIR)lib/python && cp ifdh/python/*  $(DESTDIR)lib/python
 	test -d $(DESTDIR)bin || mkdir -p $(DESTDIR)bin 	
 	cp ifdh/ifdh $(DESTDIR)bin
@@ -45,4 +45,5 @@ distrib:
 	[ -d Linux* ] &&  tar czvf ifdhc.tar.gz Makefile Linux*/bin Linux*/lib/libifd* Linux*/lib/python inc/ifdh* inc/[uSW]* inc/num* util ifdh numsg tests ups || true
 	[ -d Linux* ] || tar czvf ifbeam.tar.gz Makefile ifbeam [uf]*/*.[ch]* [iuf]*/Makefile lib/libifb* inc/ifb* inc/[uwW]*  ups `test -r inc/IFBeam_service.h && echo inc/IFBeam_service.h lib/*Beam*`
 	[ -d Linux* ] &&  tar czvf ifbeam.tar.gz Makefile ifbeam [uf]*/*.[ch]* [iuf]*/Makefile Linux*/lib/libifb* inc/ifb* inc/[uwW]*  ups `test -r inc/IFBeam_service.h && echo inc/IFBeam_service.h Linux*/lib/*Beam*` || true
+
 

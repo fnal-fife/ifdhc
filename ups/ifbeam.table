@@ -254,7 +254,11 @@ Action=Setup
     EnvSet(IFBEAM_VERSION, ${UPS_PROD_VERSION} )
     EnvSet(IFBEAM_FQ_DIR , ${UPS_PROD_DIR}${_fq_subdir})
     EnvSet(IFBEAM_LIB,     ${UPS_PROD_DIR}${_fq_subdir}/lib)
+    If ( uname -s | grep Darwin > /dev/null )
+    PathPrepend(DYLD_LIBRARY_PATH, ${UPS_PROD_DIR}${_fq_subdir}/lib)
+    Else()
     PathPrepend(LD_LIBRARY_PATH, ${UPS_PROD_DIR}${_fq_subdir}/lib)
+    EndIf ( uname -s | grep Darwin > /dev/null )
     ExeActionOptional(setupbuild)
     PathPrepend(PATH           , ${UPS_PROD_DIR}${_fq_subdir}/bin)
 end:

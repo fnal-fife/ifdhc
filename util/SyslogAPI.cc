@@ -68,7 +68,7 @@ SyslogAPI::send( int facility, int severity, const char *tag, const char *msg) {
      } else {
          st << " unknown_host " ;
      }
-     st << tag << "[" << (_parentflag ? getppid() : getpid())  << "]: ";
+     st << tag << "[" << (_parentflag ? getppid() : getpgrp())  << "]: ";
      st << msg;
 
      return sendto(_socket, 

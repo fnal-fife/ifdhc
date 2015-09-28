@@ -14,7 +14,9 @@
 #include <errno.h>
 #include <exception>
 #include <sys/wait.h>
+#include <signal.h>
 #include <sys/signal.h>
+#include <sys/param.h>
 #include <map>
 #include "../util/Checksum.h"
 #include <setjmp.h>
@@ -46,6 +48,8 @@ check_env() {
 
     if (!checked) {
         checked = 1;
+
+        srandom(getpid()*getuid());
 
         // try to find cpn even if it isn't setup
         if (!getenv("CPN_DIR")) {
@@ -100,6 +104,20 @@ string datadir() {
     stringstream dirmaker;
     string localpath;
     int res;
+    int pgrp, pid;
+    int useid;
+
+    pid = getpid();
+    pgrp = getpgrp();
+
+    // if we are our own proccess group, we assume our
+    // parent is a job-control shell, and use it's pid.
+    // otherwise use process group.
+    if (pgrp == pid) {
+       useid = getppid();
+    } else {
+       useid = pgrp;
+    }
     
     if (getenv("IFDH_DATA_DIR")) {
        dirmaker << getenv("IFDH_DATA_DIR");
@@ -109,7 +127,7 @@ string datadir() {
 	   getenv("TMPDIR")?getenv("TMPDIR"):
            "/var/tmp"
         )
-       << "/ifdh_" << getuid() << "_" << getpgrp();
+       << "/ifdh_" << getuid() << "_" << useid;
     }
 
     if ( 0 != access(dirmaker.str().c_str(), W_OK) ) {
@@ -135,7 +153,7 @@ ifdh::cleanup() {
 }
 // file io
 
-extern "C" { const char *get_current_dir_name(); }
+// extern "C" { const char *get_current_dir_name(); }
 
 string 
 ifdh::localPath( string src_uri ) {
@@ -156,10 +174,24 @@ ifdh::fetchInput( string src_uri ) {
     std::vector<std::string> args;
 
     if (0 == src_uri.find("xrootd:") || 0 == src_uri.find("root:")) {
+        char *icx = getenv("IFDH_COPY_XROOTD");
+        if (icx && atoi(icx)) {
+             path = localPath( src_uri );
+             string cmd("xrdcp ");
+             cmd += src_uri + " ";
+             cmd += path + " ";
+             _debug && std::cerr << "running: " << cmd << std::endl;
+             int status = system(cmd.c_str());
+             if (WIFEXITED(status) && WEXITSTATUS(status) == 0)
+                 return path;
+             else
+                 return "";
+        } else {
         // we don't do anything for xrootd, just pass
         // it back, and let the application layer open
         // it that way.
         return src_uri;
+        }
     }
     path = localPath( src_uri );
     if (0 == src_uri.find("file:///"))
@@ -277,8 +309,31 @@ ifdh::copyBackOutput(string dest_dir) {
 // logging
 int 
 ifdh::log( string message ) {
+
   if (!numsg::getMsg()) {
-      numsg::init(getexperiment(),1);
+      const char *user;
+      (user = getenv("GRID_USER")) || (user = getenv("USER"))|| (user = "unknown");
+      string idstring(user);
+      idstring += "/";
+      idstring += getexperiment();
+      if (getenv("POMS_TASK_ID")) {
+          idstring += ':';
+          idstring += getenv("POMS_TASK_ID");
+      }
+      if (getenv("JOBSUBJOBID")) {
+          idstring += '/';
+          idstring += getenv("JOBSUBJOBID");
+      } else {
+	  if (getenv("CLUSTER")) {
+	      idstring += '/';
+	      idstring += getenv("CLUSTER");
+	  }
+	  if (getenv("PROCESS")) {
+	      idstring += '.';
+	      idstring += getenv("PROCESS");
+	  }
+      }
+      numsg::init(idstring.c_str(),0);
   }
   numsg::getMsg()->printf("ifdh: %s", message.c_str());
   return 0;
@@ -353,7 +408,7 @@ clear_timeout() {
     // this isn't exaclty right, we should subtract off
     // the elapsed time(?), but set it to 1 if it's negative.
     alarm(oldalarm);
-    sigaction(SIGALRM, &oldaction, 0);
+    sigaction(SIGALRM, &oldaction, (struct sigaction*)0);
 }
 
 
@@ -368,12 +423,11 @@ int
 set_timeout() {
     int timeoutafter;
     struct sigaction action;
+    memset(&action, 0, sizeof(struct sigaction));
     sigset_t empty;
     sigemptyset(&empty);
     action.sa_handler = handle_timeout;
-    action.sa_restorer = 0;
     action.sa_mask = empty;
-    action.sa_flags = 0;
    
     if (getenv("IFDH_WEB_TIMEOUT")) { 
         timeoutafter = atoi(getenv("IFDH_WEB_TIMEOUT"));
@@ -453,10 +507,11 @@ do_url_lst(int postflag,...) {
             res.push_back(line);
         }
     }
-    clear_timeout();
     } catch( runtime_error &e )  {
+        clear_timeout();
         return empty;
     }
+    clear_timeout();
     delete wap;
     return res;
 }
@@ -512,7 +567,7 @@ string ifdh::startProject( string name, string station,  string defname_or_id,  
   if (name == "" && getenv("SAM_PROJECT"))
       name = getenv("SAM_PROJECT}");
 
-  if (station == "" && getenv("SAM_STATIOn"))
+  if (station == "" && getenv("SAM_STATION"))
       station = getenv("SAM_STATION}");
 
   return do_url_str(1,ssl_uri(_baseuri).c_str(),"startProject","","name",name.c_str(),"station",station.c_str(),"defname",defname_or_id.c_str(),"username",user.c_str(),"group",group.c_str(),"","");
@@ -596,7 +651,7 @@ int ifdh::endProject(string projecturi) {
   return do_url_int(1,projecturi.c_str(),"endProject","","","");
 }
 
-ifdh::ifdh(std::string baseuri) { 
+ifdh::ifdh(std::string baseuri) {
     check_env();
     char *debug = getenv("IFDH_DEBUG");
     if (0 != debug ) { 
@@ -733,9 +788,21 @@ ifdh::more(string loc) {
        if (res2 == 0) {
             execlp( "more", "more", c_where,  NULL);
        } else if (res2 > 0) {
+            // turn off retries
+            char envbuf[] = "IFDH_CP_MAXRETRIES=0\0\0\0\0";
+            const char *was = getenv("IFDH_CP_MAXRETRIES");
+            putenv(envbuf);
+
+            // now fetch the file to the named pipe
             this-> fetchInput(loc);
             waitpid(res2, 0,0);
             unlink(c_where);
+
+            // put back retries
+            if (!was)
+               was = "0";
+            strcpy(envbuf+17,was);
+            putenv(envbuf);
        } else {
             return -1;
        }

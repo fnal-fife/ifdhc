@@ -2150,18 +2150,47 @@ ifdh::lss( std::string loc, int recursion_depth, std::string force) {
     }
     return res;
 }
+
+// figure out how many directories deep a path is
+int count_slashes(std::string loc) {
+    size_t start = 0, p;
+    int res = 0;
+    // if it is a url, start looking further in...
+    if (std::string::npos != (p = loc.find("://"))) {
+        start = p + 4;
+    }
+    while (std::string::npos != (p = loc.find("/", start))) {
+        res = res + 1;
+        start = p + 1;
+    }
+    return res;
+}
    
 int
 ifdh::mkdir_p(string loc, string force, int depth) {
-   if (depth > 5) {
-      std::cerr << "ifdh::mkdir_p: won't make more than 5 levels deep";
-      return -1;
+   _debug && cerr << "mkdir_p(" << loc << "," << force << "," << "," << depth << ")\n";
+   if (depth == -1) {
+      // we weren't given a depth, assume first 3 dirs
+      // from root must exist -- i.e /nova/app/users or
+      // /pnfs/experiment/scratch...
+      depth = count_slashes(loc) - 3;
+      _debug && cerr << "mkdir_l: depth is " << depth << "\n";
    }
+   if (depth == 0) {
+      return 0;
+   }
+
    std::vector<std::string> res = ls(loc, 0, force);
    if (res.size() == 0) {
+      int m;
       // parent does not exist
-      mkdir_p(parent_dir(loc), force, depth + 1);
-      return mkdir(loc, force);
+      mkdir_p(parent_dir(loc), force, depth - 1 );
+      try {
+         m = mkdir(loc, force);
+      } catch (exception e) {
+         m = -1;
+      }
+      return m;
    } else {
       return 0;
    }

@@ -113,6 +113,7 @@ class ifdh_cp_cases(unittest.TestCase):
     def setUp(self):
         os.environ['IFDH_CP_MAXRETRIES'] = "2"
         os.environ['EXPERIMENT'] =  ifdh_cp_cases.experiment
+        os.environ['SAVE_CPN_DIR'] = os.environ['CPN_DIR']
         os.environ['CPN_DIR'] = '/no/such/dir'
         self.ifdh_handle = ifdh.ifdh(base_uri_fmt % ifdh_cp_cases.experiment)
         self.hostname = socket.gethostname()

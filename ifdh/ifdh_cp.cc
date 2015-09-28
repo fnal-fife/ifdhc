@@ -2218,8 +2218,8 @@ ifdh::mkdir(string loc, string force) {
 
     _debug && std::cerr << "running: " << cmd.str() << endl;
 
-    // retry, but only 3 times...
-    int status = retry_system(cmd.str().c_str(), 0, locker, 3);
+    // retry, but only 1 time...
+    int status = retry_system(cmd.str().c_str(), 0, locker, 1);
     if (WIFSIGNALED(status)) throw( std::logic_error("signalled while doing mkdir"));
     if (WIFEXITED(status) && WEXITSTATUS(status) != 0) throw( std::logic_error("mkdir failed"));
     return 0;

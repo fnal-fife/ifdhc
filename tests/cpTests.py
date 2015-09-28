@@ -111,7 +111,7 @@ class ifdh_cp_cases(unittest.TestCase):
 
        
     def setUp(self):
-        os.environ['IFDH_CP_MAXRETRIES'] = "2"
+        os.environ['IFDH_CP_MAXRETRIES'] = "1"
         os.environ['EXPERIMENT'] =  ifdh_cp_cases.experiment
         os.environ['SAVE_CPN_DIR'] = os.environ['CPN_DIR']
         os.environ['CPN_DIR'] = '/no/such/dir'

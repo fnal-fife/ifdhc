@@ -20,6 +20,11 @@
 #include <map>
 #include "../util/Checksum.h"
 #include <setjmp.h>
+#include <memory>
+
+#if __cplusplus <= 199711L
+#define unique_ptr auto_ptr
+#endif
 
 using namespace std;
 
@@ -396,69 +401,67 @@ do_url_2(int postflag, va_list ap) {
     return new WebAPI(urls, postflag, postdatas);
 }
 
-// this should probably all be in the WebAPI...
-// then it would be thread-safe-ish
-//static sighandler_t savesig;
-jmp_buf jump_here;
-static struct sigaction oldaction;
-int oldalarm;
-
-void
-clear_timeout() {
-    // this isn't exaclty right, we should subtract off
-    // the elapsed time(?), but set it to 1 if it's negative.
-    alarm(oldalarm);
-    sigaction(SIGALRM, &oldaction, (struct sigaction*)0);
-}
-
 
 void
 handle_timeout(int what) {
-    clear_timeout();
     what = what;
-    longjmp(jump_here, 1);
+    std::cerr << "Timeout in ifdh web call\n";
+    throw std::runtime_error("Timeout in ifdh web call");
 }
 
-int
-set_timeout() {
-    int timeoutafter;
-    struct sigaction action;
-    memset(&action, 0, sizeof(struct sigaction));
-    sigset_t empty;
-    sigemptyset(&empty);
-    action.sa_handler = handle_timeout;
-    action.sa_mask = empty;
-   
-    if (getenv("IFDH_WEB_TIMEOUT")) { 
-        timeoutafter = atoi(getenv("IFDH_WEB_TIMEOUT"));
-    } else { 
-        timeoutafter = 3*60*60;
+
+// make a timeout class so we never forget to 
+// clean up our siglarm, even if we catch an exception
+//
+class timeoutobj {
+    struct sigaction oldaction;
+    int oldalarm;
+
+    void
+    set_timeout() {
+	int timeoutafter;
+	struct sigaction action;
+	memset(&action, 0, sizeof(struct sigaction));
+	sigset_t empty;
+	sigemptyset(&empty);
+	action.sa_handler = handle_timeout;
+	action.sa_mask = empty;
+       
+	if (getenv("IFDH_WEB_TIMEOUT")) { 
+	    timeoutafter = atoi(getenv("IFDH_WEB_TIMEOUT"));
+	} else { 
+	    timeoutafter = 3*60*60;
+	}
+        ifdh::_debug && std::cerr << "set_timeout: setting alarm to " << timeoutafter << "\n";
+	sigaction(SIGALRM, &action, &oldaction);
+	oldalarm = alarm(timeoutafter);
     }
-    if (setjmp(jump_here)) {
-       std::cerr << "Timeout in ifdh web call\n";
-       throw std::runtime_error("Timeout in ifdh web call");
+
+    void
+    clear_timeout() {
+        ifdh::_debug && std::cerr << "set_timeout: setting alarm to " << oldalarm  << "\n";
+	alarm(oldalarm);
+	sigaction(SIGALRM, &oldaction, (struct sigaction*)0);
     }
-    sigaction(SIGALRM, &action, &oldaction);
-    oldalarm = alarm(timeoutafter);
-    return 0;
-}
+public:
+    timeoutobj() { set_timeout(); };
+    ~timeoutobj() { clear_timeout(); };
+};
 
 int
 do_url_int(int postflag, ...) {
     va_list ap;
     int res;
-    WebAPI *wap;
+
     va_start(ap, postflag);
     try {
-    set_timeout();
-    wap = do_url_2(postflag, ap);
-    res = wap->getStatus() - 200;
-    clear_timeout();
+       class timeoutobj to;
+       unique_ptr<WebAPI> wap(do_url_2(postflag, ap));
+       res = wap->getStatus() - 200;
     } catch( exception &e )  {
-       return 300;
+       res = 300;
     }
     if (ifdh::_debug) std::cerr << "got back int result: " << res << "\n";
-    delete wap;
     return res;
 }
 
@@ -468,25 +471,22 @@ do_url_str(int postflag,...) {
     va_list ap;
     string res("");
     string line;
-    WebAPI *wap;
     try {
-    set_timeout();
-    va_start(ap, postflag);
-    wap = do_url_2(postflag, ap);
-    while (!wap->data().eof() && !wap->data().fail()) {
-      getline(wap->data(), line);
-      if (wap->data().eof()) {
-         res = res + line;
-      } else {
-         res = res + line + "\n";
-      }
-    }
-    clear_timeout();
+        class timeoutobj to;
+	va_start(ap, postflag);
+	unique_ptr<WebAPI> wap(do_url_2(postflag, ap));
+	while (!wap->data().eof() && !wap->data().fail()) {
+	    getline(wap->data(), line);
+	    if (wap->data().eof()) {
+		 res = res + line;
+	    } else {
+		 res = res + line + "\n";
+	    }
+	}
     } catch( exception &e )  {
        return "";
     }
     if (ifdh::_debug) std::cerr << "got back string result: " << res << "\n";
-    delete wap;
     return res;
 }
 
@@ -496,23 +496,19 @@ do_url_lst(int postflag,...) {
     string line;
     vector<string> empty;
     vector<string> res;
-    WebAPI *wap;
     try {
-    set_timeout();
-    va_start(ap, postflag);
-    wap = do_url_2(postflag, ap);
-    while (!wap->data().eof() && !wap->data().fail()) {
-        getline(wap->data(), line);
-        if (! (line == "" && wap->data().eof())) {
-            res.push_back(line);
-        }
-    }
-    } catch( runtime_error &e )  {
-        clear_timeout();
+        class timeoutobj to;
+	va_start(ap, postflag);
+	unique_ptr<WebAPI> wap(do_url_2(postflag, ap));
+	while (!wap->data().eof() && !wap->data().fail()) {
+	    getline(wap->data(), line);
+	    if (! (line == "" && wap->data().eof())) {
+		res.push_back(line);
+	    }
+	}
+    } catch( exception &e )  {
         return empty;
     }
-    clear_timeout();
-    delete wap;
     return res;
 }
 

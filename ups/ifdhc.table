@@ -7,6 +7,7 @@ Product=ifdhc
 # p276 -> python v2_7_6 (e5)
 # p278 -> python v2_7_8 (e6 & e5)
 # p279 -> python v2_7_9 (e6 & e7)
+# p2710 -> python v2_7_10 (e7 & e9)
 
 Group:
 
@@ -42,6 +43,45 @@ Group:
 
      Action=ExtraSetup
 
+Flavor=ANY
+Qualifiers=p2710:e9:debug
+
+  Action=DefineFQ
+    EnvSet(IFDHC_FQ_DIR, ${UPS_PROD_DIR}/${UPS_PROD_FLAVOR}-p2710-e9-debug )
+
+  Action = ExtraSetup
+    setupRequired( python v2_7_10 )
+    setupRequired( gcc v4_9_3 )
+
+Flavor=ANY
+Qualifiers=p2710:e9:prof
+
+  Action=DefineFQ
+    EnvSet(IFDHC_FQ_DIR, ${UPS_PROD_DIR}/${UPS_PROD_FLAVOR}-p2710-e9-prof )
+
+  Action = ExtraSetup
+    setupRequired( python v2_7_10 )
+    setupRequired( gcc v4_9_3 )
+
+Flavor=ANY
+Qualifiers=p2710:e7:debug
+
+  Action=DefineFQ
+    EnvSet(IFDHC_FQ_DIR, ${UPS_PROD_DIR}/${UPS_PROD_FLAVOR}-p2710-e7-debug )
+
+  Action = ExtraSetup
+    setupRequired( python v2_7_10 )
+    setupRequired( gcc v4_9_2 )
+
+Flavor=ANY
+Qualifiers=p2710:e7:prof
+
+  Action=DefineFQ
+    EnvSet(IFDHC_FQ_DIR, ${UPS_PROD_DIR}/${UPS_PROD_FLAVOR}-p2710-e7-prof )
+
+  Action = ExtraSetup
+    setupRequired( python v2_7_10 )
+    setupRequired( gcc v4_9_2 )
 
 Flavor=ANY
 Qualifiers=p279:e7:debug

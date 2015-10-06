@@ -1993,7 +1993,7 @@ ifdh::lss( std::string loc, int recursion_depth, std::string force) {
        dir = loc.substr(dpos);
        base = base + dir;
     } else if (use_http) {
-       cmd << "www_ls.sh "; 
+       cmd << "www_cp.sh --ls "; 
     } else if (use_irods) {
        cmd << "ils  ";
        if (recursion_depth > 1) {
@@ -2238,7 +2238,7 @@ ifdh::mkdir(string loc, string force) {
     if (use_gridftp) cmd << "uberftp -mkdir ";
     if (use_srm)     cmd << "srmmkdir -2 ";
     if (use_irods)   cmd << "imkdir ";
-    if (use_http)   cmd << "www_mkdir.sh ";
+    if (use_http)   cmd << "www_cp.sh --mkdir ";
     if (use_s3)      cmd << "aws s3 mb ";
 
     cmd << loc;
@@ -2268,7 +2268,7 @@ ifdh::rm(string loc, string force) {
     if (use_gridftp) cmd << "uberftp -rm ";
     if (use_srm)     cmd << "srmrm -2 ";
     if (use_irods)   cmd << "irm ";
-    if (use_http)   cmd << "www_rm.sh ";
+    if (use_http)   cmd << "www_cp.sh --rm ";
     if (use_s3)   cmd << "aws s3 rm ";
 
     cmd << loc;
@@ -2297,7 +2297,7 @@ ifdh::rmdir(string loc, string force) {
     if (use_gridftp) cmd << "uberftp -rmdir ";
     if (use_srm)     cmd << "srmrmdir -2 ";
     if (use_irods)   cmd << "irm ";
-    if (use_http)   cmd << "www_rm.sh ";
+    if (use_http)   cmd << "www_cp.sh --rmdir ";
     if (use_s3)   cmd << "aws s3 rb ";
 
     cmd << loc;
@@ -2345,7 +2345,7 @@ ifdh::chmod(string mode, string loc, string force) {
     //if (use_srm)     cmd << "srm-permission-set ";
     if (use_srm)     cmd << "srm-set-permissions ";
     if (use_irods)   cmd << "ichmod ";
-    if (use_http)   cmd << "www_chmod.sh ";
+    if (use_http)   cmd << "www_cp.sh --chmod ";
     if (use_s3)   cmd << "aws s3 chmod "; // does this actually exist?
 
     if (use_srm) {
@@ -2413,7 +2413,7 @@ ifdh::rename(string loc, string loc2, string force) {
     if (use_gridftp) cmd << "uberftp -rename ";
     if (use_srm)     cmd << "srmmv ";
     if (use_irods)   cmd << "imv ";
-    if (use_http)    cmd << "www_mv.sh ";
+    if (use_http)    cmd << "www_cp.sh --mv ";
     if (use_s3)      cmd << "aws s3 mv ";
 
     // uberftp doesn't want the second argument to be a full uri, 

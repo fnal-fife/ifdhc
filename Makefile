@@ -28,6 +28,7 @@ install-libs: all
 	test -d $(DESTDIR)bin || mkdir -p $(DESTDIR)bin 	
 	cp ifdh/ifdh $(DESTDIR)bin
 	[ -r ifdh/ifdh_copyback.sh ] && cp ifdh/ifdh_copyback.sh $(DESTDIR)bin || cp ../ifdh/ifdh_copyback.sh $(DESTDIR)bin
+	[ -r ifdh/www_cp.sh ] && cp ifdh/www_cp.sh $(DESTDIR)bin || cp ../ifdh/www_cp.sh $(DESTDIR)bin
 
 install-headers:
 	rm -rf $(DESTDIR)inc

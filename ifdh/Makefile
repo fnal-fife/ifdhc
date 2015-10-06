@@ -27,6 +27,7 @@ install:
 	cp $(LIB) ../lib
 	cp $(HDR) ../include
 	cp python/* ../lib/python
+	cp www_cp.sh ../bin
 
 clean: 
 	rm -f $(OBJ) $(genOBJ) $(genSRC) $(LIB) libifdh.a

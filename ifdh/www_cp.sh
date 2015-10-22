@@ -19,4 +19,8 @@ http*//*\;/*)
 http*://*\;|http*://*)
     curl $curlopts -o - "$1" | curl $curlopts  -T - "$2"
     ;;
+--ls*|--mv*|--rmdir*|--mkdir*|--chmod*)
+    echo "Not yet implemented"
+    exit 1
+    ;;
 esac

@@ -109,7 +109,7 @@ WebAPI::parseurl(std::string url) throw(WebAPIException) {
 // in a file and returning that.
 
 WebAPI::WebAPI(std::string url, int postflag, std::string postdata) throw(WebAPIException) {
-     int s;			// unix socket file descriptor
+     int s = -1;		// unix socket file descriptor
      WebAPI::parsed_url pu;     // parsed url.
      // struct sockaddr_storage server; // connection address struct
      struct addrinfo *addrp;   // getaddrinfo() result
@@ -215,10 +215,11 @@ WebAPI::WebAPI(std::string url, int postflag, std::string postdata) throw(WebAPI
 		throw(WebAPIException(url,"MemoryError: new failed"));
 	     }
 	     _tosite.std::ios::rdbuf(buf_out);
-
-
-	     close(s);		      // don't need original dd anymore...
 	     // end of black magic
+
+             if (s != -1) {
+	        close(s);	     // don't need original dd anymore...
+             }
          } else if (pu.type == "https") {
 
             // XXX How do we detect/retry https fails?

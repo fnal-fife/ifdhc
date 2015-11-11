@@ -3,7 +3,7 @@ UNAME:= $(shell uname -s)
 ifeq ($(UNAME),Darwin)
 SHLIB=dylib
 else
-SHLIB=so 
+SHLIB=so
 endif
 
 SUBDIRS= util numsg ifdh

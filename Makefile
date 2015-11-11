@@ -30,7 +30,7 @@ install: install-headers install-libs
 
 install-libs: all
 	rm -rf $(DESTDIR)lib 
-	test -d $(DESTDIR)lib || mkdir -p  $(DESTDIR)lib && (cp [inu]*/*.{${SHLIB},a} $(DESTDIR)lib || cp [inu]*/*.{dylib,a} $(DESTDIR)lib)
+	test -d $(DESTDIR)lib || mkdir -p  $(DESTDIR)lib && (cp [inu]*/*.{${SHLIB},a} $(DESTDIR)lib || cp [inu]*/*.{${SHLIB},a} $(DESTDIR)lib)
 	test -d $(DESTDIR)lib/python || mkdir -p  $(DESTDIR)lib/python 
 	cp ifdh/python/_ifdh.$(SHLIB) $(DESTDIR)lib/python
 	cp ifdh/python/ifdh.py $(DESTDIR)lib/python

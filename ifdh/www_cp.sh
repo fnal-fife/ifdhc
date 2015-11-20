@@ -12,6 +12,11 @@ then
 fi
 
 
+#
+# workaround ucondb vs "ifdh cp -D foo http://ucondb_url/folder=x/object="
+# putting a slash after the =
+#
+dst=`echo "$dst" | sed -e 's;/object=/;/object=;'`
 
 #echo "$src;$dst"
 

@@ -5,7 +5,7 @@
 src="$1"
 dst="$2"
 
-curlopts="-L --silent"
+curlopts="-f -L --silent"
 if [ -r "${X509_USER_PROXY:=/tmp/x509up_u`id -u`}" ]
 then
     curlopts="$curlopts --cert $X509_USER_PROXY --key $X509_USER_PROXY --cacert $X509_USER_PROXY --capath ${X509_CERT_DIR:=/etc/grid-security}"
@@ -22,7 +22,7 @@ dst=`echo "$dst" | sed -e 's;/object=/;/object=;'`
 
 case "$src;$dst" in 
 http*//*\;/*) 
-    curl $curlopts -o "$dst" "$src"
+    curl $curlopts -o "$dst.new" "$src" 
     ;;
 /*\;http*://*|/*\;https://) 
     curl $curlopts -T "$src" "$dst"

@@ -1089,6 +1089,7 @@ ifdh::cp( std::vector<std::string> args ) {
            && args[i].find("srm:") != 0 
            && args[i].find("http:") != 0 
            && args[i].find("https:") != 0 
+           && args[i].find("ucondb:") != 0 
            && args[i].find("gsiftp:") != 0 
            && args[i].find("s3:") != 0 
            && args[i].find("i:") != 0 
@@ -1223,7 +1224,7 @@ ifdh::cp( std::vector<std::string> args ) {
                use_s3 = true; 
                break; 
             }
-            if( args[i].find("http:") == 0 || args[i].find("https:") == 0 ) { 
+            if( args[i].find("http:") == 0 || args[i].find("https:") == 0 || args[i].find("ucondb:") ) { 
                use_cpn = false; 
                use_srm = false;
                use_http = true; 

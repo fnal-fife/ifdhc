@@ -11,6 +11,12 @@ then
     curlopts="$curlopts --cert $X509_USER_PROXY --key $X509_USER_PROXY --cacert $X509_USER_PROXY --capath ${X509_CERT_DIR:=/etc/grid-security}"
 fi
 
+#
+# convert ucondb urls into real urls
+#
+ucondb_loc="http://dbdata0vm.fnal.gov:8201/ucondb_demo/app/data"
+dst=`echo "$dst" | sed -e "s;^ucondb:/*\\(.*\\)/\\(.*\\);$ucondb_loc/folder=\\1/object=\\2;"`
+src=`echo "$src" | sed -e "s;^ucondb:/*\\(.*\\)/\\(.*\\);$ucondb_loc/folder=\\1/object=\\2;"`
 
 #
 # workaround ucondb vs "ifdh cp -D foo http://ucondb_url/folder=x/object="

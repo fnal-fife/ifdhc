@@ -17,7 +17,7 @@ fi
 ucondb_loc="http://dbdata0vm.fnal.gov:8201"
 ucondb_convert() {
    echo $1 | 
-       sed -e "s;^ucondb:/*\\(.*\\)/\\(.*\\);$ucondb_loc/\\1_ucon_prod/data/fcl/\\2;"
+       sed -e "s;^ucondb:/*\\(.*\\)/\\(.*\\);$ucondb_loc/\\1_ucon_prod/app/data/test/\\2;"
 }
 
 dst=`ucondb_convert "$dst"`

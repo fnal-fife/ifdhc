@@ -14,26 +14,25 @@ fi
 #
 # convert ucondb urls into real urls
 #
-ucondb_loc="http://dbdata0vm.fnal.gov:8201/ucondb_demo/app/data"
-dst=`echo "$dst" | sed -e "s;^ucondb:/*\\(.*\\)/\\(.*\\);$ucondb_loc/folder=\\1/object=\\2;"`
-src=`echo "$src" | sed -e "s;^ucondb:/*\\(.*\\)/\\(.*\\);$ucondb_loc/folder=\\1/object=\\2;"`
+ucondb_loc="http://dbdata0vm.fnal.gov:8201"
+ucondb_convert() {
+   echo $1 | 
+       sed -e "s;^ucondb:/*\\(.*\\)/\\(.*\\);$ucondb_loc/\\1_ucon_prod/data/fcl/\\2;"
+}
 
-#
-# workaround ucondb vs "ifdh cp -D foo http://ucondb_url/folder=x/object="
-# putting a slash after the =
-#
-dst=`echo "$dst" | sed -e 's;/object=/;/object=;'`
+dst=`ucondb_convert "$dst"`
+src=`ucondb_convert "$src"`
 
-#echo "$src;$dst"
+echo "$src;$dst"
 
 case "$src;$dst" in 
 http*//*\;/*) 
-    curl $curlopts -o "$dst.new" "$src" 
+    curl $curlopts -o "$dst" "$src" 
     ;;
-/*\;http*://*|/*\;https://) 
+/*\;http*://*) 
     curl $curlopts -T "$src" "$dst"
     ;;
-http*://*\;|http*://*)
+http*://*\;http*://*)
     curl $curlopts -o - "$src" | curl $curlopts  -T - "$dst"
     ;;
 --ls*|--mv*|--rmdir*|--mkdir*|--chmod*)

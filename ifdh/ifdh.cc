@@ -649,6 +649,7 @@ int ifdh::endProject(string projecturi) {
 
 ifdh::ifdh(std::string baseuri) {
     check_env();
+    _have_gfal = (0 == system("gfal-copy --help > /dev/null 2>&1"));
     char *debug = getenv("IFDH_DEBUG");
     if (0 != debug ) { 
         std::cerr << "IFDH_DEBUG=" << debug << " => " << atoi(debug) << "\n";
@@ -660,6 +661,7 @@ ifdh::ifdh(std::string baseuri) {
        _baseuri = baseuri;
     }
     _debug && std::cerr << "ifdh constructor: _baseuri is '" << _baseuri << "'\n";
+    _debug && std::cerr << "ifdh constructor: _have_gfal == " << _have_gfal << "\n";
 }
 
 void

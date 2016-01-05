@@ -536,7 +536,8 @@ ifdh::build_stage_list(std::vector<std::string> args, int curarg, char *stage_vi
    return res;
 }
 
-const char *srm_copy_command = "gfal-copy -f --just-copy -t 4000 ";
+const char *srm_copy_command = "lcg-cp  --sendreceive-timeout 4000 -b -D srmv2 ";
+const char *srm_copy_command_gfal = "gfal-copy -f --just-copy -t 4000 ";
 const char *gridftp_copy_command =  "globus-url-copy -rst-retries 1 -gridftp2 -nodcau -restart -stall-timeout 14400 ";
 
 bool 
@@ -1199,7 +1200,7 @@ ifdh::cp( std::vector<std::string> args ) {
                use_s3 = true; 
                break; 
             }
-            if( args[i].find("http:") == 0 || args[i].find("https:") == 0 || args[i].find("ucondb:") ) { 
+            if( args[i].find("http:") == 0 || args[i].find("https:") == 0 || args[i].find("ucondb:") == 0 ) { 
                use_cpn = false; 
                use_srm = false;
                use_http = true; 
@@ -1398,7 +1399,7 @@ ifdh::cp( std::vector<std::string> args ) {
 
          cmd << (use_dd ? "dd bs=512k " : 
                  use_cpn ? "cp "  : 
-                 use_srm ? srm_copy_command  : 
+                 use_srm ? (_have_gfal ? srm_copy_command_gfal : srm_copy_command) : 
                  use_any_gridftp ? gridftp_copy_command :  
                  use_irods ? "icp " :  
                  use_http ? "www_cp.sh " :  
@@ -1713,7 +1714,7 @@ ifdh::mv(vector<string> args) {
                 _debug && std::cerr << "unlinking: " << s << endl;
                 unlink(s.c_str());
             } else {
-                string srmcmd("gfal-rm ");
+                string srmcmd(_have_gfal? "gfal-rm ":"srmrm -2");
                 srmcmd +=  bestman_srm_uri + s + " ";
                 _debug && std::cerr << "running: " << srmcmd << endl;
                 res = system(srmcmd.c_str());
@@ -1865,8 +1866,13 @@ ifdh::ll( std::string loc, int recursion_depth, std::string force) {
 
     if (use_srm) {
        setenv("SRM_JAVA_OPTIONS", "-Xmx1024m" ,0);
+
+       if (_have_gfal) {
        cmd << "gfal-ls -l ";
-       // cmd << "--recursion_depth " << recursion_depth << " ";
+       } else {
+       cmd << "srmls -l -2 -count=8192 ";
+       cmd << "--recursion_depth " << recursion_depth << " ";
+       }
        cmd << loc;
     } else if (use_s3) {
        cmd << "aws s3 ls --human-readable --summarize ";
@@ -2211,7 +2217,8 @@ ifdh::mkdir(string loc, string force) {
 
     if (use_fs)      cmd << "mkdir ";
     if (use_gridftp) cmd << "uberftp -mkdir ";
-    if (use_srm)     cmd << "gfal-mkdir -2 ";
+    if (use_srm && _have_gfal)     cmd << "gfal-mkdir ";
+    if (use_srm && !_have_gfal)    cmd << "srmmkdir -2 ";
     if (use_irods)   cmd << "imkdir ";
     if (use_http)   cmd << "www_cp.sh --mkdir ";
     if (use_s3)      cmd << "aws s3 mb ";
@@ -2241,7 +2248,8 @@ ifdh::rm(string loc, string force) {
 
     if (use_fs)      cmd << "rm ";
     if (use_gridftp) cmd << "uberftp -rm ";
-    if (use_srm)     cmd << "gfal-rm -2 ";
+    if (use_srm && _have_gfal)      cmd << "gfal-rm ";
+    if (use_srm && !_have_gfal)     cmd << "srmrm -2 ";
     if (use_irods)   cmd << "irm ";
     if (use_http)   cmd << "www_cp.sh --rm ";
     if (use_s3)   cmd << "aws s3 rm ";
@@ -2270,7 +2278,8 @@ ifdh::rmdir(string loc, string force) {
 
     if (use_fs)      cmd << "rmdir ";
     if (use_gridftp) cmd << "uberftp -rmdir ";
-    if (use_srm)     cmd << "gfal-rmdir -2 ";
+    if (use_srm&& _have_gfal)       cmd << "gfal-rmdir ";
+    if (use_srm&& !_have_gfal)      cmd << "srmrmdir -2 ";
     if (use_irods)   cmd << "irm ";
     if (use_http)   cmd << "www_cp.sh --rmdir ";
     if (use_s3)   cmd << "aws s3 rb ";
@@ -2318,12 +2327,13 @@ ifdh::chmod(string mode, string loc, string force) {
     // -- note srm-set-permissions gives errors about ACL support
     //    from DCache SRM. So we don't do that now.
     //if (use_srm)     cmd << "srm-permission-set ";
-    if (use_srm)     cmd << "srm-chmod ";
+    if (use_srm && _have_gfal)     cmd << "gfal-chmod ";
+    if (use_srm && !_have_gfal)    cmd << "srm-chmod ";
     if (use_irods)   cmd << "ichmod ";
     if (use_http)   cmd << "www_cp.sh --chmod ";
     if (use_s3)   cmd << "aws s3 chmod "; // does this actually exist?
 
-    if (false) {
+    if (use_srm && !_have_gfal) {
        int imode = strtol(mode.c_str(), 0, 8);
        cmd << "-type=CHANGE ";
        cmd << "-owner=" << mbits((imode >> 6) & 7) << " ";
@@ -2366,7 +2376,7 @@ ifdh::pin(string loc, long int secs) {
     _debug && std::cerr << "running: " << cmd.str() << endl;
 
     int status = system(cmd.str().c_str());
-    if (WIFSIGNALED(status)) throw( std::logic_error("signalled while doing rmdir"));
+    if (WIFSIGNALED(status)) throw( std::logic_error("signalled while doing pin"));
     // if (WIFEXITED(status) && WEXITSTATUS(status) != 0) throw( std::logic_error("rmdir failed"));
     return WEXITSTATUS(status);
 }
@@ -2386,7 +2396,8 @@ ifdh::rename(string loc, string loc2, string force) {
 
     if (use_fs)      cmd << "mv ";
     if (use_gridftp) cmd << "uberftp -rename ";
-    if (use_srm)     cmd << "gfal-rename ";
+    if (use_srm && _have_gfal)     cmd << "gfal-rename ";
+    if (use_srm && !_have_gfal)     cmd << "srmmv ";
     if (use_irods)   cmd << "imv ";
     if (use_http)    cmd << "www_cp.sh --mv ";
     if (use_s3)      cmd << "aws s3 mv ";

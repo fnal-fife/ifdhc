@@ -2287,7 +2287,7 @@ ifdh::rmdir(string loc, string force) {
 
     if (use_fs)      cmd << "rmdir ";
     if (use_gridftp) cmd << "uberftp -rmdir ";
-    if (use_srm&& _have_gfal)       cmd << "gfal-rmdir ";
+    if (use_srm&& _have_gfal)       cmd << "gfal-rm -r ";
     if (use_srm&& !_have_gfal)      cmd << "srmrmdir -2 ";
     if (use_irods)   cmd << "irm ";
     if (use_http)   cmd << "www_cp.sh --rmdir ";

@@ -11,13 +11,18 @@ then
     curlopts="$curlopts --cert $X509_USER_PROXY --key $X509_USER_PROXY --cacert $X509_USER_PROXY --capath ${X509_CERT_DIR:=/etc/grid-security}"
 fi
 
+if [ x$IFDH_UCONDB_UPASS != x ]
+then
+   curlopts="$curlopts --digest -u $IFDH_UCONDB_UPASS "
+fi
+
 #
 # convert ucondb urls into real urls
 #
 ucondb_loc="http://dbdata0vm.fnal.gov:8201"
 ucondb_convert() {
    echo $1 | 
-       sed -e "s;^ucondb:/*\\(.*\\)/\\(.*\\);$ucondb_loc/\\1_ucon_prod/app/data/test/\\2;"
+       sed -e "s;^ucondb:/*\\(.*\\)/\\(.*\\)/\\(.*\\);$ucondb_loc/\\1_ucon_prod/app/data/\\2/\\3;"
 }
 
 dst=`ucondb_convert "$dst"`

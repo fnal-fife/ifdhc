@@ -1955,10 +1955,17 @@ ifdh::lss( std::string loc, int recursion_depth, std::string force) {
 
     _debug && cerr << "after pick_type, loc is " << loc << "\n";
 
-    if (use_srm) {
+    if (use_srm && !_have_gfal) {
+       cmd << "srmls -2 -count=8192";
+       cmd << "--recursion_depth " << recursion_depth << " ";
+       cmd << loc;
+    } else if (use_srm && _have_gfal) {
        cmd << "gfal-ls ";
        // cmd << "--recursion_depth " << recursion_depth << " ";
        cmd << loc;
+       base = origloc;
+       if (base[base.size()-1] != '/')
+           base = base + "/";
     } else if (use_s3) {
        cmd << "aws s3 ls  ";
        if (recursion_depth > 1) {
@@ -2006,7 +2013,9 @@ ifdh::lss( std::string loc, int recursion_depth, std::string force) {
     if (spos != string::npos) {
       dir_last = dir.substr(spos+1);
     }
+
     _debug && std::cerr << "dir_last: " << dir_last << endl;
+    _debug && std::cerr << "base: " << base << endl;
     _debug && std::cerr << "ifdh ls: running: " << cmd.str() << endl;
 
     FILE *pf = popen(cmd.str().c_str(), "r");

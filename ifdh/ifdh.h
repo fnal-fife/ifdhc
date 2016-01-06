@@ -16,6 +16,7 @@ class ifdh {
         std::string _lastinput;
         std::string unique_string();
         std::vector<std::string> build_stage_list( std::vector<std::string>, int, char *stage_via);
+        bool _have_gfal;
    public:
         static int _debug;
         static std::string _default_base_uri;

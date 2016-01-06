@@ -33,6 +33,10 @@ class ifdh_lock_cases(unittest.TestCase):
         self.lockbase = '/nusoft/app/home'
         self.lockgroup = 'ifmon'
         self.lock = '%s/%s/LOCK' % (self.lockbase, self.lockgroup)
+        # put CPN_DIR back if cpTests hid it...
+        if os.environ.has_key('SAVE_CPN_DIR'):
+            os.environ['CPN_DIR'] = os.environ['SAVE_CPN_DIR']
+        os.environ['CPN_DIR'] = '/no/such/dir'
         os.environ['CPN_LOCK_BASE'] = self.lockbase
         os.environ['CPN_LOCK_GROUP'] = self.lockgroup
         self.limit = '%s/limit' % self.lock

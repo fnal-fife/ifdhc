@@ -1,4 +1,11 @@
 
+UNAME:= $(shell uname -s)
+ifeq ($(UNAME),Darwin)
+SHLIB=dylib
+else
+SHLIB=so
+endif
+
 SUBDIRS= util numsg ifdh
 
 all: 
@@ -23,11 +30,14 @@ install: install-headers install-libs
 
 install-libs: all
 	rm -rf $(DESTDIR)lib 
-	test -d $(DESTDIR)lib || mkdir -p  $(DESTDIR)lib && (cp [inu]*/*.{so,a} $(DESTDIR)lib || cp [inu]*/*.{dylib,a} $(DESTDIR)lib)
-	test -d $(DESTDIR)lib/python || mkdir -p  $(DESTDIR)lib/python && cp ifdh/python/*  $(DESTDIR)lib/python
+	test -d $(DESTDIR)lib || mkdir -p  $(DESTDIR)lib && (cp [inu]*/*.{${SHLIB},a} $(DESTDIR)lib || cp [inu]*/*.{${SHLIB},a} $(DESTDIR)lib)
+	test -d $(DESTDIR)lib/python || mkdir -p  $(DESTDIR)lib/python 
+	cp ifdh/python/_ifdh.$(SHLIB) $(DESTDIR)lib/python
+	cp ifdh/python/ifdh.py $(DESTDIR)lib/python
 	test -d $(DESTDIR)bin || mkdir -p $(DESTDIR)bin 	
 	cp ifdh/ifdh $(DESTDIR)bin
 	[ -r ifdh/ifdh_copyback.sh ] && cp ifdh/ifdh_copyback.sh $(DESTDIR)bin || cp ../ifdh/ifdh_copyback.sh $(DESTDIR)bin
+	[ -r ifdh/www_cp.sh ] && cp ifdh/www_cp.sh $(DESTDIR)bin || cp ../ifdh/www_cp.sh $(DESTDIR)bin
 
 install-headers:
 	rm -rf $(DESTDIR)inc

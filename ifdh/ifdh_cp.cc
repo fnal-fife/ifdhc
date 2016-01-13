@@ -1469,12 +1469,6 @@ ifdh::cp( std::vector<std::string> args ) {
              cmd << "-cd ";
          }
 
-         if (args[curarg].size() == 0) {
-            // don' try to issue copies with empty arguments... it never works
-            std::cerr << "Not copying empty string filename\n";
-            continue;
-         }
-
 
          // check if source is local and zero length, and skip if 
          // we were told to not copy empty files.

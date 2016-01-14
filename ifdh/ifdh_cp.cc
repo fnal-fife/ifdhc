@@ -883,8 +883,11 @@ spinoff_copy(ifdh *handle, std::string what, int outbound) {
     const char *c_where = where.c_str();
     int res2 ,res;
     std::vector<std::string> args;
+    ifdh::_debug && cerr << "spinoff_copy: " << what << " to: " << where << "\n";
+    res  = unlink(c_where);  // ignore errors -- probably not there
     res  = mknod(c_where, 0600 | S_IFIFO, 0);
     if (res == 0) {
+       ifdh::_debug && cerr << "\nmade pipe\n";
        res2 = fork();
        if (res2 == 0) {
           if (outbound) {
@@ -1197,23 +1200,38 @@ ifdh::cp( std::vector<std::string> args ) {
             if( args[i].find("s3:") == 0)  { 
                use_cpn = false; 
                use_srm = false;
+               use_http = false;
+               use_any_gridftp = false;
+               use_bst_gridftp = false;
+               use_exp_gridftp = false;
                use_s3 = true; 
                break; 
             }
             if( args[i].find("http:") == 0 || args[i].find("https:") == 0 || args[i].find("ucondb:") == 0 ) { 
                use_cpn = false; 
                use_srm = false;
+               use_any_gridftp = false;
+               use_bst_gridftp = false;
+               use_exp_gridftp = false;
                use_http = true; 
                break; 
             }
             if( args[i].find("i:") == 0)  { 
                use_cpn = false; 
                use_srm = false;
+               use_http = false;
+               use_any_gridftp = false;
+               use_bst_gridftp = false;
+               use_exp_gridftp = false;
                use_irods = true; 
                break; 
             }
             if( args[i].find("srm:") == 0)  { 
                use_cpn = false; 
+               use_http = false;
+               use_any_gridftp = false;
+               use_bst_gridftp = false;
+               use_exp_gridftp = false;
                use_srm = true; 
                _debug && std::cerr << "turning on use_srm case 1" << std::endl;
                break; 
@@ -1222,6 +1240,8 @@ ifdh::cp( std::vector<std::string> args ) {
             if( args[i].find("gsiftp:") == 0) {
                 use_cpn = false; 
                 use_srm = false;
+                use_http = false;
+                use_s3 = false;
                 // don't pick experiment or bestman here we don't
                 // actually know enough to pick; just mark that we
                 // are going to use some gridftp, and go on
@@ -1252,15 +1272,18 @@ ifdh::cp( std::vector<std::string> args ) {
                            
                        if (stage_via && has(stage_via,"srm:")) {
                            use_srm = true;
+                           use_http = false;
                            _debug && cerr << "deciding to use srm due to $IFDH_STAGE_VIA and: " << args[i] << endl;
                            continue;
                        } else if ( has_production_role()) {
                            use_bst_gridftp = true;
+                           use_http = false;
                            use_srm = false;
                            _debug && cerr << "deciding to use bestman gridftp due to production role and : " << args[i] << endl;
                            continue;
                        } else {
 		           use_exp_gridftp = true;
+                           use_http = false;
                            use_srm = false;
                            _debug && cerr << "deciding to use exp gridftp due to: " << args[i] << endl;
                            continue;
@@ -1272,6 +1295,7 @@ ifdh::cp( std::vector<std::string> args ) {
 		   // for non-local sources, default to srm, for throttling (?)
 		   use_cpn = false;
 		   use_bst_gridftp = true;
+                   use_http = false;
 	           _debug && cerr << "deciding to use bestman to: " << args[i] << endl;
                  } 
 		}
@@ -1481,11 +1505,14 @@ ifdh::cp( std::vector<std::string> args ) {
 
             // if we're a cross-protocol copy, we have to copy through
             // a named pipe.
-            _debug && cerr << "checking fro cross protocol copy...\n";
-            _debug && cerr << "use_{srm,any_gridftp,s3} "<< use_srm << use_any_gridftp << use_s3 << "\n";
-            if ( (use_s3 && (args[curarg].find("gsiftp:") == 0 || args[curarg].find("srm:") == 0)) ||
-                (use_srm && (args[curarg].find("s3:") == 0 || args[curarg].find("gsiftp:") == 0)) ||
-                (use_any_gridftp && (args[curarg].find("s3:") == 0 || args[curarg].find(":srm") == 0))) {
+            _debug && cerr << "checking for cross protocol copy...\n";
+            _debug && cerr << "use_{srm,any_gridftp,s3,http} "<< use_srm << use_any_gridftp << use_s3 << use_http << "\n";
+            if ( (use_s3 && (args[curarg].find("gsiftp:") == 0 || args[curarg].find("srm:") == 0 || args[curarg].find("http") == 0)) ||
+                (use_srm && (args[curarg].find("s3:") == 0 || args[curarg].find("gsiftp:") == 0 || args[curarg].find("http:") == 0)) ||
+                (use_any_gridftp && (args[curarg].find("s3:") == 0 || args[curarg].find("srm:") == 0 || args[curarg].find("http") == 0)) ||
+                (use_http && (args[curarg].find("s3:") == 0 || args[curarg].find("srm:") == 0 || args[curarg].find("gsiftp:") == 0))) {
+
+                _debug && cerr << "cross protocol copy:\n";
                 args[curarg] = spinoff_copy(this, args[curarg], (args.size() == curarg + 1 || args[curarg+1] == ";"));
                 cleanup_spinoffs.push_back(args[curarg]);
             }

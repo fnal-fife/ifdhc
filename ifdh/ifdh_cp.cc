@@ -2213,6 +2213,7 @@ ifdh::mkdir_p(string loc, string force, int depth) {
 
 int
 ifdh::mkdir(string loc, string force) {
+    int retries;
     bool use_gridftp = false;
     bool use_srm = false;
     bool use_fs = false;
@@ -2237,7 +2238,12 @@ ifdh::mkdir(string loc, string force) {
     _debug && std::cerr << "running: " << cmd.str() << endl;
 
     // retry, but only 1 time...
-    int status = retry_system(cmd.str().c_str(), 0, locker, 1);
+    if (0 != getenv("IFDH_CP_MAXRETRIES")) {
+        retries = (atoi(getenv("IFDH_CP_MAXRETRIES")) > 0);
+    } else {
+        retries = 1;
+    }
+    int status = retry_system(cmd.str().c_str(), 0, locker, retries);
     if (WIFSIGNALED(status)) throw( std::logic_error("signalled while doing mkdir"));
     if (WIFEXITED(status) && WEXITSTATUS(status) != 0) throw( std::logic_error("mkdir failed"));
     return 0;

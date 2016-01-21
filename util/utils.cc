@@ -17,21 +17,28 @@ char *getexperiment() {
     static char expbuf[MAXEXPBUF];
     char *p1;
     char *penv = getenv("EXPERIMENT");
+    char *senv = getenv("SAM_EXPERIMENT");
     gid_t gid = getgid();
  
     if (penv) {
         return penv;
     }
+    if (senv) {
+        return senv;
+    }
+  
   
     penv = getenv("CONDOR_TMP");
     if (penv) {
          /* if CONDOR_TMP looks like one of ours, use it */
-         p1 = strchr(penv+1, '/');
-         if (p1 && 0 == strncmp(p1, "/data/",6) ) {
-             *p1 = 0;
-             strncpy(expbuf, penv+1, MAXEXPBUF);
-             *p1 = '/';
-             return expbuf;
+         if (0 == strncmp(penv, "/fife/local/scratch/uploads/",28) ) {
+             p1 = strchr(penv+29, '/');
+             if(p1) {
+                 *p1 = 0;
+                 strncpy(expbuf, penv+28, MAXEXPBUF);
+                 *p1 = '/';
+                 return expbuf;
+             }
          }
     }
     switch((int)gid){
@@ -192,16 +199,20 @@ vector_cdr(std::vector<std::string> &vec) {
 }
 
 #ifdef UNITTEST
+#include <stdio.h>
+int
 main() {
     std::string data1("This,is,a,\"Test,with,a\",quoted,string");
-    int i;
     
     std::vector<std::string> res;
 
+    printf("\nexperiment: %s\n", getexperiment());
+
     res = split(data1,',',1);
-    for( i = 0; i<res.size(); i++ ) {
+    for( size_t i = 0; i<res.size(); i++ ) {
          std::cout << "res[" << i << "]: " << res[i] << "\n"; 
     }
+
 }
 #endif
 

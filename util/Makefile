@@ -22,9 +22,12 @@ ifdh_version.h: FORCE
 
 FORCE:
 
+utils-test: utils.cc
+	g++ -o $@ $(TESTDEFS) $(CXXFLAGS) $<
 
 %-test: %.cc
-	g++ -o $@ $(TESTDEFS) $(CXXFLAGS) $< utils.o
+	g++ -o $@ $(TESTDEFS) $(CXXFLAGS) $< $utils.o
+
 
 %.o: %.cc
 	g++ -c -o $@  $(CXXFLAGS) $< 

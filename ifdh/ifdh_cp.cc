@@ -1944,15 +1944,25 @@ std::vector<std::pair<std::string,long> >
 ifdh::try_ls_lR_file( std::string loc ) {
     std::string f;
     std::vector<std::pair<std::string,long> > res;
+    std::vector<std::string> lsout;
     std::vector<std::string> vs;
     long fsize;
-    std::string name, dirname;
+    std::string name, dirname, prefix;
     FILE *pf = 0;
     char buf[512];
     std::stringstream cmd;
+    size_t pos;
 
-
-    try {
+    pos = loc.find("://");
+    if (pos != string::npos) {
+        pos = loc.find("/", pos+4);
+        prefix = loc.substr(0,pos);
+    } else {
+        prefix = "";
+    }
+    
+    lsout = ls(loc + "/ls-lR.gz", 1, "");
+    if (lsout.size() > 0) {
         f = fetchInput(loc + "/ls-lR.gz");
         if (f != "") {
            cmd << "gunzip < " << f;
@@ -1971,7 +1981,7 @@ ifdh::try_ls_lR_file( std::string loc ) {
                   vs = split(s,' ',0,1);
                   if (vs.size() > 7) {
                       fsize = atoi(vs[4].c_str());
-                      s = dirname + "/" + vs[8];
+                      s = prefix + dirname + "/" + vs[8];
                       res.push_back(pair<string,long>(s,fsize));
                   } else {
                        ;
@@ -1980,9 +1990,8 @@ ifdh::try_ls_lR_file( std::string loc ) {
              }
            }
         }
-   } catch (...)  {
-       if (pf) pclose(pf);
    }
+   if (pf) pclose(pf);
 
     return res;
 }

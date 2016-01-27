@@ -1941,6 +1941,53 @@ ifdh::ll( std::string loc, int recursion_depth, std::string force) {
 }
 
 std::vector<std::pair<std::string,long> > 
+ifdh::try_ls_lR_file( std::string loc ) {
+    std::string f;
+    std::vector<std::pair<std::string,long> > res;
+    std::vector<std::string> vs;
+    long fsize;
+    std::string name, dirname;
+    FILE *pf = 0;
+    char buf[512];
+    std::stringstream cmd;
+
+
+    try {
+        f = fetchInput(loc + "/ls-lR.gz");
+        if (f != "") {
+           cmd << "gunzip < " << f;
+           pf = popen(cmd.str().c_str(), "r");
+           while (!feof(pf) && !ferror(pf)) {
+	     if (fgets(buf, 512, pf)) {
+               string s(buf);
+               // chomp()
+               if (s[s.size()-1] == '\n') {
+                  s = s.substr(0,s.size() - 1);
+               }
+               if (s[s.size()-1] == ':') {
+                  // new directory
+                  dirname = s.substr(0,s.size()-1);
+               } else {
+                  vs = split(s,' ',0,1);
+                  if (vs.size() > 7) {
+                      fsize = atoi(vs[4].c_str());
+                      s = dirname + "/" + vs[8];
+                      res.push_back(pair<string,long>(s,fsize));
+                  } else {
+                       ;
+                  }
+               }
+             }
+           }
+        }
+   } catch (...)  {
+       if (pf) pclose(pf);
+   }
+
+    return res;
+}
+
+std::vector<std::pair<std::string,long> > 
 ifdh::lss( std::string loc, int recursion_depth, std::string force) {
 
     std::vector<std::pair<std::string,long> >  res;
@@ -1962,6 +2009,11 @@ ifdh::lss( std::string loc, int recursion_depth, std::string force) {
     if ( -1 == recursion_depth )
         recursion_depth = 1;
 
+    if (recursion_depth > 1 ) {
+        res = try_ls_lR_file(loc);
+        if ( res.size() > 0 )
+            return res;
+    }
 
     cpos = loc.find(':');
     if (cpos > 1 && cpos < 9) {

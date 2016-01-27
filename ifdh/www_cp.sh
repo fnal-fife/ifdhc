@@ -2,10 +2,21 @@
 
 # "cp" style utility for web locations, uses curl...
 
+curlopts="-f -L --silent"
+
+# allow extra curl flags
+
+while :
+do
+case "x$1" in
+x-*)  curlopts="$curlopts $1"; shift;;
+x*)   break;;
+esac
+done
+
 src="$1"
 dst="$2"
 
-curlopts="-f -L --silent"
 if [ -r "${X509_USER_PROXY:=/tmp/x509up_u`id -u`}" ]
 then
     curlopts="$curlopts --cert $X509_USER_PROXY --key $X509_USER_PROXY --cacert $X509_USER_PROXY --capath ${X509_CERT_DIR:=/etc/grid-security}"
@@ -28,7 +39,7 @@ ucondb_convert() {
 dst=`ucondb_convert "$dst"`
 src=`ucondb_convert "$src"`
 
-echo "$src;$dst"
+#echo "$src;$dst"
 
 case "$src;$dst" in 
 http*//*\;/*) 
@@ -41,7 +52,7 @@ http*://*\;http*://*)
     curl $curlopts -o - "$src" | curl $curlopts  -T - "$dst"
     ;;
 --ls*|--mv*|--rmdir*|--mkdir*|--chmod*)
-    echo "Not yet implemented"
+    echo "Not yet implemented" >&2
     exit 1
     ;;
 esac

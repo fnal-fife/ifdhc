@@ -14,6 +14,8 @@ from auxFiles import aux_file_cases
 
 from exitCodes import exitcodecases
 
+from XProto import xproto_cases
+
 def suite():
     os.environ['IFDH_CP_MAXRETRIES'] = '1'
     basesuite = unittest.TestLoader().loadTestsFromTestCase(SAMCases)
@@ -22,7 +24,8 @@ def suite():
     basesuite4 =  unittest.TestLoader().loadTestsFromTestCase(ifdh_lock_cases)
     basesuite5 =   unittest.TestLoader().loadTestsFromTestCase(aux_file_cases)
     basesuite6 =   unittest.TestLoader().loadTestsFromTestCase(exitcodecases)
-    suite = unittest.TestSuite( [basesuite,basesuite2,basesuite3,basesuite4,basesuite5,basesuite6] )
+    basesuite7 =   unittest.TestLoader().loadTestsFromTestCase(xproto_cases)
+    suite = unittest.TestSuite( [basesuite,basesuite2,basesuite3,basesuite4,basesuite5,basesuite6,basesuite7] )
     return suite
 
 if __name__ == '__main__':

@@ -883,8 +883,11 @@ spinoff_copy(ifdh *handle, std::string what, int outbound) {
     const char *c_where = where.c_str();
     int res2 ,res;
     std::vector<std::string> args;
+    ifdh::_debug && cerr << "spinoff_copy: " << what << " to: " << where << "\n";
+    res  = unlink(c_where);  // ignore errors -- probably not there
     res  = mknod(c_where, 0600 | S_IFIFO, 0);
     if (res == 0) {
+       ifdh::_debug && cerr << "\nmade pipe\n";
        res2 = fork();
        if (res2 == 0) {
           if (outbound) {
@@ -1197,23 +1200,38 @@ ifdh::cp( std::vector<std::string> args ) {
             if( args[i].find("s3:") == 0)  { 
                use_cpn = false; 
                use_srm = false;
+               use_http = false;
+               use_any_gridftp = false;
+               use_bst_gridftp = false;
+               use_exp_gridftp = false;
                use_s3 = true; 
                break; 
             }
             if( args[i].find("http:") == 0 || args[i].find("https:") == 0 || args[i].find("ucondb:") == 0 ) { 
                use_cpn = false; 
                use_srm = false;
+               use_any_gridftp = false;
+               use_bst_gridftp = false;
+               use_exp_gridftp = false;
                use_http = true; 
                break; 
             }
             if( args[i].find("i:") == 0)  { 
                use_cpn = false; 
                use_srm = false;
+               use_http = false;
+               use_any_gridftp = false;
+               use_bst_gridftp = false;
+               use_exp_gridftp = false;
                use_irods = true; 
                break; 
             }
             if( args[i].find("srm:") == 0)  { 
                use_cpn = false; 
+               use_http = false;
+               use_any_gridftp = false;
+               use_bst_gridftp = false;
+               use_exp_gridftp = false;
                use_srm = true; 
                _debug && std::cerr << "turning on use_srm case 1" << std::endl;
                break; 
@@ -1222,6 +1240,8 @@ ifdh::cp( std::vector<std::string> args ) {
             if( args[i].find("gsiftp:") == 0) {
                 use_cpn = false; 
                 use_srm = false;
+                use_http = false;
+                use_s3 = false;
                 // don't pick experiment or bestman here we don't
                 // actually know enough to pick; just mark that we
                 // are going to use some gridftp, and go on
@@ -1252,15 +1272,18 @@ ifdh::cp( std::vector<std::string> args ) {
                            
                        if (stage_via && has(stage_via,"srm:")) {
                            use_srm = true;
+                           use_http = false;
                            _debug && cerr << "deciding to use srm due to $IFDH_STAGE_VIA and: " << args[i] << endl;
                            continue;
                        } else if ( has_production_role()) {
                            use_bst_gridftp = true;
+                           use_http = false;
                            use_srm = false;
                            _debug && cerr << "deciding to use bestman gridftp due to production role and : " << args[i] << endl;
                            continue;
                        } else {
 		           use_exp_gridftp = true;
+                           use_http = false;
                            use_srm = false;
                            _debug && cerr << "deciding to use exp gridftp due to: " << args[i] << endl;
                            continue;
@@ -1272,6 +1295,7 @@ ifdh::cp( std::vector<std::string> args ) {
 		   // for non-local sources, default to srm, for throttling (?)
 		   use_cpn = false;
 		   use_bst_gridftp = true;
+                   use_http = false;
 	           _debug && cerr << "deciding to use bestman to: " << args[i] << endl;
                  } 
 		}
@@ -1481,11 +1505,14 @@ ifdh::cp( std::vector<std::string> args ) {
 
             // if we're a cross-protocol copy, we have to copy through
             // a named pipe.
-            _debug && cerr << "checking fro cross protocol copy...\n";
-            _debug && cerr << "use_{srm,any_gridftp,s3} "<< use_srm << use_any_gridftp << use_s3 << "\n";
-            if ( (use_s3 && (args[curarg].find("gsiftp:") == 0 || args[curarg].find("srm:") == 0)) ||
-                (use_srm && (args[curarg].find("s3:") == 0 || args[curarg].find("gsiftp:") == 0)) ||
-                (use_any_gridftp && (args[curarg].find("s3:") == 0 || args[curarg].find(":srm") == 0))) {
+            _debug && cerr << "checking for cross protocol copy...\n";
+            _debug && cerr << "use_{srm,any_gridftp,s3,http} "<< use_srm << use_any_gridftp << use_s3 << use_http << "\n";
+            if ( (use_s3 && (args[curarg].find("gsiftp:") == 0 || args[curarg].find("srm:") == 0 || args[curarg].find("http") == 0)) ||
+                (use_srm && (args[curarg].find("s3:") == 0 || args[curarg].find("gsiftp:") == 0 || args[curarg].find("http:") == 0)) ||
+                (use_any_gridftp && (args[curarg].find("s3:") == 0 || args[curarg].find("srm:") == 0 || args[curarg].find("http") == 0)) ||
+                (use_http && (args[curarg].find("s3:") == 0 || args[curarg].find("srm:") == 0 || args[curarg].find("gsiftp:") == 0))) {
+
+                _debug && cerr << "cross protocol copy:\n";
                 args[curarg] = spinoff_copy(this, args[curarg], (args.size() == curarg + 1 || args[curarg+1] == ";"));
                 cleanup_spinoffs.push_back(args[curarg]);
             }
@@ -1914,6 +1941,62 @@ ifdh::ll( std::string loc, int recursion_depth, std::string force) {
 }
 
 std::vector<std::pair<std::string,long> > 
+ifdh::try_ls_lR_file( std::string loc ) {
+    std::string f;
+    std::vector<std::pair<std::string,long> > res;
+    std::vector<std::string> lsout;
+    std::vector<std::string> vs;
+    long fsize;
+    std::string name, dirname, prefix;
+    FILE *pf = 0;
+    char buf[512];
+    std::stringstream cmd;
+    size_t pos;
+
+    pos = loc.find("://");
+    if (pos != string::npos) {
+        pos = loc.find("/", pos+4);
+        prefix = loc.substr(0,pos);
+    } else {
+        prefix = "";
+    }
+    
+    lsout = ls(loc + "/ls-lR.gz", 1, "");
+    if (lsout.size() > 0) {
+        f = fetchInput(loc + "/ls-lR.gz");
+        if (f != "") {
+           cmd << "gunzip < " << f;
+           pf = popen(cmd.str().c_str(), "r");
+           while (!feof(pf) && !ferror(pf)) {
+	     if (fgets(buf, 512, pf)) {
+               string s(buf);
+               // chomp()
+               if (s[s.size()-1] == '\n') {
+                  s = s.substr(0,s.size() - 1);
+               }
+               if (s[s.size()-1] == ':') {
+                  // new directory
+                  dirname = s.substr(0,s.size()-1);
+               } else {
+                  vs = split(s,' ',0,1);
+                  if (vs.size() > 7) {
+                      fsize = atoi(vs[4].c_str());
+                      s = prefix + dirname + "/" + vs[8];
+                      res.push_back(pair<string,long>(s,fsize));
+                  } else {
+                       ;
+                  }
+               }
+             }
+           }
+        }
+   }
+   if (pf) pclose(pf);
+
+    return res;
+}
+
+std::vector<std::pair<std::string,long> > 
 ifdh::lss( std::string loc, int recursion_depth, std::string force) {
 
     std::vector<std::pair<std::string,long> >  res;
@@ -1935,6 +2018,11 @@ ifdh::lss( std::string loc, int recursion_depth, std::string force) {
     if ( -1 == recursion_depth )
         recursion_depth = 1;
 
+    if (recursion_depth > 1 ) {
+        res = try_ls_lR_file(loc);
+        if ( res.size() > 0 )
+            return res;
+    }
 
     cpos = loc.find(':');
     if (cpos > 1 && cpos < 9) {
@@ -2213,6 +2301,7 @@ ifdh::mkdir_p(string loc, string force, int depth) {
 
 int
 ifdh::mkdir(string loc, string force) {
+    int retries;
     bool use_gridftp = false;
     bool use_srm = false;
     bool use_fs = false;
@@ -2237,7 +2326,12 @@ ifdh::mkdir(string loc, string force) {
     _debug && std::cerr << "running: " << cmd.str() << endl;
 
     // retry, but only 1 time...
-    int status = retry_system(cmd.str().c_str(), 0, locker, 1);
+    if (0 != getenv("IFDH_CP_MAXRETRIES")) {
+        retries = (atoi(getenv("IFDH_CP_MAXRETRIES")) > 0);
+    } else {
+        retries = 1;
+    }
+    int status = retry_system(cmd.str().c_str(), 0, locker, retries);
     if (WIFSIGNALED(status)) throw( std::logic_error("signalled while doing mkdir"));
     if (WIFEXITED(status) && WEXITSTATUS(status) != 0) throw( std::logic_error("mkdir failed"));
     return 0;

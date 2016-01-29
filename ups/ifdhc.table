@@ -26,8 +26,16 @@ Group:
     EnvSet(IFDHC_FQ_DIR, ${UPS_PROD_DIR} )
 
      Action=ExtraSetup
-  Flavor=ANY
 
+  Flavor=ANY
+  Qualifiers=e9
+
+  Action=DefineFQ
+    EnvSet(IFDHC_FQ_DIR, ${UPS_PROD_DIR} )
+
+     Action=ExtraSetup
+
+  Flavor=ANY
   Qualifiers=e7
 
   Action=DefineFQ

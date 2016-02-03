@@ -679,7 +679,7 @@ ifdh::unique_string() {
     stringstream uniqstr;
 
     uniqstr << '_' << hbuf << '_' << t << '_' << pid << '_' << count++;
-    return uniqstr.str();
+    return std::string(uniqstr.str());
 }
 
 // give output files reported with addOutputFile a unique name

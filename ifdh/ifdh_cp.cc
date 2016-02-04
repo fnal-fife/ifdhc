@@ -2075,12 +2075,11 @@ ifdh::lss( std::string loc, int recursion_depth, std::string force) {
        cmd << "--recursion_depth " << recursion_depth << " ";
        cmd << loc;
     } else if (use_srm && _have_gfal) {
-       cmd << "gfal-ls ";
+       cmd << "gfal-ls -l ";
        // cmd << "--recursion_depth " << recursion_depth << " ";
+       // base = origloc;
        cmd << loc;
        base = origloc;
-       if (base[base.size()-1] != '/')
-           base = base + "/";
     } else if (use_s3) {
        cmd << "aws s3 ls  ";
        if (recursion_depth > 1) {
@@ -2144,6 +2143,8 @@ ifdh::lss( std::string loc, int recursion_depth, std::string force) {
 	if (fgets(buf, 512, pf)) {
            string s(buf);
            _debug && std::cerr << "before cleanup: |" << s <<  "|\n";
+
+
            fsize = 0;
            // trim trailing newlines
            if ('\n' == s[s.size()-1]) {
@@ -2151,6 +2152,10 @@ ifdh::lss( std::string loc, int recursion_depth, std::string force) {
            }
            if ('\r' == s[s.size()-1]) {
                s = s.substr(0,s.size()-1);
+           }
+           // trim trailing whitespace
+           while (s.size() > 0 &&  (s[s.size()-1] == '\t' || s[s.size()-1] == ' ')) {
+                s = s.substr(0,s.size() - 1);
            }
 
            // if the first thing we see ends in the last component
@@ -2175,7 +2180,7 @@ ifdh::lss( std::string loc, int recursion_depth, std::string force) {
                }
            }
            // trim leading stuff from srmls/aws s3 ls
-           if (use_srm || use_s3) {
+           if ((use_srm && !_have_gfal) || use_s3) {
                // find spos as start of size , which is after date
                // on s3
                spos = s.find_first_of("0123456789P", use_s3?20:0);
@@ -2202,7 +2207,7 @@ ifdh::lss( std::string loc, int recursion_depth, std::string force) {
                    s = dir + '/' +  s;
                }
            }
-           if (use_gridftp && !parse_globus ) {
+           if ((use_gridftp && !parse_globus) || (use_srm && _have_gfal) ) {
                // trim long listing bits, (8 columns) add slash if dir
                  
                // find flags (i.e drwxr-xr-x...)
@@ -2214,7 +2219,9 @@ ifdh::lss( std::string loc, int recursion_depth, std::string force) {
                // find space column -- skip back over date
                // look backwards for a space, then forwards for a digit
                // note that the format is subtly different in recursive...
-               if (recursion_depth > 0) {
+               if (_have_gfal && use_srm) {
+                   spos = pos - 21;
+               } else if (recursion_depth > 0) {
                    spos = pos - 18;
                } else {
                    spos = pos - 16;

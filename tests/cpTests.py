@@ -120,22 +120,14 @@ class ifdh_cp_cases(unittest.TestCase):
         self.work="%s/work%d" % (os.environ.get('TMPDIR','/tmp'),os.getpid())
 	self.data_dir_root="/grid/data/%s/%s" % (os.environ.get('TEST_USER', os.environ['USER']), self.hostname)
 	self.data_dir="/grid/data/%s/%s/%s" % (os.environ.get('TEST_USER', os.environ['USER']), self.hostname,os.getpid())
-        try:
-            self.ifdh_handle.mkdir(self.data_dir_root,'')
-        except:
-            pass
-        try:
-            self.ifdh_handle.mkdir(self.data_dir,'')
-        except:
-            pass
-        try:
-            self.ifdh_handle.mkdir('%s/started'% (self.data_dir),'')
-        except:
-            pass
-        try:
-            self.ifdh_handle.mkdir('/pnfs/nova/scratch/ifdh_stage/test','')
-        except:
-            pass
+        for d in [self.data_dir_root, self.data_dir, '%s/started'% (self.data_dir), '/pnfs/nova/scratch/ifdh_stage/test']:
+	    try:
+                print "trying to mkdir: ", d, "... ",
+		self.ifdh_handle.mkdir(d,'')
+                print "made it."
+	    except:
+                print "exception."
+		pass
         self.ifdh_handle.chmod('0775', self.data_dir,'')
         self.ifdh_handle.chmod('0775', '%s/started'% (self.data_dir),'')
         # setup test directory tree..
@@ -336,8 +328,14 @@ class ifdh_cp_cases(unittest.TestCase):
         self.ifdh_handle.cp([ "%s/test.txt"%self.work, dest])
         self.check_writable( "%s/test.txt" % self.data_dir)
         # shouldn't need this one, but we seem to?
-        list1 = self.ifdh_handle.ls(self.data_dir,1,"")
+        # list1 = self.ifdh_handle.ls(self.data_dir,1,"")
+        time.sleep(1)
         list = self.ifdh_handle.ls( dest, 0, "")
+        print "got list: " , list
+        # some utilities give the directory *and* the file, so
+        # prune the first item if it's a directory
+        if list[0][-1] == '/' and len(list) > 1:
+            list = list[1:]
         self.assertEqual(len(list),1, self._testMethodName) 
 
     def test_explicit_srm_in(self):

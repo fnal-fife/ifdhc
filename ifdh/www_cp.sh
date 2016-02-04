@@ -2,7 +2,7 @@
 
 # "cp" style utility for web locations, uses curl...
 
-curlopts="-f -L --silent"
+curlopts="-f -L --silent "
 
 # allow extra curl flags
 
@@ -46,7 +46,7 @@ http*//*\;/*)
     curl $curlopts -o "$dst" "$src" 
     ;;
 /*\;http*://*) 
-    curl $curlopts -T "$src" "$dst"
+    ( cat ) < $src | curl $curlopts -T - "$dst"
     ;;
 http*://*\;http*://*)
     curl $curlopts -o - "$src" | curl $curlopts  -T - "$dst"

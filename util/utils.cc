@@ -17,21 +17,28 @@ char *getexperiment() {
     static char expbuf[MAXEXPBUF];
     char *p1;
     char *penv = getenv("EXPERIMENT");
+    char *senv = getenv("SAM_EXPERIMENT");
     gid_t gid = getgid();
  
     if (penv) {
         return penv;
     }
+    if (senv) {
+        return senv;
+    }
+  
   
     penv = getenv("CONDOR_TMP");
     if (penv) {
          /* if CONDOR_TMP looks like one of ours, use it */
-         p1 = strchr(penv+1, '/');
-         if (p1 && 0 == strncmp(p1, "/data/",6) ) {
-             *p1 = 0;
-             strncpy(expbuf, penv+1, MAXEXPBUF);
-             *p1 = '/';
-             return expbuf;
+         if (0 == strncmp(penv, "/fife/local/scratch/uploads/",28) ) {
+             p1 = strchr(penv+29, '/');
+             if(p1) {
+                 *p1 = 0;
+                 strncpy(expbuf, penv+28, MAXEXPBUF);
+                 *p1 = '/';
+                 return expbuf;
+             }
          }
     }
     switch((int)gid){
@@ -95,8 +102,6 @@ char *getexperiment() {
        }
     }
 }
-//
-// utility, split a string into a list -- like perl/python split()
 
 int
 find_end(std::string s, char c, int pos, bool quotes ) {
@@ -110,7 +115,7 @@ find_end(std::string s, char c, int pos, bool quotes ) {
     // pass:    0     1     2     3
     // If there's no quotes, we just pick up and find the 
     // separator (i.e. the comma)
-    if (quotes || s[pos] == '"') {
+    if (quotes && s[pos] == '"') {
         possible_end = s.find('"', possible_end+2);
     }
     
@@ -140,14 +145,23 @@ join( std::vector<std::string> list, char sep ) {
    return res;
 }
 
+//
+// utility, split a string into a list -- like perl/python split()
+//
 std::vector<std::string>
-split(std::string s, char c, bool quotes ){
+split(std::string s, char c, bool quotes , bool runs){
    size_t pos, p2;
    pos = 0;
    std::vector<std::string> res;
    while( std::string::npos != (p2 = find_end(s,c,pos,quotes)) ) {
 	res.push_back(s.substr(pos, p2 - pos));
         pos = p2 + 1;
+        if (runs) {
+            // eat whole run of separators
+            while ( pos < s.size() && s[pos] == c ){
+                 pos = pos + 1;
+            }
+        }
    }
    res.push_back(s.substr(pos));
    return res;
@@ -192,16 +206,32 @@ vector_cdr(std::vector<std::string> &vec) {
 }
 
 #ifdef UNITTEST
+#include <stdio.h>
+int
 main() {
     std::string data1("This,is,a,\"Test,with,a\",quoted,string");
-    int i;
+    std::string data2("This   is      a   columned    string" );
     
     std::vector<std::string> res;
 
-    res = split(data1,',',1);
-    for( i = 0; i<res.size(); i++ ) {
+    printf("\nexperiment: %s\n", getexperiment());
+
+    std::cout << "test data1 no quotes\n";
+    res = split(data1,',',0,0);
+    for( size_t i = 0; i<res.size(); i++ ) {
          std::cout << "res[" << i << "]: " << res[i] << "\n"; 
     }
+    std::cout << "test data1..\n";
+    res = split(data1,',',1,0);
+    for( size_t i = 0; i<res.size(); i++ ) {
+         std::cout << "res[" << i << "]: " << res[i] << "\n"; 
+    }
+    std::cout << "test data2..\n";
+    res = split(data2,' ',0,1);
+    for( size_t i = 0; i<res.size(); i++ ) {
+         std::cout << "res[" << i << "]: " << res[i] << "\n"; 
+    }
+
 }
 #endif
 

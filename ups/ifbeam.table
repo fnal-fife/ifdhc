@@ -261,4 +261,4 @@ Action=Setup
     EndIf ( uname -s | grep Darwin > /dev/null )
     ExeActionOptional(setupbuild)
     PathPrepend(PATH           , ${UPS_PROD_DIR}${_fq_subdir}/bin)
-end:
+end

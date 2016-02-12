@@ -461,7 +461,7 @@ std::string fix_recursive_arg(std::string arg, bool recursive) {
 std::vector<std::string> 
 ifdh::build_stage_list(std::vector<std::string> args, int curarg, char *stage_via) {
    std::vector<std::string>  res;
-   std::string stagefile("stage_");
+   std::string stagefile(datadir());
    std::string ustring;
    std::string stage_location;
 
@@ -476,6 +476,7 @@ ifdh::build_stage_list(std::vector<std::string> args, int curarg, char *stage_vi
        base_uri = getenv(base_uri.c_str());
    }
    base_uri = (base_uri + "/" + getexperiment());
+   stagefile += "/stage";
    stagefile += ustring;
 
    // double slashes past the first srm:// break srmls
@@ -525,10 +526,9 @@ ifdh::build_stage_list(std::vector<std::string> args, int curarg, char *stage_vi
 
    // copy our queue file in last, it means the others are ready to copy
    if ( staging_out ) {
-      std::string fullstage(getcwd(getcwd_buf, MAXPATHLEN));
-      fullstage += "/" +  stagefile;
-      res.push_back( fullstage );
-      res.push_back( base_uri + "/ifdh_stage/queue/" + stagefile );
+      string stagebase = stagefile.substr(stagefile.rfind('/')+1);
+      res.push_back( stagefile );
+      res.push_back( base_uri + "/ifdh_stage/queue/" + stagebase );
    } else {
       res.pop_back();
    }
@@ -879,28 +879,33 @@ is_dzero_node_path( std::string path ) {
 std::string
 spinoff_copy(ifdh *handle, std::string what, int outbound) {
 
-    std::string where = handle->localPath(what);
-    const char *c_where = where.c_str();
+    stringstream where;
+    where << datadir() << "/p_" << getpid();
+    const char *c_where = where.str().c_str();
     int res2 ,res;
     std::vector<std::string> args;
+
     ifdh::_debug && cerr << "spinoff_copy: " << what << " to: " << where << "\n";
     res  = unlink(c_where);  // ignore errors -- probably not there
     res  = mknod(c_where, 0600 | S_IFIFO, 0);
+
     if (res == 0) {
        ifdh::_debug && cerr << "\nmade pipe\n";
        res2 = fork();
        if (res2 == 0) {
           if (outbound) {
-             args.push_back(where);
+             args.push_back(where.str());
              args.push_back(what);
           } else {
              args.push_back(what);
-             args.push_back(where);
+             args.push_back(where.str());
           }
           ifdh::_debug && cerr << "\nbackgrounding ifdh::cp([" << args[0] << "," << args[1] << "])\n";
-          exit(handle->cp(args));
+          res = handle->cp(args);
+    	  res2 = unlink(c_where);  // ignore errors -- probably not there
+          exit(res);
        } else if (res2 > 0) {
-           return where;
+           return where.str();
        }
    }
    return "";
@@ -1272,8 +1277,30 @@ ifdh::cp( std::vector<std::string> args ) {
                            
                        if (stage_via && has(stage_via,"srm:")) {
                            use_srm = true;
+                           use_any_gridftp = false;
+		           use_exp_gridftp = false;
+                           use_bst_gridftp = false;
+                           use_s3 = false;
                            use_http = false;
                            _debug && cerr << "deciding to use srm due to $IFDH_STAGE_VIA and: " << args[i] << endl;
+                           continue;
+                       } else if (stage_via && has(stage_via,"s3:")) {
+                           use_s3 = true;
+                           use_any_gridftp = false;
+		           use_exp_gridftp = false;
+                           use_bst_gridftp = false;
+                           use_srm = false;
+                           use_http = false;
+                           _debug && cerr << "deciding to use s3 due to $IFDH_STAGE_VIA and: " << args[i] << endl;
+                           continue;
+                       } else if (stage_via && has(stage_via,"gsiftp:")) {
+                           use_any_gridftp = true;
+		           use_exp_gridftp = false;
+                           use_bst_gridftp = false;
+                           use_s3 = false;
+                           use_srm = false;
+                           use_http = false;
+                           _debug && cerr << "deciding to use gsiftp due to $IFDH_STAGE_VIA and: " << args[i] << endl;
                            continue;
                        } else if ( has_production_role()) {
                            use_bst_gridftp = true;
@@ -1512,7 +1539,7 @@ ifdh::cp( std::vector<std::string> args ) {
                 (use_any_gridftp && (args[curarg].find("s3:") == 0 || args[curarg].find("srm:") == 0 || args[curarg].find("http") == 0)) ||
                 (use_http && (args[curarg].find("s3:") == 0 || args[curarg].find("srm:") == 0 || args[curarg].find("gsiftp:") == 0))) {
 
-                _debug && cerr << "cross protocol copy:\n";
+                _debug && cerr << "IS a cross protocol copy:\n";
                 args[curarg] = spinoff_copy(this, args[curarg], (args.size() == curarg + 1 || args[curarg+1] == ";"));
                 cleanup_spinoffs.push_back(args[curarg]);
             }
@@ -2067,7 +2094,11 @@ ifdh::lss( std::string loc, int recursion_depth, std::string force) {
            dpos = loc.size();
        }
        dir = loc.substr(dpos);
-       base = base + dir;
+       if (recursion_depth > 1) {
+           base = base + "/";
+       } else {
+           base = base + dir;
+       }
     } else if (use_http) {
        cmd << "www_cp.sh --ls "; 
     } else if (use_irods) {
@@ -2319,7 +2350,12 @@ ifdh::mkdir(string loc, string force) {
     if (use_srm && !_have_gfal)    cmd << "srmmkdir -2 ";
     if (use_irods)   cmd << "imkdir ";
     if (use_http)   cmd << "www_cp.sh --mkdir ";
-    if (use_s3)      cmd << "aws s3 mb ";
+    if (use_s3) {
+       if (loc.find('/',4) == string::npos)
+          cmd << "aws s3 mb ";
+       else
+          return 0; // you do not make directories only buckets, in s3
+    }
 
     cmd << loc;
 

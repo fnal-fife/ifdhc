@@ -69,6 +69,9 @@ check_env() {
               }
            }
         }
+
+        // we do not want it set...
+        unsetenv("X509_USER_CERT");
               
         string path(getenv("PATH"));
         char *p;

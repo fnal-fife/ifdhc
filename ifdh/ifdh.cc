@@ -487,6 +487,7 @@ do_url_str(int postflag,...) {
 	    }
 	}
     } catch( exception &e )  {
+       std::cerr << "Exception: " << e.what();
        return "";
     }
     if (ifdh::_debug) std::cerr << "got back string result: " << res << "\n";

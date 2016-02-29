@@ -1943,7 +1943,7 @@ ifdh::ll( std::string loc, int recursion_depth, std::string force) {
        }
        cmd << loc;
     } else if (use_gridftp) {
-#ifdef __APPLE__
+#ifdef __APPLE__ 
        cmd << "globus-url-copy -list ";
 #else
        cmd << "uberftp -ls ";
@@ -1967,6 +1967,22 @@ ifdh::ll( std::string loc, int recursion_depth, std::string force) {
     return WEXITSTATUS(status);
 }
 
+#include <fcntl.h>
+int
+hide_stderr() {
+    int save_err;
+    save_err=dup(2);
+    close(2);
+    open("/dev/null",O_RDWR); // returns 2, we ignore it
+    return save_err;
+}
+void
+unhide_stderr(int save_err) {
+    close(2);
+    dup(save_err); // returns 2, we ignore it
+    close(save_err);
+}
+
 std::vector<std::pair<std::string,long> > 
 ifdh::try_ls_lR_file( std::string loc ) {
     std::string f;
@@ -1979,6 +1995,7 @@ ifdh::try_ls_lR_file( std::string loc ) {
     char buf[512];
     std::stringstream cmd;
     size_t pos;
+    int save_err;
 
     pos = loc.find("://");
     if (pos != string::npos) {
@@ -1988,7 +2005,9 @@ ifdh::try_ls_lR_file( std::string loc ) {
         prefix = "";
     }
     
+    save_err = hide_stderr();
     lsout = ls(loc + "/ls-lR.gz", 1, "");
+    unhide_stderr(save_err);
     if (lsout.size() > 0) {
         f = fetchInput(loc + "/ls-lR.gz");
         if (f != "") {
@@ -2269,7 +2288,7 @@ ifdh::lss( std::string loc, int recursion_depth, std::string force) {
             res.push_back(pair<string,long>(loc, 0));
         } else {
             // missing directory case
-            _debug && std::cerr << "missing directory/file case..\n";
+            _debug && std::cerr << "exit code: " << status << " missing directory/file case..\n";
             // throw( std::runtime_error("No such file or directory"));
         }
     } else {

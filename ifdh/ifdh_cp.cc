@@ -684,6 +684,13 @@ get_grid_credentials_if_needed() {
         }
     }
 }
+
+std::string
+ifdh::getProxy() {
+   get_grid_credentials_if_needed();
+   std::string res( getenv("X509_USER_PROXY"));
+   return res;
+}
  
 
 int 

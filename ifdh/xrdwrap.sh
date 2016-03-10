@@ -6,12 +6,12 @@
 #
 for i in "$@"
 do
-   echo "looking at $i"
+   #echo "looking at $i"
    case "$i" in
-   root:*|xrootd*:) 
+   root:*|xroot:*) 
       host=`echo "$i" | sed -e 's;[a-z]*://\([^/]*\)\(.*\);\1;'`
       path=`echo "$i" | sed -e 's;[a-z]*://\([^/]*\)\(.*\);\2;'`
-      echo saw url host $host path $path
+      #echo saw url host $host path $path
       args="$args '$path'"
       ;;
    *)
@@ -20,6 +20,7 @@ do
    esac
 done
 
-args="$host $args"
+args="'$host' $args"
 
-eval xrdfs $args
+#echo "running: /usr/bin/xrdfs $args"
+eval /usr/bin/xrdfs $args

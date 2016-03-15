@@ -45,14 +45,17 @@ namespace ifdh_ns {
 std::string bestman_srm_uri = "srm://fg-bestman1.fnal.gov:10443/srm/v2/server?SFN=";
 std::string bestman_ftp_uri = "gsiftp://fg-bestman1.fnal.gov:2811";
 std::string pnfs_srm_uri = "srm://fndca1.fnal.gov:8443/srm/managerv2?SFN=/pnfs/fnal.gov/usr/";
+std::string pnfs_xrootd_uri = "xroot://fndca1.fnal.gov:1094/pnfs/fnal.gov/usr/";
 #ifndef NOSYMLINKS
 std::string pnfs_gsiftp_uri = "gsiftp://fndca1.fnal.gov/pnfs/fnal.gov/usr/";
 #else
 std::string pnfs_gsiftp_uri = "gsiftp://fndca1.fnal.gov/";
 #endif
 std::string pnfs_cdf_srm_uri = "srm://cdfdca1.fnal.gov:8443/srm/managerv2?SFN=/pnfs/fnal.gov/usr/";
+std::string pnfs_cdf_xrootd_uri = "xroot://cdfdca1.fnal.gov:1094/pnfs/fnal.gov/usr/";
 std::string pnfs_cdf_gsiftp_uri = "gsiftp://cdfdca1.fnal.gov/";
 std::string pnfs_d0_srm_uri = "srm://d0dca1.fnal.gov:8443/srm/managerv2?SFN=/pnfs/fnal.gov/usr/";
+std::string pnfs_d0_xrootd_uri = "xroot://d0dca1.fnal.gov:1094/pnfs/fnal.gov/usr/";
 std::string pnfs_d0_gsiftp_uri = "gsiftp://d0dca1.fnal.gov/pnfs/fnal.gov/usr/";
 std::string pnfs_http_uri = "https://fndca4a.fnal.gov:2880/pnfs/fnal.gov/usr/";
 
@@ -579,6 +582,9 @@ check_grid_credentials() {
     if (found and 0 == getenv("X509_USER_PROXY")) {
         ifdh::_debug && std::cerr << "setting X509_USER_PROXY to " << path << "\n";
         setenv("X509_USER_PROXY", path.c_str(),1);
+        // for xrdcp...
+        //setenv("XrdSecGSIUSERCERT", path.c_str(),1);
+        //setenv("XrdSecGSIUSERKEY", path.c_str(),1);
     }
     return found;
 }
@@ -638,6 +644,9 @@ get_grid_credentials_if_needed() {
         proxyfileenv << datadir() << "/x509up_cp" << getuid();
 	ifdh::_debug && std::cerr << "no credentials, trying " << proxyfileenv.str() << endl;
         setenv("X509_USER_PROXY", proxyfileenv.str().c_str(),1);
+        // for xrdcp...
+        //setenv("XrdSecGSIUSERCERT", proxyfileenv.str().c_str(),1);
+        //setenv("XrdSecGSIUSERKEY", proxyfileenv.str().c_str(),1);
         ifdh::_debug && std::cerr << "Now X509_USER_PROXY is: " << getenv("X509_USER_PROXY")<< endl;
     }
 
@@ -829,11 +838,11 @@ get_another_dcache_door( std::string &cmd ) {
 }
 
 string
-map_pnfs(string loc, int srmflag = 0)  {
+map_pnfs(string loc, int srmflag = 0, int xrootdflag = 0)  {
 
       bool cdfflag = false;
       bool d0flag = false;
-      std::string srmuri, gsiftpuri;
+      std::string srmuri, gsiftpuri, xrootduri;
 
       if (0L == loc.find("/pnfs/fnal.gov/usr/")) {
 	  loc = loc.substr(19);
@@ -854,15 +863,20 @@ map_pnfs(string loc, int srmflag = 0)  {
       if (cdfflag) {
           srmuri = pnfs_cdf_srm_uri;
           gsiftpuri = pnfs_cdf_gsiftp_uri;
+          xrootduri = pnfs_cdf_xrootd_uri;
       } else if ( d0flag ) {
           srmuri = pnfs_d0_srm_uri;
           gsiftpuri = pnfs_d0_gsiftp_uri;
+          xrootduri = pnfs_d0_xrootd_uri;
       } else {
           srmuri = pnfs_srm_uri;
           gsiftpuri = get_pnfs_gsiftp_uri();
+          xrootduri = pnfs_xrootd_uri;
       }
 
-      if (srmflag) {
+      if (xrootdflag) {
+	 loc = xrootduri + loc;
+      } else if (srmflag) {
 	 loc = srmuri + loc;
       } else {
 #ifdef NOSYMLINKS
@@ -1477,7 +1491,7 @@ ifdh::cp( std::vector<std::string> args ) {
      // get the proxy before we get the lock, so the
      // lock file will have the username info right.
      
-     if (use_any_gridftp || use_srm || use_irods  || use_http) {
+     if (use_any_gridftp || use_srm || use_irods  || use_http || use_xrootd) {
 	get_grid_credentials_if_needed();
      }
 
@@ -1504,7 +1518,7 @@ ifdh::cp( std::vector<std::string> args ) {
                  use_irods ? "icp " :  
                  use_http ? "www_cp.sh " :  
                  use_s3 ? "aws s3 cp " : 
-                 use_xrootd ? "xrdcp " : 
+                 use_xrootd ? "printenv ; xrdcp " : 
                  clued0_hack ? "scp " : 
                  "false" );
 
@@ -1578,7 +1592,7 @@ ifdh::cp( std::vector<std::string> args ) {
 		// this looks redudnant, but the proxy could have 
 		// expired while we were waiting for a lock...
 		//
-		if (use_any_gridftp || use_srm || use_irods || use_http ) {
+		if (use_any_gridftp || use_srm || use_irods || use_http || use_xrootd ) {
 		    get_grid_credentials_if_needed();
 		}
             }
@@ -1889,7 +1903,7 @@ pick_type( string &loc, string force, bool &use_fs, bool &use_gridftp, bool &use
         // no xyz: on front...
         if ( loc.find("/pnfs") == 0 ) {
             use_gridftp = !use_srm;
-            loc = map_pnfs(loc, use_srm);
+            loc = map_pnfs(loc, use_srm, use_xrootd);
 
         } else if( use_gridftp )  {
             if (force.find("--force=") == 0L && force[8] == 'e') {

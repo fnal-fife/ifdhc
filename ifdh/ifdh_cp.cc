@@ -583,8 +583,8 @@ check_grid_credentials() {
         ifdh::_debug && std::cerr << "setting X509_USER_PROXY to " << path << "\n";
         setenv("X509_USER_PROXY", path.c_str(),1);
         // for xrdcp...
-        //setenv("XrdSecGSIUSERCERT", path.c_str(),1);
-        //setenv("XrdSecGSIUSERKEY", path.c_str(),1);
+        setenv("XrdSecGSIUSERCERT", path.c_str(),1);
+        setenv("XrdSecGSIUSERKEY", path.c_str(),1);
     }
     return found;
 }
@@ -645,8 +645,8 @@ get_grid_credentials_if_needed() {
 	ifdh::_debug && std::cerr << "no credentials, trying " << proxyfileenv.str() << endl;
         setenv("X509_USER_PROXY", proxyfileenv.str().c_str(),1);
         // for xrdcp...
-        //setenv("XrdSecGSIUSERCERT", proxyfileenv.str().c_str(),1);
-        //setenv("XrdSecGSIUSERKEY", proxyfileenv.str().c_str(),1);
+        setenv("XrdSecGSIUSERCERT", proxyfileenv.str().c_str(),1);
+        setenv("XrdSecGSIUSERKEY", proxyfileenv.str().c_str(),1);
         ifdh::_debug && std::cerr << "Now X509_USER_PROXY is: " << getenv("X509_USER_PROXY")<< endl;
     }
 
@@ -705,8 +705,9 @@ ifdh::getProxy() {
 int 
 host_matches(std::string hostglob) {
    // match trivial globs for now: *.foo.bar
-   char namebuf[512];
-   gethostname(namebuf, 512);
+   static char namebuf[512];
+   if ( 0 == namebuf[0])
+       gethostname(namebuf, 512);
    std::string hostname(namebuf);
    size_t ps = hostglob.find("*");
    hostglob = hostglob.substr(ps+1);
@@ -1108,10 +1109,13 @@ ifdh::cp( std::vector<std::string> args ) {
        // for now, handle pnfs paths via gridftp, unless srm is specified
        // 
        if (0L == args[i].find("/pnfs/")) {
-            args[i] = map_pnfs(args[i],force[0]=='s');
+            args[i] = map_pnfs(args[i],force[0]=='s',force[0]=='x'||force[0]=='r');
+       }
+       // also deal with smu mfosge setup...
+       if (0L == args[i].find("/scratch/users/") and host_matches("*.smu.edu")) {
+	   args[i] = "gsiftp://mfosgse.ehpc.smu.edu/" + args[i];
        }
     }
-
     
     // now decide whether to get a cpn lock...
     bool need_cpn_lock = false;
@@ -1122,8 +1126,8 @@ ifdh::cp( std::vector<std::string> args ) {
            continue;
         }
 
-        if (args[i].find("/grid") == 0) {
-           _debug && cerr << "need lock: " << args[i] << " /grid test\n";
+        if (args[i].find("/grid") == 0 || args[i].find(getexperiment()) == 1) {
+           _debug && cerr << "need lock: " << args[i] << " /grid or /experiment test\n";
  	   need_cpn_lock = true;
 	   if ((int)i < need_lock_low) 
 	       need_lock_low = i;
@@ -1518,7 +1522,7 @@ ifdh::cp( std::vector<std::string> args ) {
                  use_irods ? "icp " :  
                  use_http ? "www_cp.sh " :  
                  use_s3 ? "aws s3 cp " : 
-                 use_xrootd ? "printenv ; xrdcp " : 
+                 use_xrootd ? "xrdcp " : 
                  clued0_hack ? "scp " : 
                  "false" );
 
@@ -1941,7 +1945,7 @@ pick_type( string &loc, string force, bool &use_fs, bool &use_gridftp, bool &use
              
             use_gridftp = true;
             if ( loc.find("/pnfs") == 0 ) {
-                loc = map_pnfs(loc, 0);
+                loc = map_pnfs(loc, use_srm, use_xrootd);
             } else {
                 std::string gftpHost("gsiftp://if-gridftp-");
                 gftpHost.append(getexperiment());

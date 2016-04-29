@@ -29,11 +29,11 @@ class ifdh_cp_cases(unittest.TestCase):
 
     def mk_remote_dir(self,dir,opts=''):
         try:
-            os.system('(test -d "%s" || mkdir "%s" || uberftp -mkdir "gsiftp://fg-bestman1.fnal.gov:2811%s") > /dev/null 2>&1' % (dir, dir, dir))
+            self.ifdh_handle.mkdir(dir)
         except:
             pass
         try:
-            os.system('(chmod 777 %s || uberftp -chmod 777 "gsiftp://fg-bestman1.fnal.gov:2811%s") > /dev/null 2>&1' % (dir, dir))
+            self.ifdh_handle.chmod(0777, dir)
         except:
             pass
 
@@ -89,7 +89,7 @@ class ifdh_cp_cases(unittest.TestCase):
         out = NamedTemporaryFile(delete=False)
         out.write("testing testing %d \n" % ifdh_cp_cases.tc)
         out.close()
-        self.ifdh_handle.cp(["-D", out.name, self.data_dir + '/test.txt'])
+        self.ifdh_handle.cp([out.name, self.data_dir + '/test.txt'])
         try:
             self.ifdh_handle.chmod("775", self.data_dir + '/test.txt')
         except:
@@ -118,8 +118,8 @@ class ifdh_cp_cases(unittest.TestCase):
         self.ifdh_handle = ifdh.ifdh(base_uri_fmt % ifdh_cp_cases.experiment)
         self.hostname = socket.gethostname()
         self.work="%s/work%d" % (os.environ.get('TMPDIR','/tmp'),os.getpid())
-	self.data_dir_root="/grid/data/%s/%s" % (os.environ.get('TEST_USER', os.environ['USER']), self.hostname)
-	self.data_dir="/grid/data/%s/%s/%s" % (os.environ.get('TEST_USER', os.environ['USER']), self.hostname,os.getpid())
+	self.data_dir_root="/pnfs/%s/scratch/users/%s/%s" % (ifdh_cp_cases.experiment, os.environ.get('TEST_USER', os.environ['USER']), self.hostname)
+	self.data_dir="%s/%s" % (self.data_dir_root, os.getpid())
         for d in [self.data_dir_root, self.data_dir, '%s/started'% (self.data_dir), '/pnfs/nova/scratch/ifdh_stage/test']:
 	    try:
                 print "trying to mkdir: ", d, "... ",
@@ -262,7 +262,23 @@ class ifdh_cp_cases(unittest.TestCase):
         self.log(self._testMethodName)
         self.make_remote_test_txt()
         self.list_remote_dir()
-        res = self.ifdh_handle.cp([ "--force=gridftp" , "%s/test.txt" % self.data_dir, "%s/test.txt"%self.work])
+
+    def test_xrootd__out(self):
+        self.log(self._testMethodName)
+        self.make_local_test_txt()
+        res = self.ifdh_handle.cp([ "--force=xrootd", "%s/test.txt"%self.work, "%s/test.txt" % self.data_dir])
+        # shouldn't need this one, but we seem to?
+        self.check_writable( "%s/test.txt" % self.data_dir)
+        self.ifdh_handle.ll(self.data_dir, 1,"")
+        list = self.ifdh_handle.ls("%s/test.txt" % self.data_dir, 1,"")
+        print "got list: " , list
+        self.assertEqual(len(list),1, self._testMethodName)  
+
+    def test_xrootd_in(self):
+        self.log(self._testMethodName)
+        self.make_remote_test_txt()
+        self.list_remote_dir()
+        res = self.ifdh_handle.cp([ "--force=xrootd" , "%s/test.txt" % self.data_dir, "%s/test.txt"%self.work])
         self.assertEqual(res==0 and self.check_test_txt(), True, self._testMethodName)
 
     def test_explicit_gsiftp__out(self):
@@ -324,7 +340,8 @@ class ifdh_cp_cases(unittest.TestCase):
     def test_explicit_srm__out(self):
         self.log(self._testMethodName)
         self.make_local_test_txt()
-        dest = "srm://fg-bestman1.fnal.gov:10443/srm/v2/server?SFN=%s/test.txt" % self.data_dir
+        trim_dir =  self.data_dir.replace("/pnfs","")
+        dest = "srm://fndca1.fnal.gov:8443/srm/managerv2?SFN=/pnfs/fnal.gov/usr%s/test.txt" % trim_dir
         self.ifdh_handle.cp([ "%s/test.txt"%self.work, dest])
         self.check_writable( "%s/test.txt" % self.data_dir)
         # shouldn't need this one, but we seem to?
@@ -342,7 +359,9 @@ class ifdh_cp_cases(unittest.TestCase):
         self.log(self._testMethodName)
         self.list_remote_dir()
         self.make_remote_test_txt()
-        self.ifdh_handle.cp([ "srm://fg-bestman1.fnal.gov:10443/srm/v2/server?SFN=%s/test.txt"%self.data_dir, "%s/test.txt"%self.work])
+        trim_dir =  self.data_dir.replace("/pnfs","")
+        src = "srm://fndca1.fnal.gov:8443/srm/managerv2?SFN=/pnfs/fnal.gov/usr%s/test.txt" % trim_dir
+        self.ifdh_handle.cp([ src, "%s/test.txt"%self.work])
         self.assertEqual(self.check_test_txt(), True, self._testMethodName)
 
     def test_00_default__out(self):

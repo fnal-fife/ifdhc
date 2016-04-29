@@ -45,14 +45,17 @@ namespace ifdh_ns {
 std::string bestman_srm_uri = "srm://fg-bestman1.fnal.gov:10443/srm/v2/server?SFN=";
 std::string bestman_ftp_uri = "gsiftp://fg-bestman1.fnal.gov:2811";
 std::string pnfs_srm_uri = "srm://fndca1.fnal.gov:8443/srm/managerv2?SFN=/pnfs/fnal.gov/usr/";
+std::string pnfs_xrootd_uri = "xroot://fndca1.fnal.gov:1094/pnfs/fnal.gov/usr/";
 #ifndef NOSYMLINKS
 std::string pnfs_gsiftp_uri = "gsiftp://fndca1.fnal.gov/pnfs/fnal.gov/usr/";
 #else
 std::string pnfs_gsiftp_uri = "gsiftp://fndca1.fnal.gov/";
 #endif
 std::string pnfs_cdf_srm_uri = "srm://cdfdca1.fnal.gov:8443/srm/managerv2?SFN=/pnfs/fnal.gov/usr/";
+std::string pnfs_cdf_xrootd_uri = "xroot://cdfdca1.fnal.gov:1094/pnfs/fnal.gov/usr/";
 std::string pnfs_cdf_gsiftp_uri = "gsiftp://cdfdca1.fnal.gov/";
 std::string pnfs_d0_srm_uri = "srm://d0dca1.fnal.gov:8443/srm/managerv2?SFN=/pnfs/fnal.gov/usr/";
+std::string pnfs_d0_xrootd_uri = "xroot://d0dca1.fnal.gov:1094/pnfs/fnal.gov/usr/";
 std::string pnfs_d0_gsiftp_uri = "gsiftp://d0dca1.fnal.gov/pnfs/fnal.gov/usr/";
 std::string pnfs_http_uri = "https://fndca4a.fnal.gov:2880/pnfs/fnal.gov/usr/";
 
@@ -461,7 +464,7 @@ std::string fix_recursive_arg(std::string arg, bool recursive) {
 std::vector<std::string> 
 ifdh::build_stage_list(std::vector<std::string> args, int curarg, char *stage_via) {
    std::vector<std::string>  res;
-   std::string stagefile("stage_");
+   std::string stagefile(datadir());
    std::string ustring;
    std::string stage_location;
 
@@ -476,6 +479,7 @@ ifdh::build_stage_list(std::vector<std::string> args, int curarg, char *stage_vi
        base_uri = getenv(base_uri.c_str());
    }
    base_uri = (base_uri + "/" + getexperiment());
+   stagefile += "/stage";
    stagefile += ustring;
 
    // double slashes past the first srm:// break srmls
@@ -525,10 +529,9 @@ ifdh::build_stage_list(std::vector<std::string> args, int curarg, char *stage_vi
 
    // copy our queue file in last, it means the others are ready to copy
    if ( staging_out ) {
-      std::string fullstage(getcwd(getcwd_buf, MAXPATHLEN));
-      fullstage += "/" +  stagefile;
-      res.push_back( fullstage );
-      res.push_back( base_uri + "/ifdh_stage/queue/" + stagefile );
+      string stagebase = stagefile.substr(stagefile.rfind('/')+1);
+      res.push_back( stagefile );
+      res.push_back( base_uri + "/ifdh_stage/queue/" + stagebase );
    } else {
       res.pop_back();
    }
@@ -579,6 +582,9 @@ check_grid_credentials() {
     if (found and 0 == getenv("X509_USER_PROXY")) {
         ifdh::_debug && std::cerr << "setting X509_USER_PROXY to " << path << "\n";
         setenv("X509_USER_PROXY", path.c_str(),1);
+        // for xrdcp...
+        setenv("XrdSecGSIUSERCERT", path.c_str(),1);
+        setenv("XrdSecGSIUSERKEY", path.c_str(),1);
     }
     return found;
 }
@@ -638,6 +644,9 @@ get_grid_credentials_if_needed() {
         proxyfileenv << datadir() << "/x509up_cp" << getuid();
 	ifdh::_debug && std::cerr << "no credentials, trying " << proxyfileenv.str() << endl;
         setenv("X509_USER_PROXY", proxyfileenv.str().c_str(),1);
+        // for xrdcp...
+        setenv("XrdSecGSIUSERCERT", proxyfileenv.str().c_str(),1);
+        setenv("XrdSecGSIUSERKEY", proxyfileenv.str().c_str(),1);
         ifdh::_debug && std::cerr << "Now X509_USER_PROXY is: " << getenv("X509_USER_PROXY")<< endl;
     }
 
@@ -684,13 +693,21 @@ get_grid_credentials_if_needed() {
         }
     }
 }
+
+std::string
+ifdh::getProxy() {
+   get_grid_credentials_if_needed();
+   std::string res( getenv("X509_USER_PROXY"));
+   return res;
+}
  
 
 int 
 host_matches(std::string hostglob) {
    // match trivial globs for now: *.foo.bar
-   char namebuf[512];
-   gethostname(namebuf, 512);
+   static char namebuf[512];
+   if ( 0 == namebuf[0])
+       gethostname(namebuf, 512);
    std::string hostname(namebuf);
    size_t ps = hostglob.find("*");
    hostglob = hostglob.substr(ps+1);
@@ -822,11 +839,11 @@ get_another_dcache_door( std::string &cmd ) {
 }
 
 string
-map_pnfs(string loc, int srmflag = 0)  {
+map_pnfs(string loc, int srmflag = 0, int xrootdflag = 0)  {
 
       bool cdfflag = false;
       bool d0flag = false;
-      std::string srmuri, gsiftpuri;
+      std::string srmuri, gsiftpuri, xrootduri;
 
       if (0L == loc.find("/pnfs/fnal.gov/usr/")) {
 	  loc = loc.substr(19);
@@ -847,15 +864,20 @@ map_pnfs(string loc, int srmflag = 0)  {
       if (cdfflag) {
           srmuri = pnfs_cdf_srm_uri;
           gsiftpuri = pnfs_cdf_gsiftp_uri;
+          xrootduri = pnfs_cdf_xrootd_uri;
       } else if ( d0flag ) {
           srmuri = pnfs_d0_srm_uri;
           gsiftpuri = pnfs_d0_gsiftp_uri;
+          xrootduri = pnfs_d0_xrootd_uri;
       } else {
           srmuri = pnfs_srm_uri;
           gsiftpuri = get_pnfs_gsiftp_uri();
+          xrootduri = pnfs_xrootd_uri;
       }
 
-      if (srmflag) {
+      if (xrootdflag) {
+	 loc = xrootduri + loc;
+      } else if (srmflag) {
 	 loc = srmuri + loc;
       } else {
 #ifdef NOSYMLINKS
@@ -879,28 +901,33 @@ is_dzero_node_path( std::string path ) {
 std::string
 spinoff_copy(ifdh *handle, std::string what, int outbound) {
 
-    std::string where = handle->localPath(what);
-    const char *c_where = where.c_str();
+    stringstream where;
+    where << datadir() << "/p_" << getpid();
+    const char *c_where = where.str().c_str();
     int res2 ,res;
     std::vector<std::string> args;
+
     ifdh::_debug && cerr << "spinoff_copy: " << what << " to: " << where << "\n";
     res  = unlink(c_where);  // ignore errors -- probably not there
     res  = mknod(c_where, 0600 | S_IFIFO, 0);
+
     if (res == 0) {
        ifdh::_debug && cerr << "\nmade pipe\n";
        res2 = fork();
        if (res2 == 0) {
           if (outbound) {
-             args.push_back(where);
+             args.push_back(where.str());
              args.push_back(what);
           } else {
              args.push_back(what);
-             args.push_back(where);
+             args.push_back(where.str());
           }
           ifdh::_debug && cerr << "\nbackgrounding ifdh::cp([" << args[0] << "," << args[1] << "])\n";
-          exit(handle->cp(args));
+          res = handle->cp(args);
+    	  res2 = unlink(c_where);  // ignore errors -- probably not there
+          exit(res);
        } else if (res2 > 0) {
-           return where;
+           return where.str();
        }
    }
    return "";
@@ -1071,6 +1098,8 @@ ifdh::cp( std::vector<std::string> args ) {
            && args[i].find("ucondb:") != 0 
            && args[i].find("gsiftp:") != 0 
            && args[i].find("s3:") != 0 
+           && args[i].find("root:") != 0 
+           && args[i].find("xroot:") != 0 
            && args[i].find("i:") != 0 
            && !is_dzero_node_path(args[i])) {
            _debug && std::cerr << "adding cwd to " << args[i] << endl;
@@ -1080,10 +1109,13 @@ ifdh::cp( std::vector<std::string> args ) {
        // for now, handle pnfs paths via gridftp, unless srm is specified
        // 
        if (0L == args[i].find("/pnfs/")) {
-            args[i] = map_pnfs(args[i],force[0]=='s');
+            args[i] = map_pnfs(args[i],force[0]=='s',force[0]=='x'||force[0]=='r');
+       }
+       // also deal with smu mfosge setup...
+       if (0L == args[i].find("/scratch/users/") and host_matches("*.smu.edu")) {
+	   args[i] = "gsiftp://mfosgse.ehpc.smu.edu/" + args[i];
        }
     }
-
     
     // now decide whether to get a cpn lock...
     bool need_cpn_lock = false;
@@ -1094,8 +1126,8 @@ ifdh::cp( std::vector<std::string> args ) {
            continue;
         }
 
-        if (args[i].find("/grid") == 0) {
-           _debug && cerr << "need lock: " << args[i] << " /grid test\n";
+        if (args[i].find("/grid") == 0 || args[i].find(getexperiment()) == 1) {
+           _debug && cerr << "need lock: " << args[i] << " /grid or /experiment test\n";
  	   need_cpn_lock = true;
 	   if ((int)i < need_lock_low) 
 	       need_lock_low = i;
@@ -1155,6 +1187,7 @@ ifdh::cp( std::vector<std::string> args ) {
     bool use_irods = false;
     bool use_http = false;
     bool use_s3 = false;
+    bool use_xrootd = false;
 
     char *stage_via = parse_ifdh_stage_via();
 
@@ -1205,6 +1238,18 @@ ifdh::cp( std::vector<std::string> args ) {
                use_bst_gridftp = false;
                use_exp_gridftp = false;
                use_s3 = true; 
+               use_xrootd = false;
+               break; 
+            }
+            if( args[i].find("root:") == 0 || args[i].find("xroot:") == 0) { 
+               use_cpn = false; 
+               use_srm = false;
+               use_http = false;
+               use_any_gridftp = false;
+               use_bst_gridftp = false;
+               use_exp_gridftp = false;
+               use_s3 = false; 
+               use_xrootd = true;
                break; 
             }
             if( args[i].find("http:") == 0 || args[i].find("https:") == 0 || args[i].find("ucondb:") == 0 ) { 
@@ -1214,6 +1259,7 @@ ifdh::cp( std::vector<std::string> args ) {
                use_bst_gridftp = false;
                use_exp_gridftp = false;
                use_http = true; 
+               use_xrootd = false;
                break; 
             }
             if( args[i].find("i:") == 0)  { 
@@ -1224,6 +1270,7 @@ ifdh::cp( std::vector<std::string> args ) {
                use_bst_gridftp = false;
                use_exp_gridftp = false;
                use_irods = true; 
+               use_xrootd = false;
                break; 
             }
             if( args[i].find("srm:") == 0)  { 
@@ -1233,6 +1280,7 @@ ifdh::cp( std::vector<std::string> args ) {
                use_bst_gridftp = false;
                use_exp_gridftp = false;
                use_srm = true; 
+               use_xrootd = false;
                _debug && std::cerr << "turning on use_srm case 1" << std::endl;
                break; 
             }
@@ -1246,6 +1294,7 @@ ifdh::cp( std::vector<std::string> args ) {
                 // actually know enough to pick; just mark that we
                 // are going to use some gridftp, and go on
                 use_any_gridftp = true;
+               use_xrootd = false;
             }
 
 	    if( 0 != access(args[i].c_str(),R_OK) ) {
@@ -1272,19 +1321,56 @@ ifdh::cp( std::vector<std::string> args ) {
                            
                        if (stage_via && has(stage_via,"srm:")) {
                            use_srm = true;
+                           use_any_gridftp = false;
+		           use_exp_gridftp = false;
+                           use_bst_gridftp = false;
+                           use_s3 = false;
                            use_http = false;
+                           use_xrootd = false;
                            _debug && cerr << "deciding to use srm due to $IFDH_STAGE_VIA and: " << args[i] << endl;
+                           continue;
+                       } else if (stage_via && has(stage_via,"s3:")) {
+                           use_s3 = true;
+                           use_any_gridftp = false;
+		           use_exp_gridftp = false;
+                           use_bst_gridftp = false;
+                           use_srm = false;
+                           use_http = false;
+                           use_xrootd = false;
+                           _debug && cerr << "deciding to use s3 due to $IFDH_STAGE_VIA and: " << args[i] << endl;
+                           continue;
+                       } else if (stage_via && ( has(stage_via,"root:") || has(stage_via,"xroot:"))) {
+                           use_s3 = false;
+                           use_xrootd = true;
+                           use_any_gridftp = false;
+		           use_exp_gridftp = false;
+                           use_bst_gridftp = false;
+                           use_srm = false;
+                           use_http = false;
+                           _debug && cerr << "deciding to use s3 due to $IFDH_STAGE_VIA and: " << args[i] << endl;
+                           continue;
+                       } else if (stage_via && has(stage_via,"gsiftp:")) {
+                           use_any_gridftp = true;
+		           use_exp_gridftp = false;
+                           use_bst_gridftp = false;
+                           use_s3 = false;
+                           use_srm = false;
+                           use_http = false;
+                           use_xrootd = false;
+                           _debug && cerr << "deciding to use gsiftp due to $IFDH_STAGE_VIA and: " << args[i] << endl;
                            continue;
                        } else if ( has_production_role()) {
                            use_bst_gridftp = true;
                            use_http = false;
                            use_srm = false;
+                           use_xrootd = false;
                            _debug && cerr << "deciding to use bestman gridftp due to production role and : " << args[i] << endl;
                            continue;
                        } else {
 		           use_exp_gridftp = true;
                            use_http = false;
                            use_srm = false;
+                           use_xrootd = false;
                            _debug && cerr << "deciding to use exp gridftp due to: " << args[i] << endl;
                            continue;
                        }
@@ -1326,6 +1412,9 @@ ifdh::cp( std::vector<std::string> args ) {
      } else if (force[0] == 'e') {
          use_cpn = false;
          use_exp_gridftp = true;
+     } else if (force[0] == 'r' || force[0] == 'x') {
+         use_cpn = false;
+         use_xrootd = true;
      } else if (force[0] == 'c') { 
           use_cpn = true;
           use_srm = false;
@@ -1361,13 +1450,18 @@ ifdh::cp( std::vector<std::string> args ) {
      //
      // srmcp and dd only do specific srcfile,destfile copies
      //
-     if (dest_is_dir && (use_s3 || use_srm || use_dd || use_any_gridftp)) {
+     if (dest_is_dir && (use_s3 || use_srm || use_dd || use_any_gridftp || use_xrootd)) {
          args = slice_directories(args, curarg, need_lock_low, need_lock_high);
          dest_is_dir = false;
          curarg = 0;
      }
 
      if ( stage_via ) {
+         if ( has(stage_via,"root:") || has(stage_via,"xroot:") ) {
+            use_xrootd = true;
+            use_cpn = false;
+            use_dd = false;
+         }
          if ( has(stage_via,"s3:")) {
             use_cpn = false;
             use_dd = false;
@@ -1401,14 +1495,14 @@ ifdh::cp( std::vector<std::string> args ) {
      // get the proxy before we get the lock, so the
      // lock file will have the username info right.
      
-     if (use_any_gridftp || use_srm || use_irods  || use_http) {
+     if (use_any_gridftp || use_srm || use_irods  || use_http || use_xrootd) {
 	get_grid_credentials_if_needed();
      }
 
      gettimeofday(&time_before, 0);
 
      bool need_copyback = false;
-     if (use_any_gridftp || use_srm || use_irods || use_s3 || use_http) {
+     if (use_any_gridftp || use_srm || use_irods || use_s3 || use_http || use_xrootd) {
 	if (stage_via) {
 	    need_copyback = true;
 	}
@@ -1428,6 +1522,7 @@ ifdh::cp( std::vector<std::string> args ) {
                  use_irods ? "icp " :  
                  use_http ? "www_cp.sh " :  
                  use_s3 ? "aws s3 cp " : 
+                 use_xrootd ? "xrdcp " : 
                  clued0_hack ? "scp " : 
                  "false" );
 
@@ -1453,6 +1548,9 @@ ifdh::cp( std::vector<std::string> args ) {
          }
          if (use_s3 && getenv("IFDH_S3_EXTRA")) {
             cmd << getenv("IFDH_S3_EXTRA") << " ";
+         }
+         if (use_xrootd && getenv("IFDH_XROOTD_EXTRA")) {
+            cmd << getenv("IFDH_XROOTD_EXTRA") << " ";
          }
          if (use_any_gridftp && getenv("IFDH_GRIDFTP_EXTRA")) {
             cmd << getenv("IFDH_GRIDFTP_EXTRA") << " ";
@@ -1498,7 +1596,7 @@ ifdh::cp( std::vector<std::string> args ) {
 		// this looks redudnant, but the proxy could have 
 		// expired while we were waiting for a lock...
 		//
-		if (use_any_gridftp || use_srm || use_irods || use_http ) {
+		if (use_any_gridftp || use_srm || use_irods || use_http || use_xrootd ) {
 		    get_grid_credentials_if_needed();
 		}
             }
@@ -1506,13 +1604,14 @@ ifdh::cp( std::vector<std::string> args ) {
             // if we're a cross-protocol copy, we have to copy through
             // a named pipe.
             _debug && cerr << "checking for cross protocol copy...\n";
-            _debug && cerr << "use_{srm,any_gridftp,s3,http} "<< use_srm << use_any_gridftp << use_s3 << use_http << "\n";
-            if ( (use_s3 && (args[curarg].find("gsiftp:") == 0 || args[curarg].find("srm:") == 0 || args[curarg].find("http") == 0)) ||
-                (use_srm && (args[curarg].find("s3:") == 0 || args[curarg].find("gsiftp:") == 0 || args[curarg].find("http:") == 0)) ||
-                (use_any_gridftp && (args[curarg].find("s3:") == 0 || args[curarg].find("srm:") == 0 || args[curarg].find("http") == 0)) ||
-                (use_http && (args[curarg].find("s3:") == 0 || args[curarg].find("srm:") == 0 || args[curarg].find("gsiftp:") == 0))) {
+            _debug && cerr << "use_{srm,any_gridftp,s3,http,xrootd} "<< use_srm << use_any_gridftp << use_s3 << use_http << use_xrootd << "\n";
+            if ( (use_s3 && (args[curarg].find("gsiftp:") == 0 || args[curarg].find("srm:") == 0 || args[curarg].find("http") == 0 || args[curarg].find("root:") == 0 || args[curarg].find("root:") == 1)) ||
+                (use_xrootd && (args[curarg].find("s3:") == 0 || args[curarg].find("srm:") == 0 || args[curarg].find("http") == 0|| args[curarg].find("gsiftp:") == 0)) ||
+                (use_srm && (args[curarg].find("s3:") == 0 || args[curarg].find("gsiftp:") == 0 || args[curarg].find("http:") == 0|| args[curarg].find("root:") == 0 || args[curarg].find("root:") == 1)) ||
+                (use_any_gridftp && (args[curarg].find("s3:") == 0 || args[curarg].find("srm:") == 0 || args[curarg].find("http") == 0|| args[curarg].find("root:") == 0 || args[curarg].find("root:") == 1)) ||
+                (use_http && (args[curarg].find("s3:") == 0 || args[curarg].find("srm:") == 0 || args[curarg].find("gsiftp:") == 0|| args[curarg].find("root:") == 0 || args[curarg].find("root:") == 1))) {
 
-                _debug && cerr << "cross protocol copy:\n";
+                _debug && cerr << "IS a cross protocol copy:\n";
                 args[curarg] = spinoff_copy(this, args[curarg], (args.size() == curarg + 1 || args[curarg+1] == ";"));
                 cleanup_spinoffs.push_back(args[curarg]);
             }
@@ -1572,7 +1671,7 @@ ifdh::cp( std::vector<std::string> args ) {
                 cmd << " - > " << args[curarg] << " " ;
             } else if ( use_s3 && !(args[curarg].find("s3:") == 0) && !((curarg == args.size() - 1 || args[curarg+1] == ";" )) ) {
                 cmd << " - < " << args[curarg] << " " ;
-            } else if ( use_irods || use_s3 || use_http ) {
+            } else if ( use_irods || use_s3 || use_http || use_xrootd ) {
 	        cmd << args[curarg] << " ";
             } else if (0 == local_access(args[curarg].c_str(), R_OK)) {
                 cmd << "file:///" << args[curarg] << " ";
@@ -1753,7 +1852,7 @@ ifdh::mv(vector<string> args) {
 }
 
 void
-pick_type( string &loc, string force, bool &use_fs, bool &use_gridftp, bool &use_srm, bool &use_irods, bool &use_s3, bool &use_http) {
+pick_type( string &loc, string force, bool &use_fs, bool &use_gridftp, bool &use_srm, bool &use_irods, bool &use_s3, bool &use_http, bool &use_xrootd) {
 
     if (force.length() == 0) {
        if (getenv("IFDH_FORCE")) {
@@ -1774,6 +1873,8 @@ pick_type( string &loc, string force, bool &use_fs, bool &use_gridftp, bool &use
                 break;
         case 'i':           use_irods = true;     break;
         case 'h':           use_http = true;     break;
+        case 'r':           
+        case 'x':           use_xrootd = true;     break;
         default:
         case 'c': case 'd': use_fs = true;      break;
         }
@@ -1785,6 +1886,9 @@ pick_type( string &loc, string force, bool &use_fs, bool &use_gridftp, bool &use
         }
         if (loc.find("i:") == 0) {
            use_irods = true;
+        }
+        if (loc.find("root:") == 0 || loc.find("xroot:") == 0) {
+           use_xrootd = true;
         }
         if (loc.find("http:") == 0 || loc.find("https:") == 0) {
            use_http = true;
@@ -1803,7 +1907,7 @@ pick_type( string &loc, string force, bool &use_fs, bool &use_gridftp, bool &use
         // no xyz: on front...
         if ( loc.find("/pnfs") == 0 ) {
             use_gridftp = !use_srm;
-            loc = map_pnfs(loc, use_srm);
+            loc = map_pnfs(loc, use_srm, use_xrootd);
 
         } else if( use_gridftp )  {
             if (force.find("--force=") == 0L && force[8] == 'e') {
@@ -1818,11 +1922,14 @@ pick_type( string &loc, string force, bool &use_fs, bool &use_gridftp, bool &use
         } else if( use_srm )  {
             loc = bestman_srm_uri + loc;
             ifdh::_debug && std::cerr << "use_srm converting to: " << loc << endl;
+        //
+        // } else if( use_xrootd )...
+        //   need an entry here to support converting /pnfs to xrootd?
         }
 
     }
 
-    if (!(use_fs || use_gridftp || use_srm || use_irods || use_s3 || use_http )) {
+    if (!(use_fs || use_gridftp || use_srm || use_irods || use_s3 || use_http || use_xrootd)) {
 
         if (loc[0] != '/') {
            string cwd(getcwd(getcwd_buf, MAXPATHLEN));
@@ -1838,7 +1945,7 @@ pick_type( string &loc, string force, bool &use_fs, bool &use_gridftp, bool &use
              
             use_gridftp = true;
             if ( loc.find("/pnfs") == 0 ) {
-                loc = map_pnfs(loc, 0);
+                loc = map_pnfs(loc, use_srm, use_xrootd);
             } else {
                 std::string gftpHost("gsiftp://if-gridftp-");
                 gftpHost.append(getexperiment());
@@ -1851,7 +1958,7 @@ pick_type( string &loc, string force, bool &use_fs, bool &use_gridftp, bool &use
     }
     // not really part of picking, but everyone did it right afterwards,
     // so just putting it in one place instead.
-    if (use_srm || use_gridftp || use_irods || use_http) {
+    if (use_srm || use_gridftp || use_irods || use_http || use_xrootd) {
         get_grid_credentials_if_needed();
     }
 }
@@ -1883,12 +1990,13 @@ ifdh::ll( std::string loc, int recursion_depth, std::string force) {
     bool use_irods = false;
     bool use_http = false;
     bool use_s3 = false;
+    bool use_xrootd = false;
     std::stringstream cmd;
 
     if ( -1 == recursion_depth )
         recursion_depth = 1;
 
-    pick_type( loc, force, use_fs, use_gridftp, use_srm, use_irods, use_s3, use_http);
+    pick_type( loc, force, use_fs, use_gridftp, use_srm, use_irods, use_s3, use_http, use_xrootd);
 
 
     if (use_srm) {
@@ -1901,6 +2009,12 @@ ifdh::ll( std::string loc, int recursion_depth, std::string force) {
        cmd << "--recursion_depth " << recursion_depth << " ";
        }
        cmd << loc;
+    } else if (use_xrootd) {
+       cmd << "xrdwrap.sh ls -l";
+       if (recursion_depth > 1) {
+            cmd << "r";
+       }
+       cmd << " " << loc;
     } else if (use_s3) {
        cmd << "aws s3 ls --human-readable --summarize ";
        if (recursion_depth > 1) {
@@ -1916,7 +2030,7 @@ ifdh::ll( std::string loc, int recursion_depth, std::string force) {
        }
        cmd << loc;
     } else if (use_gridftp) {
-#ifdef __APPLE__
+#ifdef __APPLE__ 
        cmd << "globus-url-copy -list ";
 #else
        cmd << "uberftp -ls ";
@@ -1940,6 +2054,22 @@ ifdh::ll( std::string loc, int recursion_depth, std::string force) {
     return WEXITSTATUS(status);
 }
 
+#include <fcntl.h>
+int
+hide_stderr() {
+    int save_err;
+    save_err=dup(2);
+    close(2);
+    open("/dev/null",O_RDWR); // returns 2, we ignore it
+    return save_err;
+}
+void
+unhide_stderr(int save_err) {
+    close(2);
+    dup(save_err); // returns 2, we ignore it
+    close(save_err);
+}
+
 std::vector<std::pair<std::string,long> > 
 ifdh::try_ls_lR_file( std::string loc ) {
     std::string f;
@@ -1952,6 +2082,7 @@ ifdh::try_ls_lR_file( std::string loc ) {
     char buf[512];
     std::stringstream cmd;
     size_t pos;
+    int save_err;
 
     pos = loc.find("://");
     if (pos != string::npos) {
@@ -1961,7 +2092,9 @@ ifdh::try_ls_lR_file( std::string loc ) {
         prefix = "";
     }
     
+    save_err = hide_stderr();
     lsout = ls(loc + "/ls-lR.gz", 1, "");
+    unhide_stderr(save_err);
     if (lsout.size() > 0) {
         f = fetchInput(loc + "/ls-lR.gz");
         if (f != "") {
@@ -2009,6 +2142,7 @@ ifdh::lss( std::string loc, int recursion_depth, std::string force) {
     bool use_irods = false;
     bool use_http = false;
     bool use_s3 = false;
+    bool use_xrootd = false;
     bool first = true;
     bool parse_globus = false;
     std::stringstream cmd;
@@ -2039,7 +2173,7 @@ ifdh::lss( std::string loc, int recursion_depth, std::string force) {
     }
     if(_debug) std::cerr << "came up with base:" << base << endl;
 
-    pick_type( loc, force, use_fs, use_gridftp, use_srm, use_irods, use_s3, use_http);
+    pick_type( loc, force, use_fs, use_gridftp, use_srm, use_irods, use_s3, use_http, use_xrootd);
 
     _debug && cerr << "after pick_type, loc is " << loc << "\n";
 
@@ -2048,12 +2182,17 @@ ifdh::lss( std::string loc, int recursion_depth, std::string force) {
        cmd << "--recursion_depth " << recursion_depth << " ";
        cmd << loc;
     } else if (use_srm && _have_gfal) {
-       cmd << "gfal-ls ";
+       cmd << "gfal-ls -l ";
        // cmd << "--recursion_depth " << recursion_depth << " ";
+       // base = origloc;
        cmd << loc;
        base = origloc;
-       if (base[base.size()-1] != '/')
-           base = base + "/";
+    } else if (use_xrootd) {
+       cmd << "xrdwrap.sh ls -l";
+       if (recursion_depth > 1) {
+           cmd << "r";
+       }
+       cmd << " " << loc;
     } else if (use_s3) {
        cmd << "aws s3 ls  ";
        if (recursion_depth > 1) {
@@ -2067,7 +2206,11 @@ ifdh::lss( std::string loc, int recursion_depth, std::string force) {
            dpos = loc.size();
        }
        dir = loc.substr(dpos);
-       base = base + dir;
+       if (recursion_depth > 1) {
+           base = base + "/";
+       } else {
+           base = base + dir;
+       }
     } else if (use_http) {
        cmd << "www_cp.sh --ls "; 
     } else if (use_irods) {
@@ -2113,6 +2256,8 @@ ifdh::lss( std::string loc, int recursion_depth, std::string force) {
 	if (fgets(buf, 512, pf)) {
            string s(buf);
            _debug && std::cerr << "before cleanup: |" << s <<  "|\n";
+
+
            fsize = 0;
            // trim trailing newlines
            if ('\n' == s[s.size()-1]) {
@@ -2120,6 +2265,10 @@ ifdh::lss( std::string loc, int recursion_depth, std::string force) {
            }
            if ('\r' == s[s.size()-1]) {
                s = s.substr(0,s.size()-1);
+           }
+           // trim trailing whitespace
+           while (s.size() > 0 &&  (s[s.size()-1] == '\t' || s[s.size()-1] == ' ')) {
+                s = s.substr(0,s.size() - 1);
            }
 
            // if the first thing we see ends in the last component
@@ -2144,7 +2293,7 @@ ifdh::lss( std::string loc, int recursion_depth, std::string force) {
                }
            }
            // trim leading stuff from srmls/aws s3 ls
-           if (use_srm || use_s3) {
+           if ((use_srm && !_have_gfal) || use_s3) {
                // find spos as start of size , which is after date
                // on s3
                spos = s.find_first_of("0123456789P", use_s3?20:0);
@@ -2171,7 +2320,7 @@ ifdh::lss( std::string loc, int recursion_depth, std::string force) {
                    s = dir + '/' +  s;
                }
            }
-           if (use_gridftp && !parse_globus ) {
+           if ((use_gridftp && !parse_globus) || (use_srm && _have_gfal) ) {
                // trim long listing bits, (8 columns) add slash if dir
                  
                // find flags (i.e drwxr-xr-x...)
@@ -2183,7 +2332,9 @@ ifdh::lss( std::string loc, int recursion_depth, std::string force) {
                // find space column -- skip back over date
                // look backwards for a space, then forwards for a digit
                // note that the format is subtly different in recursive...
-               if (recursion_depth > 0) {
+               if (_have_gfal && use_srm) {
+                   spos = pos - 21;
+               } else if (recursion_depth > 0) {
                    spos = pos - 18;
                } else {
                    spos = pos - 16;
@@ -2231,7 +2382,7 @@ ifdh::lss( std::string loc, int recursion_depth, std::string force) {
             res.push_back(pair<string,long>(loc, 0));
         } else {
             // missing directory case
-            _debug && std::cerr << "missing directory/file case..\n";
+            _debug && std::cerr << "exit code: " << status << " missing directory/file case..\n";
             // throw( std::runtime_error("No such file or directory"));
         }
     } else {
@@ -2308,18 +2459,25 @@ ifdh::mkdir(string loc, string force) {
     bool use_irods = false;
     bool use_http = false;
     bool use_s3 = false;
+    bool use_xrootd = false;
     std::stringstream cmd;
     cpn_lock locker;  // we need this to pass into retry_system 
 
-    pick_type( loc, force, use_fs, use_gridftp, use_srm, use_irods, use_s3, use_http);
+    pick_type( loc, force, use_fs, use_gridftp, use_srm, use_irods, use_s3, use_http, use_xrootd);
 
     if (use_fs)      cmd << "mkdir ";
     if (use_gridftp) cmd << "uberftp -mkdir ";
+    if (use_irods)   cmd << "imkdir ";
+    if (use_http)    cmd << "www_cp.sh --mkdir ";
+    if (use_xrootd)  cmd << "xrdwrap.sh mkdir ";
     if (use_srm && _have_gfal)     cmd << "gfal-mkdir ";
     if (use_srm && !_have_gfal)    cmd << "srmmkdir -2 ";
-    if (use_irods)   cmd << "imkdir ";
-    if (use_http)   cmd << "www_cp.sh --mkdir ";
-    if (use_s3)      cmd << "aws s3 mb ";
+    if (use_s3) {
+       if (loc.find('/',4) == string::npos)
+          cmd << "aws s3 mb ";
+       else
+          return 0; // you do not make directories only buckets, in s3
+    }
 
     cmd << loc;
 
@@ -2345,9 +2503,10 @@ ifdh::rm(string loc, string force) {
     bool use_irods = false;
     bool use_http = false;
     bool use_s3 = false;
+    bool use_xrootd = false;
     std::stringstream cmd;
 
-    pick_type( loc, force, use_fs, use_gridftp, use_srm, use_irods, use_s3, use_http);
+    pick_type( loc, force, use_fs, use_gridftp, use_srm, use_irods, use_s3, use_http, use_xrootd);
 
     if (use_fs)      cmd << "rm ";
     if (use_gridftp) cmd << "uberftp -rm ";
@@ -2356,6 +2515,7 @@ ifdh::rm(string loc, string force) {
     if (use_irods)   cmd << "irm ";
     if (use_http)   cmd << "www_cp.sh --rm ";
     if (use_s3)   cmd << "aws s3 rm ";
+    if (use_xrootd)   cmd << "xrdwrap.sh rm ";
 
     cmd << loc;
 
@@ -2375,17 +2535,19 @@ ifdh::rmdir(string loc, string force) {
     bool use_irods = false;
     bool use_http = false;
     bool use_s3 = false;
+    bool use_xrootd = false;
     std::stringstream cmd;
 
-    pick_type( loc, force, use_fs, use_gridftp, use_srm, use_irods, use_s3, use_http);
+    pick_type( loc, force, use_fs, use_gridftp, use_srm, use_irods, use_s3, use_http, use_xrootd);
 
     if (use_fs)      cmd << "rmdir ";
     if (use_gridftp) cmd << "uberftp -rmdir ";
+    if (use_irods)   cmd << "irm ";
+    if (use_http)    cmd << "www_cp.sh --rmdir ";
+    if (use_s3)      cmd << "aws s3 rb ";
+    if (use_xrootd)  cmd << "xrdwrap.sh rmdir";
     if (use_srm&& _have_gfal)       cmd << "gfal-rm -r ";
     if (use_srm&& !_have_gfal)      cmd << "srmrmdir -2 ";
-    if (use_irods)   cmd << "irm ";
-    if (use_http)   cmd << "www_cp.sh --rmdir ";
-    if (use_s3)   cmd << "aws s3 rb ";
 
     cmd << loc;
 
@@ -2411,6 +2573,24 @@ mbits( int n ) {
     return res.str();
 }
 
+static string
+rwx(string smode) {
+   string res("");
+ 
+   int mode = (smode[0] - '0') * 64 + (smode[1] - '1') * 8 + (smode[2] - '2');
+
+   for (int shift=6; shift >= 0 ; shift -= 3) {
+      for (int i = 2 ; i >= 0; i--) {
+         if ( (mode >> shift) & (1 << i) ) {
+            res = res + "xwr"[i];
+         } else {
+            res = res + '-';
+         }
+      }
+   }
+   return res;
+}
+
 int
 ifdh::chmod(string mode, string loc, string force) {
     bool use_gridftp = false;
@@ -2419,9 +2599,10 @@ ifdh::chmod(string mode, string loc, string force) {
     bool use_irods = false;
     bool use_http = false;
     bool use_s3 = false;
+    bool use_xrootd = false;
     std::stringstream cmd;
 
-    pick_type( loc, force, use_fs, use_gridftp, use_srm, use_irods, use_s3, use_http);
+    pick_type( loc, force, use_fs, use_gridftp, use_srm, use_irods, use_s3, use_http, use_xrootd);
 
     if (use_fs)      cmd << "chmod ";
     if (use_gridftp) cmd << "uberftp -chmod ";
@@ -2430,11 +2611,12 @@ ifdh::chmod(string mode, string loc, string force) {
     // -- note srm-set-permissions gives errors about ACL support
     //    from DCache SRM. So we don't do that now.
     //if (use_srm)     cmd << "srm-permission-set ";
+    if (use_irods)   cmd << "ichmod ";
+    if (use_http)    cmd << "www_cp.sh --chmod ";
+    if (use_s3)      cmd << "aws s3 chmod "; // does this actually exist?
+    if (use_xrootd)  cmd << "xrdwrap.sh chmod ";
     if (use_srm && _have_gfal)     cmd << "gfal-chmod ";
     if (use_srm && !_have_gfal)    cmd << "srm-chmod ";
-    if (use_irods)   cmd << "ichmod ";
-    if (use_http)   cmd << "www_cp.sh --chmod ";
-    if (use_s3)   cmd << "aws s3 chmod "; // does this actually exist?
 
     if (use_srm && !_have_gfal) {
        int imode = strtol(mode.c_str(), 0, 8);
@@ -2442,11 +2624,13 @@ ifdh::chmod(string mode, string loc, string force) {
        cmd << "-owner=" << mbits((imode >> 6) & 7) << " ";
        cmd << "-group=" << mbits((imode >> 3) & 7) << " ";
        cmd << "-other=" << mbits((imode >> 0) & 7) << " ";
+       cmd << loc;
+    } else if (use_xrootd)  {
+       cmd << loc << " " << rwx(mode);
     } else {
-       cmd << mode << " ";
+       cmd << mode << " " << loc;
     }
 
-    cmd << loc;
 
     _debug && std::cerr << "running: " << cmd.str() << endl;
 
@@ -2464,6 +2648,7 @@ ifdh::pin(string loc, long int secs) {
     bool use_irods = false;
     bool use_http = false;
     bool use_s3 = false;
+    bool use_xrootd = false;
     std::stringstream cmd;
 
     // if it is not pnfs, ignore it.
@@ -2473,7 +2658,7 @@ ifdh::pin(string loc, long int secs) {
     }
 
     // we have to do this via srm for the moment
-    pick_type( loc, "--force=srm", use_fs, use_gridftp, use_srm, use_irods, use_s3, use_http);
+    pick_type( loc, "--force=srm", use_fs, use_gridftp, use_srm, use_irods, use_s3, use_http, use_xrootd);
 
     cmd << "srm-bring-online --lifetime=" << secs << " " << loc;
     _debug && std::cerr << "running: " << cmd.str() << endl;
@@ -2492,18 +2677,20 @@ ifdh::rename(string loc, string loc2, string force) {
     bool use_irods = false;
     bool use_http = false;
     bool use_s3 = false;
+    bool use_xrootd = false;
     stringstream cmd;
 
-    pick_type( loc, force, use_fs, use_gridftp, use_srm, use_irods, use_s3, use_http);
-    pick_type( loc2, force, use_fs, use_gridftp, use_srm, use_irods, use_s3, use_http);
+    pick_type( loc, force, use_fs, use_gridftp, use_srm, use_irods, use_s3, use_http, use_xrootd);
+    pick_type( loc2, force, use_fs, use_gridftp, use_srm, use_irods, use_s3, use_http, use_xrootd);
 
     if (use_fs)      cmd << "mv ";
     if (use_gridftp) cmd << "uberftp -rename ";
-    if (use_srm && _have_gfal)     cmd << "gfal-rename ";
-    if (use_srm && !_have_gfal)     cmd << "srmmv ";
     if (use_irods)   cmd << "imv ";
     if (use_http)    cmd << "www_cp.sh --mv ";
     if (use_s3)      cmd << "aws s3 mv ";
+    if (use_xrootd)  cmd << "xrdwrap.sh mv ";
+    if (use_srm && _have_gfal)     cmd << "gfal-rename ";
+    if (use_srm && !_have_gfal)    cmd << "srmmv ";
 
     // uberftp doesn't want the second argument to be a full uri, 
     // but rather a path.

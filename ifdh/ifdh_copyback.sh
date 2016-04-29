@@ -11,6 +11,7 @@
 
 debug() {
     [ x$IFDH_DEBUG != x ] && echo "$@"
+    # set -x
 }
 
 run_with_timeout() {
@@ -76,6 +77,7 @@ init() {
     ifdh log "ifdh_copyback.sh: starting for ${EXPERIMENT} on $host location $wprefix"
     # avoid falling into a hall of mirrors
     unset IFDH_STAGE_VIA
+    export IFDH_CP_MAXRETRIES=0
 
     cd ${TMPDIR:-/tmp}
 }
@@ -84,10 +86,10 @@ init() {
 get_first() {
    #debugging
    printf "Lock dir listing output:\n" >&2
-   ifdh ls  "$wprefix/lock" >&2
+   ifdh ls  "$wprefix/lock/" >&2
    printf "::\n" >&2
 
-   ifdh ls "$wprefix/lock" | sed -e 1d |  sort | head -1
+   ifdh ls "$wprefix/lock/" | sed -e 1d |  sort | head -1
 }
 
 i_am_first() {
@@ -146,7 +148,7 @@ get_lock() {
    run_with_timeout 300 ifdh cp ${TMPDIR:-/tmp}/$uniqfile $wprefix/lock/$uniqfile
    if i_am_first
    then
-      sleep 5
+      sleep 10
       if i_am_first
       then
          echo "Obtained lock $uniqfile at `date`"
@@ -166,12 +168,12 @@ clean_lock() {
 }
 
 have_queue() {
-   count=`ifdh ls $wprefix/queue | wc -l`
+   count=`ifdh ls $wprefix/queue/ | wc -l`
    [ $count -gt 1 ]
 }
 
 copy_files() {
-   ifdh ls $wprefix/queue | (
+   ifdh ls $wprefix/queue/ | (
      read dirname
      while read filename
      do
@@ -208,10 +210,9 @@ copy_files() {
              then
                  :
              else
-                 msg="Not cleaning queue entry $filename, because destination $dest would not list"
+                 msg="Queue entry $filename failed, copytig $src because destination $dest would not list"
                  echo "$msg"
                  ifdh log "$msg"
-                 break 2
              fi
          done < $filelist
 
@@ -245,7 +246,7 @@ copy_files() {
 
 debug_ls() {
    debug "current stage area:"
-   [ x$IFDH_DEBUG != x ] && ifdh ls $wprefix 4
+   [ x$IFDH_DEBUG != x ] && ifdh ls $wprefix/ 4
    debug ""
 }
 

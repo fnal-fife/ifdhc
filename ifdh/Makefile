@@ -28,7 +28,7 @@ install:
 	cp $(HDR) ../include
 	cp python/_ifdh.$(SHLIB) ../lib/python
 	cp python/ifdh.py ../lib/python
-	cp www_cp.sh ../bin
+	cp www_cp.sh xrdwrap.sh ../bin
 
 clean: 
 	rm -f $(OBJ) $(genOBJ) $(genSRC) $(LIB) libifdh.a

@@ -69,6 +69,9 @@ check_env() {
               }
            }
         }
+
+        // we do not want it set...
+        unsetenv("X509_USER_CERT");
               
         string path(getenv("PATH"));
         char *p;
@@ -459,6 +462,7 @@ do_url_int(int postflag, ...) {
        unique_ptr<WebAPI> wap(do_url_2(postflag, ap));
        res = wap->getStatus() - 200;
     } catch( exception &e )  {
+       std::cerr << "Exception: " << e.what();
        res = 300;
     }
     if (ifdh::_debug) std::cerr << "got back int result: " << res << "\n";
@@ -484,6 +488,7 @@ do_url_str(int postflag,...) {
 	    }
 	}
     } catch( exception &e )  {
+       std::cerr << "Exception: " << e.what();
        return "";
     }
     if (ifdh::_debug) std::cerr << "got back string result: " << res << "\n";
@@ -507,7 +512,8 @@ do_url_lst(int postflag,...) {
 	    }
 	}
     } catch( exception &e )  {
-        return empty;
+       std::cerr << "Exception: " << e.what();
+       return empty;
     }
     return res;
 }
@@ -679,7 +685,7 @@ ifdh::unique_string() {
     stringstream uniqstr;
 
     uniqstr << '_' << hbuf << '_' << t << '_' << pid << '_' << count++;
-    return uniqstr.str();
+    return std::string(uniqstr.str());
 }
 
 // give output files reported with addOutputFile a unique name

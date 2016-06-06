@@ -136,8 +136,10 @@ class ifdh {
         std::string checksum(std::string loc);
         // make a directory with intervening directories
         int mkdir_p(std::string loc, std::string force = "", int depth = -1);
+        // get a grid proxy for the current experiment if needed, 
+        // return the path
+        std::string getProxy();
 };
-
 }
 
 using namespace ifdh_ns;

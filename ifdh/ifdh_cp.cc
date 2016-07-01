@@ -1522,7 +1522,7 @@ ifdh::cp( std::vector<std::string> args ) {
                  use_irods ? "icp " :  
                  use_http ? "www_cp.sh " :  
                  use_s3 ? "aws s3 cp " : 
-                 use_xrootd ? "xrdcp " : 
+                 use_xrootd ? "xrdcp –DIRedirectLimit 255 -DIRequestTimeout 14400 " : 
                  clued0_hack ? "scp " : 
                  "false" );
 

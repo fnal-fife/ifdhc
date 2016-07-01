@@ -501,7 +501,7 @@ do_url_lst(int postflag,...) {
     string line;
     vector<string> empty;
     vector<string> res;
-    try {
+    //try {
         class timeoutobj to;
 	va_start(ap, postflag);
 	unique_ptr<WebAPI> wap(do_url_2(postflag, ap));
@@ -511,10 +511,10 @@ do_url_lst(int postflag,...) {
 		res.push_back(line);
 	    }
 	}
-    } catch( exception &e )  {
-       std::cerr << "Exception: " << e.what();
-       return empty;
-    }
+    //} catch( exception &e )  {
+    //   std::cerr << "Exception: " << e.what();
+    //   return empty;
+    // }
     return res;
 }
 

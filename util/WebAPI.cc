@@ -14,6 +14,7 @@
 #include <pwd.h>
 #include "ifdh_version.h"
 #include <sys/wait.h>
+#include <fcntl.h>
 
 
 namespace ifdh_util_ns {
@@ -247,6 +248,11 @@ WebAPI::WebAPI(std::string url, int postflag, std::string postdata) throw(WebAPI
                 dup(inp[0]);   
                 close(1);
                 dup(outp[1]);
+                // send stderr to /dev/null -- get rid of annoying
+                // validation messages.  Might lose some real errors,
+                // but...
+                close(2);
+                open("/dev/null",O_RDONLY);
 
                 close(inp[0]); close(inp[1]); 
                 close(outp[0]);close(outp[1]);

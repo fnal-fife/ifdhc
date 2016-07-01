@@ -689,7 +689,7 @@ get_grid_credentials_if_needed() {
 	   res = system(cmd.c_str());
         }
         if (!WIFEXITED(res) ||  0 != WEXITSTATUS(res)) {
-            std::cerr << "Unable to get proxy cert.. later things may fail\n";
+            std::cerr << "Error from voms-proxy-init... later things may fail\n";
         }
     }
 }

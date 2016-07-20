@@ -662,7 +662,7 @@ get_grid_credentials_if_needed() {
         } else {
             cmd += " >/dev/null 2>&1 ";
         }
-        cmd += "&& voms-proxy-init -rfc -noregen -debug -voms ";
+        cmd += "&& voms-proxy-init -rfc -noregen -debug -dont-verify-ac -voms ";
 
         if (experiment == "samdev")  // use fermilab for fake samdev expt
            experiment = "fermilab";

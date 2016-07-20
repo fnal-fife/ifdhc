@@ -139,6 +139,10 @@ class ifdh {
         // get a grid proxy for the current experiment if needed, 
         // return the path
         std::string getProxy();
+        // declare file metadata
+	int declareFile( std::string json_metadata);
+        // modify file metadata
+	int modifyMetadata(std::string file,  std::string json_metadata);
 };
 }
 

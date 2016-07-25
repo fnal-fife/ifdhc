@@ -52,13 +52,15 @@ http*//*\;/*)
 http*://*\;http*://*)
     curl $curlopts -o - "$src" | curl $curlopts  -T - "$dst"
     ;;
---ls*)
-    curl $curlopts -o - -X PROPFIND "$dst" --upload-file - -H "Depth: 1" <<EOF | perl -pe 's/>/>\n/go;' | egrep '</d:href>|</d:getcontentlength>'  | sed -e 's/<[^>]*>//'
+--ls*) 
+  
+    curl $curlopts -o - -X PROPFIND "$dst" --upload-file - -H "Depth: 1" <<EOF  | perl -pe 's/>/>\n/go;'  |  egrep '</d:href>|</d:getcontentlength>|<d:getcontentlength/>'  | perl -pe 'if (/d:href/) { chomp();} s{<d:getcontentlength/>}{0 }; s{<[^>]*>}{ }go;'
 <?xml version="1.0"?>
 <a:propfind xmlns:a="DAV:">
  <a:prop><a:resourcetype/><a:getcontentlength/></a:prop>
 </a:propfind>
 EOF
+
 # <a:allprop>
 # <a:prop><a:resourcetype/><a:getcontentlength/></a:prop>
 # <a:prop><a:resourcetype/></a:prop>

@@ -765,7 +765,7 @@ use_passive() {
 
 
 string
-get_pnfs_gsiftp_uri() {
+get_pnfs_gsiftp_uri(std::string door_url = "http://fndca3a.fnal.gov:2288/info/doors") {
     int state = 0;
     static vector<string> nodes;
     static const char *cdefault_nodes[] = { "stkendca01a.fnal.gov", "stkendca02a.fnal.gov", "stkendca03a.fnal.gov" };
@@ -778,7 +778,7 @@ get_pnfs_gsiftp_uri() {
 
     if (0 == nodes.size()) {
         ifdh::_debug && cerr << "looking for dcache doors..\n";
-        WebAPI wa("http://fndca3a.fnal.gov:2288/info/doors");
+        WebAPI wa(door_urll);
 	while (!wa.data().eof() && !wa.data().fail()) {
 	    getline(wa.data(), line);
             // ifdh::_debug && cerr << "got: " << line << "\n";

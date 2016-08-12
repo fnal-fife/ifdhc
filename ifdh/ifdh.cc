@@ -1,5 +1,6 @@
 #include "ifdh.h"
 #include "utils.h"
+#include <fcntl.h>
 #include <string>
 #include <sstream>
 #include <iostream>
@@ -506,7 +507,7 @@ do_url_lst(int postflag,...) {
     string line;
     vector<string> empty;
     vector<string> res;
-    //try {
+    try {
         class timeoutobj to;
 	va_start(ap, postflag);
 	unique_ptr<WebAPI> wap(do_url_2(postflag, ap));
@@ -516,10 +517,10 @@ do_url_lst(int postflag,...) {
 		res.push_back(line);
 	    }
 	}
-    //} catch( exception &e )  {
-    //   std::cerr << "Exception: " << e.what();
-    //   return empty;
-    // }
+    } catch( exception &e )  {
+       std::cerr << "Exception: " << e.what();
+       return empty;
+    }
     return res;
 }
 
@@ -674,7 +675,6 @@ int ifdh::endProject(string projecturi) {
 
 ifdh::ifdh(std::string baseuri) {
     check_env();
-    _have_gfal = (0 == system("gfal-copy --help > /dev/null 2>&1"));
     char *debug = getenv("IFDH_DEBUG");
     if (0 != debug ) { 
         std::cerr << "IFDH_DEBUG=" << debug << " => " << atoi(debug) << "\n";
@@ -685,10 +685,38 @@ ifdh::ifdh(std::string baseuri) {
      } else {
        _baseuri = baseuri;
     }
-    std::string cffile(getenv("IFDHC_DIR"));
+    const char *ccffile = getenv("IFDHC_CONFIG_DIR");
+    if (ccffile == 0) {
+        ccffile = getenv("IFDHC_DIR");
+    }
+    if (ccffile == 0) {
+	throw( std::logic_error("no ifdhc config file environment variables found"));
+    }
+    std::string cffile(ccffile);
     _config.read(cffile + "/ifdh.cfg");
     _debug && std::cerr << "ifdh constructor: _baseuri is '" << _baseuri << "'\n";
-    _debug && std::cerr << "ifdh constructor: _have_gfal == " << _have_gfal << "\n";
+    std::vector<std::string> clist = _config.getlist("general","conditionals");
+    _debug && std::cerr << "checking conditionals:\n";
+    for( size_t i = 0; i < clist.size(); i++ ) { 
+	_debug && std::cerr << "conditional" << i << ": " << clist[i] << "\n";
+        if (clist[i] == "") {
+           continue;
+        }
+        std::string tststr = _config.get("conditional " + clist[i], "test");
+        std::vector<std::string> renamevec = _config.getlist("conditional " + clist[i], "rename_proto");
+        if (tststr[0] == '-' && tststr[1] == 'x') {
+            if (0 == access(tststr.substr(3).c_str(), X_OK)) {
+                _debug && std::cerr << "test: " << tststr << " renaming: " << renamevec[0] << " <= " << renamevec[1] << "\n";
+		_config.rename_section("protocol " + renamevec[0], "protocol " + renamevec[1]);
+            }
+        }
+        if (tststr[0] == '-' && tststr[1] == 'r') {
+            if (0 == access(tststr.substr(3).c_str(), R_OK)) {
+                _debug && std::cerr << "test: " << tststr << " renaming: " << renamevec[0] << " <= " << renamevec[1] << "\n";
+		_config.rename_section("protocol " + renamevec[0], "protocol " + renamevec[1]);
+            }
+        }
+    }
 }
 
 void
@@ -819,7 +847,15 @@ ifdh::more(string loc) {
             putenv(envbuf);
 
             // now fetch the file to the named pipe
-            this-> fetchInput(loc);
+            try {
+                fetchInput(loc);
+            } catch (...) {
+		// unwedge other side if cp failed
+		int f = open(c_where,O_WRONLY|O_NDELAY, 0700);
+		if (f >= 0) {
+		    close(f);
+		}
+            }
             waitpid(res2, 0,0);
             unlink(c_where);
 
@@ -845,25 +881,45 @@ ifdh::checksum(string loc) {
     std::string path;
     const char *c_where = where.c_str();
     int res2 ,res;
-    int parentpid = getpid();
     unsigned long sum;
     res  = mknod(c_where, 0600 | S_IFIFO, 0);
     if(_debug) cerr << "made node " << c_where << endl;
+
     if (res == 0) {
+       int status;
        res2 = fork();
        if(_debug) cerr << "fork says " << res2 << endl;
-       if (res2 == 0) {
+       if (res2 > 0) {
+            // turn off retries
+            char envbuf[] = "IFDH_CP_MAXRETRIES=0\0\0\0\0";
+            const char *was = getenv("IFDH_CP_MAXRETRIES");
+            putenv(envbuf);
+
+            res = 0;
             if(_debug) cerr << "starting fetchInput( " << loc << ")" << endl;
             try {
-                path =  this-> fetchInput(loc);
-            } catch (exception &e) {
-                cerr << "failed fetching " << loc << "\n";
-                kill(parentpid, SIGPIPE);
-                exit(1);
+                path = fetchInput(loc);
+            } catch (...) {
+		// unwedge other side if cp failed
+		int f = open(c_where,O_WRONLY|O_NDELAY, 0700);
+		if (f >= 0) {
+		    close(f);
+		}
+                res = 1;
             }
             if(_debug) cerr << "finished fetchInput( " << loc << ")" << endl;
-            exit(0);
-       } else if (res2 > 0) {
+
+            // put back retries
+            if (!was)
+               was = "0";
+            strcpy(envbuf+17,was);
+            putenv(envbuf);
+
+            waitpid(res2, &status,0);
+            unlink(c_where);
+
+            exit(res == 0 ? status : res);
+       } else if (res2 == 0) {
             if(_debug) cerr << "starting get_adler32( " << c_where << ")" << endl;
             sum = checksum::get_adler32(c_where);
 	    sumtext <<  "{\"crc_value\": \""  
@@ -871,11 +927,6 @@ ifdh::checksum(string loc) {
                     << "\", \"crc_type\": \"adler 32 crc type\"}"
                     << endl;
             if(_debug) cerr << "finished get_adler32( " << c_where << ")" << endl;
-            pid_t wres = waitpid(res2, 0,0);
-            unlink(c_where);
-            if (wres != res2) {
-               throw( std::logic_error("background copy failed"));
-            }
        } else {
             throw( std::logic_error("fork failed"));
            

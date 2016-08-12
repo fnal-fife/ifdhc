@@ -42,9 +42,6 @@ class ifdh {
         // ---
         int cp(std::vector<std::string> args);
 
-        // alt cp
-        int cp2(std::vector<std::string> args);
-
 	// get input file to local scratch, return scratch location
 	std::string fetchInput( std::string src_uri );
 

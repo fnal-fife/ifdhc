@@ -79,7 +79,7 @@ ifdh_main.o: ifdh_main.cc
 %.o: %.cc
 	g++ -c -o $@  $(CXXFLAGS) $< 
 
-ifdh_cp.o: ifdh_cp.cc ifdh.h ../util/WebAPI.h ../util/../numsg/numsg.h ../util/../numsg/../util/SyslogAPI.h 
+ifdh_cp.o: ifdh_cp.cc ifdh.h ../util/WebAPI.h ../util/../numsg/numsg.h ../util/../numsg/../util/SyslogAPI.h ../util/regwrap.h
 
 ifdh_main.o: ifdh_main.cc ifdh.h ../util/WebAPI.h 
 

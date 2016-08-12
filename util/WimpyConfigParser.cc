@@ -1,7 +1,9 @@
 #include "WimpyConfigParser.h"
 #include <fstream>
 #include <iostream>
-
+#include <stdlib.h>
+#include "utils.h"
+ 
 namespace ifdh_util_ns {
 
 WimpyConfigParser::WimpyConfigParser() { ; }
@@ -12,7 +14,6 @@ WimpyConfigParser::read(std::string filename) {
    readfp(s);
    s.close();
 }
-
 
 void
 WimpyConfigParser::readfp(std::istream &s) {
@@ -29,9 +30,15 @@ WimpyConfigParser::readfp(std::istream &s) {
           continue;
        }
        p = line.find('#');
-       if (p != std::string::npos && line[p-1] != '\\') {
-          // it has a comment on the end, trim it
-          line = line.substr(0,p);
+       while (p != std::string::npos ) {
+          if(line[p-1] == '\\') {
+              // backslashed #, trim the backslash
+              line = line.substr(0,p-1) + line.substr(p);
+          } else {
+              // it has a comment on the end, trim it
+              line = line.substr(0,p);
+          }
+          p = line.find('#',p);
        }
        if (line[0] == '[') {
           if (have_partial) {
@@ -108,8 +115,60 @@ WimpyConfigParser::add_section(std::string sectionname) {
    _data.insert(std::make_pair(sectionname, np));
 }
 
+void
+WimpyConfigParser::rename_section(std::string sectionname1, std::string sectionname2) {
+   std::map<std::string, std::map<std::string, std::string> >::iterator si1,si2;
+   si1 = _data.find(sectionname1);
+   si2 = _data.find(sectionname2);
+   if (si1 == _data.end()) {
+       // didnt find it..
+       return;
+   }
+   if (si2 == _data.end()){
+       _data.erase(si2);
+   }
+   _data[sectionname2] = si1->second;
+   _data.erase(si1);
+}
+
+int
+WimpyConfigParser::getint(std::string sectionname, std::string optionname) {
+   return atoi(get(sectionname, optionname).c_str());
+}
+
+std::vector<std::string>
+WimpyConfigParser::getlist(std::string sectionname, std::string optionname) {
+    return split(get(sectionname, optionname),' ');
+}
+
+// string lookup with macro expansion...
 std::string 
-WimpyConfigParser:: get(std::string sectionname, std::string optionname) {
+WimpyConfigParser::get(std::string sectionname, std::string optionname) {
+   return expand(rawget(sectionname, optionname));
+}
+
+// with macro expansion...
+std::string 
+WimpyConfigParser::expand(std::string res) {
+   std::map<std::string, std::map<std::string, std::string> >::iterator si;
+   std::map<std::string, std::string> ::iterator di;
+
+   si = _data.find("macros");
+   if (si != _data.end()) {
+       for(di = si->second.begin(); di != si->second.end(); di++) {
+           size_t pos = res.find("%(" + di->first + ")s");
+           while (pos != std::string::npos) {
+               res.replace(pos, di->first.size()+4, di->second);
+               pos = res.find("%(" + di->first + ")s");
+           }
+       }
+   }
+   return res;
+}
+
+// basic string lookup
+std::string 
+WimpyConfigParser::rawget(std::string sectionname, std::string optionname) {
    // need a section iterator and a data iterator..
    std::map<std::string, std::map<std::string, std::string> >::iterator si;
    std::map<std::string, std::string> ::iterator di;
@@ -160,7 +219,7 @@ WimpyConfigParser::has_option(std::string sectionname, std::string optionname) {
 #ifdef UNITTEST
 
 #include <iostream>
-extern "C" int exit(int);
+//extern "C" int exit(int);
 
 using namespace ifdh_util_ns;
 
@@ -174,6 +233,14 @@ main() {
    std::cout << "test have x?" << cp.has_option("test", "x") << std::endl;
    std::cout << "test have y?" << cp.has_option("test", "y") << std::endl;
    std::cout << "test's x?" << cp.get("test", "x") << std::endl;
+   cp.dump();
+
+   std::cout << "renaming test as renametest..." << std::endl;
+   cp.rename_section("test","renametest");
+   std::cout << "test have x?" << cp.has_option("test", "x") << std::endl;
+   std::cout << "test have y?" << cp.has_option("test", "y") << std::endl;
+   std::cout << "renametest have x?" << cp.has_option("renametest", "x") << std::endl;
+   std::cout << "renametest have y?" << cp.has_option("renametest", "y") << std::endl;
    cp.dump();
 
    WimpyConfigParser ifdh_cfg;

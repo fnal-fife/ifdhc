@@ -4,6 +4,7 @@
 #include <string>
 #include <vector>
 #include "../util/WebAPI.h"
+#include "../util/WimpyConfigParser.h"
 #include <stdlib.h>
 #include <map>
 #include <utility>
@@ -16,8 +17,7 @@ class ifdh {
         std::string _lastinput;
         std::string unique_string();
         std::vector<std::string> build_stage_list( std::vector<std::string>, int, char *stage_via);
-        bool _have_gfal;
-        std::vector<std::pair<std::string,long> > try_ls_lR_file( std::string loc );
+        WimpyConfigParser _config;
    public:
         static int _debug;
         static std::string _default_base_uri;
@@ -41,6 +41,9 @@ class ifdh {
         // * any of the file/dest arguments can be URIs
         // ---
         int cp(std::vector<std::string> args);
+
+        // alt cp
+        int cp2(std::vector<std::string> args);
 
 	// get input file to local scratch, return scratch location
 	std::string fetchInput( std::string src_uri );

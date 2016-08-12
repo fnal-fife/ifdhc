@@ -1,6 +1,7 @@
 
 #include "ifdh.h"
 #include "utils.h"
+#include "../util/WimpyConfigParser.h"
 #include <iostream>
 #include <string>
 #include <cstring>
@@ -977,6 +978,59 @@ retry_system(const char *cmd_str, int error_expected, cpn_lock &locker,  int max
         tries++;
     }
     return res;
+}
+
+size_t
+find_dest( std::vector<std::string> args, size_t curarg ) {
+   while( curarg < args.size()-1 && args[curarg+1] != ";") {
+        curarg++;
+   }
+   return curarg;
+}
+
+int
+ifdh::cp2( std::vector<std::string> args ) {
+    size_t curarg = 0;
+    bool dflag = false;
+    std::vector<std::pair<std::string,std::string> > sdlist;  
+    // parse -x args
+    // split int src dest pairlist
+    size_t dest = find_dest(args, curarg+1);
+    while ( dest < args.size() ){
+        while( curarg < dest ) {
+            if (dflag) {
+                sdlist.push_back(make_pair(args[curarg], args[dest] + basename(args[curarg].c_str())));
+            } else {
+                sdlist.push_back(make_pair(args[curarg], args[dest]));
+            }
+            curarg++;
+        }
+        curarg++;
+        if (curarg < args.size() && args[curarg] == ";")
+          curarg++;
+        dest = find_dest(args, curarg+1);
+    }
+  
+    std::vector<std::string> prelist, protolist;
+    prelist = split(_config.get("general","prefixes"),' ',false);
+
+    std::cout << "prelist: "  << join(prelist,',') << std::endl;
+
+    for( size_t i = 0; i < sdlist.size(); i++) {
+        for(size_t  j = 0; j < prelist.size(); j++) {
+            std::string p("prefix ");
+            protolist = split(_config.get(p + prelist[j],"protocols"),' ',false);
+            std::cout << "protocols for" << prelist[j] <<  ": " << join(protolist,',') << std::endl;
+
+            for(size_t  k = 0; k < protolist.size(); k++) {
+                if( "file:" == protolist[k]) {
+                     ;   
+                }
+            }
+        }
+    }
+
+    return 0;
 }
 
 int 

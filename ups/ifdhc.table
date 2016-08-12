@@ -8,7 +8,6 @@ Product=ifdhc
 # p278 -> python v2_7_8 (e6 & e5)
 # p279 -> python v2_7_9 (e6 & e7)
 # p2710 -> python v2_7_10 (e7 & e9)
-# p2711 -> python v2_7_11 (e9 & e10)
 
 Group:
 
@@ -51,47 +50,6 @@ Group:
     EnvSet(IFDHC_FQ_DIR, ${UPS_PROD_DIR} )
 
      Action=ExtraSetup
-
-Flavor=ANY
-Qualifiers=e10:p2711:debug
-
-  Action=DefineFQ
-    EnvSet(IFDHC_FQ_DIR, ${UPS_PROD_DIR}/${UPS_PROD_FLAVOR}-e10-p2711-debug )
-
-  Action = ExtraSetup
-    setupRequired( python v2_7_11 )
-    setupRequired( gcc v4_9_3a )
-
-Flavor=ANY
-Qualifiers=e10:p2711:prof
-
-  Action=DefineFQ
-    EnvSet(IFDHC_FQ_DIR, ${UPS_PROD_DIR}/${UPS_PROD_FLAVOR}-e10-p2711-prof )
-
-  Action = ExtraSetup
-    setupRequired( python v2_7_11 )
-    setupRequired( gcc v4_9_3a )
-
-Flavor=ANY
-Qualifiers=e9:p2711:debug
-
-  Action=DefineFQ
-    EnvSet(IFDHC_FQ_DIR, ${UPS_PROD_DIR}/${UPS_PROD_FLAVOR}-e9-p2711-debug )
-
-  Action = ExtraSetup
-    setupRequired( python v2_7_11 )
-    setupRequired( gcc v4_9_3 )
-
-Flavor=ANY
-Qualifiers=e9:p2711:prof
-
-  Action=DefineFQ
-    EnvSet(IFDHC_FQ_DIR, ${UPS_PROD_DIR}/${UPS_PROD_FLAVOR}-e9-p2711-prof )
-
-  Action = ExtraSetup
-    setupRequired( python v2_7_11 )
-    setupRequired( gcc v4_9_3 )
-
 
 Flavor=ANY
 Qualifiers=e9:p2710:debug
@@ -249,6 +207,7 @@ Common:
 	envPrepend(LD_LIBRARY_PATH, ${IFDHC_LIB})
     endif ( test `uname` = "Darwin" )
     ExeActionOptional(ExtraSetup)
+    SetupRequired(ifdhc_config)
     SetupOptional(cpn)
     SetupOptional(ifdh_platform_pkgs) 
     # get the Amazon S3 client if possible

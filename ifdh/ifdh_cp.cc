@@ -128,33 +128,6 @@ locpath(IFile loc, std::string proto, WimpyConfigParser &_config) {
 
 
 
-//
-// string constant for number of streams for gridftp, srmcp
-// 
-
-
-int
-local_access(const char *path, int mode) {
-    static struct statfs buf;
-    int res;
-
-    
-    ifdh::_debug && std::cerr << "local_access(" << path << " , " << mode ;
-    res = statfs(path, &buf);
-    if (0 != res ) {
-       ifdh::_debug && std::cerr << ") -- not found \n";
-       return res;
-    }
-    if (buf.f_type == NFS_SUPER_MAGIC) {
-       ifdh::_debug && std::cerr << ") -- not local \n";
-       return -1;
-    } else {
-       res = access(path, mode);
-       ifdh::_debug && std::cerr << ") -- local returning " <<  res << "\n";
-       return res;
-    }
-}
-
 struct stat *
 cache_stat(std::string s) {
    int res;
@@ -172,16 +145,6 @@ cache_stat(std::string s) {
 }
 
 bool
-is_directory(std::string dirname) {
-    struct stat *sbp = cache_stat(dirname);
-    if (!sbp) {
-        return false;
-    }
-    ifdh::_debug && std::cerr << "is_directory(" << dirname << ") -> " <<  S_ISDIR(sbp->st_mode) << endl;
-    return S_ISDIR(sbp->st_mode) != 0;
-}
-
-bool
 have_stage_subdirs(std::string uri, ifdh *ih) {
    int count = 0;
    vector<string> list = ih->ls(uri,1,"");
@@ -192,42 +155,6 @@ have_stage_subdirs(std::string uri, ifdh *ih) {
        if(list[i].find("ifdh_stage/data/") != string::npos )  count++;
    }
    return count == 3;
-}
-
-
-
-bool 
-ping_se(std::string uri) {
-   std::stringstream cmd;
-   int res = 0;
-
-   if (has(uri,"srm:")) {
-   ifdh::_debug && cerr << "checking " << uri << " with srmping\n";
-   cmd << "srmping -2 -retry_num=2 " << uri;
-   res = system(cmd.str().c_str());
-   if (WIFSIGNALED(res)) {
-       throw( std::logic_error("signalled while doing srmping"));
-   }
-   }
-   return res == 0;
-}
-
-#include <dirent.h>
-int
-is_empty(std::string dirname) {
-    DIR *pd = opendir(dirname.c_str());
-    struct dirent *pde;
-    int count = 0;
-
-    while( 0 != (pde = readdir(pd)) ) {
-        count++;
-        if (count > 2) {
-            break;
-        }
-    }
-    closedir(pd);
-    ifdh::_debug && cerr << "is_empty " << dirname << "is " << (count > 2) << endl;
-    return count == 2;
 }
 
 extern std::string datadir();
@@ -437,95 +364,6 @@ std::string dest_file( std::string src_file, std::string dest_dir) {
     return dest_dir + "/" + src_file.substr(pos);
 }
 
-void
-test_dest_file() {
-    std::string src("/tmp/f1");
-    std::string ddir("/tmp/d2");
-    std::cout << "src: " << src << " ddir: " << ddir << " yeilds: " << dest_file(src,ddir) << endl;
-}
-
-
-std::vector<std::string> slice_directories(std::vector<std::string> args, int curarg, int &fixoffset1, int &fixoffset2) {
-    std::vector<std::string> res;
-    std::vector<std::vector<std::string>::size_type> dest_slots;
-    bool did1 = false, did2 = false;
-    
-    //
-    // find destination directory slots
-    //    
-    for( std::vector<std::string>::size_type i = curarg; i < args.size(); i++ ) {
-        if ( i == args.size() - 1 || args[i+1] == ";" ) {
-             dest_slots.push_back(i);
-        }
-    }
-
-    ifdh::_debug && std::cerr << "slice_diretctories: building results:";
-    //
-    // now use destination directory slots to make
-    // pairwise copies
-    //
-    int cur_cp = 0;  // start with the zeroth copy
-    for( std::vector<std::string>::size_type i = curarg; i < args.size(); i++ ) {
-          if (args[i] == ";") {
-              cur_cp++;  // if we see a ";" we move on to next copy 
-              continue;
-          }
-          if ((int)i == fixoffset1 && !did1) {
-             did1 = true;
-             fixoffset1 = res.size();
-          }
-          if ((int)i == fixoffset2 && !did2) {
-             did2 = true;
-             fixoffset2 = res.size();
-          }
-          if( i != dest_slots[cur_cp] ) {  // don't do dest dest ";" 
-              res.push_back(args[i]);   
-              ifdh::_debug && std::cerr << res.back() << " "; 
-              res.push_back(dest_file(args[i], args[dest_slots[cur_cp]]));   
-	      if ((int)dest_slots[cur_cp] ==  fixoffset1 && !did1) {
-		 did1 = true;
-		 fixoffset1 = res.size();
-	      }
-	      if ((int)dest_slots[cur_cp] == fixoffset2 ) {
-                 // note the lack of "did2" check here -- we should keep
-                 // moving the end range up each time we use the same destination...
-		 did2 = true;
-		 fixoffset2 = res.size();
-	      }
-              ifdh::_debug && std::cerr << res.back() << " ";
-              if (i != args.size() - 2) {
-                  res.push_back(";");
-                  ifdh::_debug && std::cerr << res.back() << " ";
-              }
-          }
-     }
-     ifdh::_debug && std::cerr << endl;
-
-     if ((int)args.size()+1 == fixoffset1 && !did1) {
-	 fixoffset1 = res.size() + 1;
-         did1 = true;
-     }
-     if ((int)args.size()+1 == fixoffset2 && !did2) {
-	 fixoffset2 = res.size() + 1;
-         did2 = true;
-     }
-
-     ifdh::_debug && cerr << "after slice, range is" << fixoffset1 << ".." << fixoffset2 << "\n";
-
-     return res;
-}
-
-//
-// globus_url_copy will not do recursive directory copies
-// without a trailing slash on the url... sigh
-//
-std::string fix_recursive_arg(std::string arg, bool recursive) {
-   if (recursive && arg[arg.length()-1] != '/') {
-       arg = arg + "/";
-   }
-   return arg;
-}
-
 std::vector<std::string> 
 ifdh::build_stage_list(std::vector<std::string> args, int curarg, char *stage_via) {
    std::vector<std::string>  res;
@@ -573,7 +411,7 @@ ifdh::build_stage_list(std::vector<std::string> args, int curarg, char *stage_vi
 
    for( std::vector<std::string>::size_type i = curarg; i < args.size(); i+=3 ) {
 
-     if (0 == local_access(args[i].c_str(), R_OK) && 0 != local_access(args[i+1].c_str(), R_OK)) {
+     if (0 == access(args[i].c_str(), R_OK) && 0 != access(args[i+1].c_str(), R_OK)) {
        staging_out = true;
        // we're going to keep this in our stage queue area
        stage_location = base_uri + "/ifdh_stage/data/" + ustring + "/" +  basename((char *) args[i].c_str());
@@ -603,10 +441,6 @@ ifdh::build_stage_list(std::vector<std::string> args, int curarg, char *stage_vi
 
    return res;
 }
-
-const char *srm_copy_command = "lcg-cp  --sendreceive-timeout 4000 -b -D srmv2 ";
-const char *srm_copy_command_gfal = "gfal-copy -f --just-copy -t 4000 ";
-const char *gridftp_copy_command =  "globus-url-copy -rst-retries 1 -gridftp2 -nodcau -restart -stall-timeout 14400 ";
 
 bool 
 check_grid_credentials() {
@@ -662,28 +496,6 @@ have_kerberos_creds() {
     return 0 == system("klist -5 -s || klist -s");
 }
 
-//
-// this should possibly be factored in with get_grid_credentials_if_needed,
-// but for now lets keep it separate...
-//
-bool
-has_production_role() {
-    static char buf[512];
-    FILE *pf = popen("voms-proxy-info -all 2>/dev/null", "r");
-    bool found = false;
-    
-    ifdh::_debug && std::cerr << "has_production_role:\n";
-
-    while(fgets(buf,512,pf)) {
-	 std::string s(buf);
-    
-	 if ( s.find("Role=Production") != std::string::npos) {
-            found = true;
-         }
-    }
-    fclose(pf);
-    return found;
-}
 
 //
 // you call this if you need to do any kind of SRM or Gridftp
@@ -811,21 +623,6 @@ parse_ifdh_stage_via() {
       // no fancy stuff...
       return fullvia;
    }
-}
-
-bool
-use_passive() {
-   return true;
-   
-   // I was thinking of something like: 
-   if (host_matches("*.fnal.gov")) {
-       return false;
-   } else {
-       return true;
-   }
-   // but even that is wrong sometimes; we should just
-   // do passive mode because it works everywhere, and let
-   // people use IFDH_GRIDFTP_EXTRA to override it if needed.
 }
 
 

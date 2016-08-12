@@ -855,6 +855,7 @@ ifdh::more(string loc) {
 		if (f >= 0) {
 		    close(f);
 		}
+                res = 1;
             }
             waitpid(res2, 0,0);
             unlink(c_where);

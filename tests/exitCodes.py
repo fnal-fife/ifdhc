@@ -48,6 +48,10 @@ class exitcodecases(unittest.TestCase):
             raise
 
     def setUp(self):
+        sys.stdout.flush()
+        sys.stderr.flush()
+        print "starting setUp"
+        sys.stdout.flush()
         self.ifdh_handle = ifdh.ifdh()
         exp=os.getenv('EXPERIMENT')
         if exp:
@@ -64,15 +68,33 @@ class exitcodecases(unittest.TestCase):
         f = open(self.goodLocalFile, "w")
         f.write("hello world\n")
         f.close()
-        self.forceMethods=["", "--force=gridftp","--force=srmcp","--force=expgridftp"]
+        self.forceMethods=["", "--force=gridftp","--force=srmcp","--force=root"]
         res = os.system("EXPERIMENT=%s ifdh mkdir %s "% (self.experiment, self.goodRemoteDir))
         res = os.system("EXPERIMENT=%s ifdh cp %s  %s "% (self.experiment, self.goodLocalFile, self.goodRemoteFile))
+        sys.stdout.flush()
+        sys.stderr.flush()
+        print "finished setUp"
+        sys.stdout.flush()
 
     def tearDown(self):
-        for fname in self.ifdh_handle.ls(self.goodRemoteDir,1,''):
-            res = os.system("EXPERIMENT=%s ifdh rm  %s "% (self.experiment, fname))
-        res = os.system("EXPERIMENT=%s ifdh rmdir %s "% (self.experiment, self.goodRemoteDir))
+        sys.stdout.flush()
+        sys.stderr.flush()
+        print "starting tearDown"
+        sys.stdout.flush()
+        
         res = os.system("EXPERIMENT=%s ifdh rm %s "% (self.experiment, self.goodLocalFile))
+        res = os.system("EXPERIMENT=%s ifdh rm %s "% (self.experiment, self.goodRemoteFile))
+        for fname in self.ifdh_handle.ls(self.goodRemoteDir,1,''):
+            print "cleaning up unexpected: " , fname
+            if fname[-1] == "/":
+                res = os.system("EXPERIMENT=%s ifdh rmdir  %s "% (self.experiment, fname))
+            else:
+                res = os.system("EXPERIMENT=%s ifdh rm  %s "% (self.experiment, fname))
+        res = os.system("EXPERIMENT=%s ifdh rmdir %s "% (self.experiment, self.goodRemoteDir))
+        sys.stdout.flush()
+        sys.stderr.flush()
+        print "finished tearDown"
+        sys.stdout.flush()
 
 ## ll ## uses force
 
@@ -116,11 +138,11 @@ class exitcodecases(unittest.TestCase):
 
     def test_lss_exist(self):
         for force in self.forceMethods:
-            cmd = "EXPERIMENT=%s ifdh lss %s 0 %s > /dev/null 2>&1" %\
+            # cmd = "EXPERIMENT=%s ifdh lss %s 0 %s > /dev/null 2>&1" %\
+            cmd = "EXPERIMENT=%s ifdh lss %s 0 %s " %\
                 (self.experiment, self.goodRemoteFile, force)
             res = os.system(cmd)
             self.assertEqual(res,0,note=cmd) 
-
 
     def test_lss_exist_local(self):
         res = os.system("ifdh lss /tmp 0 >/dev/null 2>&1")
@@ -283,6 +305,9 @@ class exitcodecases(unittest.TestCase):
     def test_mkdir_rmdir_exist_remote(self):
         src=self.goodRemoteDir+"/foo"
         for force in self.forceMethods:
+            sys.stderr.flush()
+            print "trying with %s" % force
+            sys.stdout.flush()
             cmd = "EXPERIMENT=%s ifdh mkdir %s %s  > /dev/null 2>&1" %\
                     (self.experiment, src, force)
             res = os.system(cmd)
@@ -316,7 +341,8 @@ class exitcodecases(unittest.TestCase):
         for force in self.forceMethods:
             src=dst
             dst=src+"_x"
-            cmd = "EXPERIMENT=%s ifdh rename %s %s  %s > /dev/null 2>&1" %\
+            #cmd = "EXPERIMENT=%s ifdh rename %s %s  %s > /dev/null 2>&1" %\
+            cmd = "EXPERIMENT=%s ifdh rename %s %s  %s " %\
                     (self.experiment,src,dst, force)
             res = os.system(cmd)
             self.assertEqual(res, 0, cmd)

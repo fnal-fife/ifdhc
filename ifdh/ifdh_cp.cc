@@ -1536,6 +1536,13 @@ ifdh::lss( std::string loc, int recursion_depth, std::string force) {
       return res;
     }
 
+    if (WIFEXITED(status) && WEXITSTATUS(status) == 0 && res.size() == 0) {
+      // empty diretory case, show them the directory
+      if (origloc[origloc.size()-1] != '/')
+          origloc = origloc + "/";
+      res.push_back(pair<string,long>(origloc,  0L));
+    }
+
     std::sort( res.begin(), res.end(), mypaircmp);
 
     std::vector<std::pair<std::string,long> > subls, recls;

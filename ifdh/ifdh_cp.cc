@@ -640,14 +640,9 @@ get_pnfs_uri(std::string door_url = "http://fndca3a.fnal.gov:2288/info/doors", s
         door_proto= door_proto.substr(0,door_proto.size()-1);
     }
 
-<<<<<<< HEAD
     if (0 == nodes.size() || cached_node_proto != door_proto) {
         nodes.clear();
         ifdh::_debug && cerr << "looking for dcache " << door_proto << " doors..\n";
-=======
-    if (0 == nodes.size()) {
-        ifdh::_debug && cerr << "looking for dcache doors..\n";
->>>>>>> 3775ae51eacd4a75bddb9a24cf2d8cccb88739ae
         WebAPI wa(door_url);
 	while (!wa.data().eof() && !wa.data().fail()) {
 	    getline(wa.data(), line);

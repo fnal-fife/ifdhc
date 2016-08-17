@@ -948,7 +948,7 @@ do_cp(CpPair &cpp, WimpyConfigParser &_config, bool intermed_file_flag, bool rec
         // cp_cmd=dd bs=512k %(extra)s if=%(src)s of=%(dst)s
 	extra_env = _config.get(lookup, "extra_env");
         extra_env_val = getenv(extra_env.c_str());
-        if (strlen(extra_env_val) == 0 ) {
+        if (extra_env_val && strlen(extra_env_val) == 0 ) {
 	    extra_env = _config.get(lookup, "extra_env_2");
             extra_env_val = getenv(extra_env.c_str());
         }

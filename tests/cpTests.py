@@ -118,7 +118,7 @@ class ifdh_cp_cases(unittest.TestCase):
         self.ifdh_handle = ifdh.ifdh(base_uri_fmt % ifdh_cp_cases.experiment)
         self.hostname = socket.gethostname()
         self.work="%s/work%d" % (os.environ.get('TMPDIR','/tmp'),os.getpid())
-	self.data_dir_root="/pnfs/%s/scratch/users/%s/%s" % (ifdh_cp_cases.experiment, os.environ.get('TEST_USER', os.environ['USER']), self.hostname)
+	self.data_dir_root="/pnfs/fnal.gov/usr/%s/scratch/users/%s/%s" % (ifdh_cp_cases.experiment, os.environ.get('TEST_USER', os.environ['USER']), self.hostname)
 	self.data_dir="%s/%s" % (self.data_dir_root, os.getpid())
         for d in [self.data_dir_root, self.data_dir, '%s/started'% (self.data_dir), '/pnfs/nova/scratch/ifdh_stage/test']:
 	    try:
@@ -284,10 +284,10 @@ class ifdh_cp_cases(unittest.TestCase):
     def test_explicit_gsiftp__out(self):
         self.log(self._testMethodName)
         self.make_local_test_txt()
-        res = self.ifdh_handle.cp([ "%s/test.txt"%self.work, "gsiftp://if-gridftp-nova.fnal.gov%s/test.txt" % self.data_dir])
+        res = self.ifdh_handle.cp([ "%s/test.txt"%self.work, "gsiftp://fndca1.fnal.gov/%s/test.txt" % self.data_dir])
         self.check_writable( "%s/test.txt" % self.data_dir)
         # shouldn't need this one, but we seem to?
-        list1 = self.ifdh_handle.ls(self.data_dir,1,"")
+        #list1 = self.ifdh_handle.ls(self.data_dir,1,"")
         list = self.ifdh_handle.ls("%s/test.txt" % self.data_dir, 1,"")
         self.assertEqual(len(list),1,self._testMethodName)  
 
@@ -295,7 +295,7 @@ class ifdh_cp_cases(unittest.TestCase):
         self.log(self._testMethodName)
         self.make_remote_test_txt()
         self.list_remote_dir()
-        res = self.ifdh_handle.cp([ "gsiftp://if-gridftp-nova.fnal.gov%s/test.txt" % self.data_dir, "%s/test.txt"%self.work])
+        res = self.ifdh_handle.cp([ "gsiftp://fndca1.fnal.gov%s/test.txt" % self.data_dir, "%s/test.txt"%self.work])
         self.assertEqual(res==0 and self.check_test_txt(), True, self._testMethodName)
 
     def test_expftp__out(self):

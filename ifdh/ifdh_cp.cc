@@ -1187,6 +1187,13 @@ ifdh::cp( std::vector<std::string> args ) {
        log("ignoring $IFDH_STAGE_VIA-- $EXPERIMENT not set  ");
        stage_via = 0;
     }
+    if (stage_via) {
+       std::vector<std::string> svls = ls(parent_dir(stage_via),1,"");
+       if (svls.size() == 0) {
+           log("ignoring $IFDH_STAGE_VIA-- cannot ls parent directory  ");
+           stage_via = 0;
+       }
+    }
 
     curarg = parse_opts(args, dest_is_dir, recursive, force, no_zero_length, intermed_file_flag);
 

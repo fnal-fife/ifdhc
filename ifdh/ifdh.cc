@@ -386,7 +386,12 @@ do_url_2(int postflag, va_list ap) {
     name = va_arg(ap,char *);
     val = va_arg(ap,char *);
     while (strlen(name)) {
-        (postflag ? postdata : url)  << sep << WebAPI::encode(name) << "=" << WebAPI::encode(val);
+        if (strlen(val)) {
+           (postflag ? postdata : url)  << sep << WebAPI::encode(name) << "=" << WebAPI::encode(val);
+        } else {
+           // handle single blob of data case, name with no value..
+           (postflag ? postdata : url)  << sep << name;
+        }
         sep = "&";
         name = va_arg(ap,char *);
         val = va_arg(ap,char *);
@@ -501,7 +506,7 @@ do_url_lst(int postflag,...) {
     string line;
     vector<string> empty;
     vector<string> res;
-    try {
+    //try {
         class timeoutobj to;
 	va_start(ap, postflag);
 	unique_ptr<WebAPI> wap(do_url_2(postflag, ap));
@@ -511,17 +516,31 @@ do_url_lst(int postflag,...) {
 		res.push_back(line);
 	    }
 	}
-    } catch( exception &e )  {
-       std::cerr << "Exception: " << e.what();
-       return empty;
-    }
+    //} catch( exception &e )  {
+    //   std::cerr << "Exception: " << e.what();
+    //   return empty;
+    // }
     return res;
+}
+
+int 
+ifdh::declareFile(string json_metadata) {
+  // debug...
+  WebAPI::_debug = 1;
+  return do_url_int(2,ssl_uri(_baseuri).c_str(),"files","",json_metadata.c_str(),"","","");
+}
+
+int 
+ifdh::modifyMetadata(string filename, string json_metadata) {
+  // debug...
+  WebAPI::_debug = 1;
+  return do_url_int(2,ssl_uri(_baseuri).c_str(),"files","name",filename.c_str(),"metadata","",json_metadata.c_str(),"","","");
 }
 
 //datasets
 int 
 ifdh::createDefinition( string name, string dims, string user, string group) {
-  return do_url_int(1,_baseuri.c_str(),"createDefinition","","name",name.c_str(), "dims", dims.c_str(), "user", user.c_str(),"group", group.c_str(), "","");
+  return do_url_int(1,ssl_uri(_baseuri).c_str(),"createDefinition","","name",name.c_str(), "dims", dims.c_str(), "user", user.c_str(),"group", group.c_str(), "","");
 }
 
 int 

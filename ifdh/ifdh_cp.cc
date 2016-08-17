@@ -662,7 +662,7 @@ get_grid_credentials_if_needed() {
         } else {
             cmd += " >/dev/null 2>&1 ";
         }
-        cmd += "&& voms-proxy-init -rfc -noregen -debug -voms ";
+        cmd += "&& voms-proxy-init -rfc -noregen -debug -dont-verify-ac -voms ";
 
         if (experiment == "samdev")  // use fermilab for fake samdev expt
            experiment = "fermilab";
@@ -689,7 +689,7 @@ get_grid_credentials_if_needed() {
 	   res = system(cmd.c_str());
         }
         if (!WIFEXITED(res) ||  0 != WEXITSTATUS(res)) {
-            std::cerr << "Unable to get proxy cert.. later things may fail\n";
+            std::cerr << "Error from voms-proxy-init... later things may fail\n";
         }
     }
 }
@@ -765,7 +765,7 @@ use_passive() {
 
 
 string
-get_pnfs_gsiftp_uri() {
+get_pnfs_gsiftp_uri(std::string door_url = "http://fndca3a.fnal.gov:2288/info/doors") {
     int state = 0;
     static vector<string> nodes;
     static const char *cdefault_nodes[] = { "stkendca01a.fnal.gov", "stkendca02a.fnal.gov", "stkendca03a.fnal.gov" };
@@ -778,7 +778,7 @@ get_pnfs_gsiftp_uri() {
 
     if (0 == nodes.size()) {
         ifdh::_debug && cerr << "looking for dcache doors..\n";
-        WebAPI wa("http://fndca3a.fnal.gov:2288/info/doors");
+        WebAPI wa(door_urll);
 	while (!wa.data().eof() && !wa.data().fail()) {
 	    getline(wa.data(), line);
             // ifdh::_debug && cerr << "got: " << line << "\n";
@@ -1522,7 +1522,7 @@ ifdh::cp( std::vector<std::string> args ) {
                  use_irods ? "icp " :  
                  use_http ? "www_cp.sh " :  
                  use_s3 ? "aws s3 cp " : 
-                 use_xrootd ? "xrdcp " : 
+                 use_xrootd ? "xrdcp –DIRedirectLimit 255 -DIRequestTimeout 14400 " : 
                  clued0_hack ? "scp " : 
                  "false" );
 

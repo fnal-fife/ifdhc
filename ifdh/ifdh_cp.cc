@@ -778,7 +778,7 @@ get_pnfs_gsiftp_uri(std::string door_url = "http://fndca3a.fnal.gov:2288/info/do
 
     if (0 == nodes.size()) {
         ifdh::_debug && cerr << "looking for dcache doors..\n";
-        WebAPI wa(door_urll);
+        WebAPI wa(door_url);
 	while (!wa.data().eof() && !wa.data().fail()) {
 	    getline(wa.data(), line);
             // ifdh::_debug && cerr << "got: " << line << "\n";

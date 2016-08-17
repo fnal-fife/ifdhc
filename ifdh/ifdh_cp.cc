@@ -948,6 +948,10 @@ do_cp(CpPair &cpp, WimpyConfigParser &_config, bool intermed_file_flag, bool rec
         // cp_cmd=dd bs=512k %(extra)s if=%(src)s of=%(dst)s
 	extra_env = _config.get(lookup, "extra_env");
         extra_env_val = getenv(extra_env.c_str());
+        if (extra_env_val == "" ) {
+	    extra_env = _config.get(lookup, "extra_env_2");
+            extra_env_val = getenv(extra_env.c_str());
+        }
         if (_config.getint(lookup, "need_proxy") ) {
 	    get_grid_credentials_if_needed();
         }
@@ -1381,6 +1385,7 @@ ifdh::ll( std::string loc, int recursion_depth, std::string force) {
     _debug && std::cerr << "ifdh ll: running: " << cmd << endl;
 
     int status = system(cmd.c_str());
+
     if (WIFSIGNALED(status)) throw( std::logic_error("signalled while doing ll"));
     return WEXITSTATUS(status);
 }

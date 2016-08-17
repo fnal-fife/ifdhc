@@ -53,6 +53,7 @@ class exitcodecases(unittest.TestCase):
         print "starting setUp"
         sys.stdout.flush()
         self.ifdh_handle = ifdh.ifdh()
+        os.environ['IFDH_CP_MAXRETRIES'] = "0"
         exp=os.getenv('EXPERIMENT')
         if exp:
             self.experiment=exp

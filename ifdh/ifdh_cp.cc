@@ -1380,14 +1380,35 @@ ifdh::ll( std::string loc, int recursion_depth, std::string force) {
     std::string fullurl, proto, lookup_proto;
     pick_proto_path(loc, force, proto, fullurl, lookup_proto, _config);
    
-    std::string cmd     = _config.get(lookup_proto, "ll_cmd");
+    std::string cmd    = _config.get(lookup_proto, "ll_cmd");
+    std::string r, recursive;
+    std::stringstream rdbuf;
 
-    cmd.replace(cmd.find("%(src)s"), 7, fullurl);
+    // ---------------------------
+    // strings for command replacement
+    rdbuf << recursion_depth;
 
-    if (recursion_depth) {
-      //XXX how do we want to do this?
-      cmd = cmd + " ";
+    if (recursion_depth > 1) {
+       r = "-r";
+       recursive = "--recursive";
+    } else {
+       r = "";
+       recursive = "";
     }
+       
+    // ... now fill them in...
+    
+    cmd.replace(cmd.find("%(src)s"), 7, fullurl);
+    if ( has(cmd, "%(recursion_depth)s") ) {
+        cmd.replace(cmd.find("%(recursion_depth)s"), 19, rdbuf.str());
+    }
+    if ( has(cmd, "%(r)s") ) {
+        cmd.replace(cmd.find("%(r)s"), 5, r);
+    }
+    if ( has(cmd, "%(recursive)s") ) {
+        cmd.replace(cmd.find("%(recursive)s"), 13, recursive);
+    }
+    // ---------------------------
 
     _debug && std::cerr << "ifdh ll: running: " << cmd << endl;
 

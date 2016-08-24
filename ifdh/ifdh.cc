@@ -673,6 +673,8 @@ int ifdh::endProject(string projecturi) {
   return do_url_int(1,projecturi.c_str(),"endProject","","","");
 }
 
+extern int host_matches(std::string glob);
+
 ifdh::ifdh(std::string baseuri) {
     check_env();
     char *debug = getenv("IFDH_DEBUG");
@@ -702,19 +704,37 @@ ifdh::ifdh(std::string baseuri) {
         if (clist[i] == "") {
            continue;
         }
+        std::string rtype;
         std::string tststr = _config.get("conditional " + clist[i], "test");
         std::vector<std::string> renamevec = _config.getlist("conditional " + clist[i], "rename_proto");
+        if (renamevec.size() > 0) {
+           rtype = "protocol ";
+        } else {
+           renamevec = _config.getlist("conditional " + clist[i], "rename_loc");
+           if (renamevec.size() > 0) {
+               rtype = "location ";
+           }
+        }
         if (tststr[0] == '-' && tststr[1] == 'x') {
             if (0 == access(tststr.substr(3).c_str(), X_OK)) {
                 _debug && std::cerr << "test: " << tststr << " renaming: " << renamevec[0] << " <= " << renamevec[1] << "\n";
-		_config.rename_section("protocol " + renamevec[0], "protocol " + renamevec[1]);
+		_config.rename_section(rtype + renamevec[0], rtype + renamevec[1]);
             }
+            continue;
         }
         if (tststr[0] == '-' && tststr[1] == 'r') {
             if (0 == access(tststr.substr(3).c_str(), R_OK)) {
                 _debug && std::cerr << "test: " << tststr << " renaming: " << renamevec[0] << " <= " << renamevec[1] << "\n";
-		_config.rename_section("protocol " + renamevec[0], "protocol " + renamevec[1]);
+		_config.rename_section(rtype + renamevec[0], rtype + renamevec[1]);
             }
+            continue;
+        }
+        if (tststr[0] == '-' && tststr[1] == 'H') {
+           if (host_matches(tststr.substr(3))) {
+                _debug && std::cerr << "test: " << tststr << " renaming: " << renamevec[0] << " <= " << renamevec[1] << "\n";
+		_config.rename_section(rtype + renamevec[0], rtype + renamevec[1]);
+           }
+           continue;
         }
     }
 }

@@ -116,7 +116,12 @@ WimpyConfigParser::add_section(std::string sectionname) {
 }
 
 void
-WimpyConfigParser::rename_section(std::string sectionname1, std::string sectionname2) {
+WimpyConfigParser::copy_section(std::string sectionname1, std::string sectionname2) {
+    rename_section(sectionname1, sectionname2, true);
+}
+
+void
+WimpyConfigParser::rename_section(std::string sectionname1, std::string sectionname2, bool copyflag) {
    std::map<std::string, std::map<std::string, std::string> >::iterator si1,si2;
    si1 = _data.find(sectionname1);
    si2 = _data.find(sectionname2);
@@ -128,7 +133,9 @@ WimpyConfigParser::rename_section(std::string sectionname1, std::string sectionn
        _data.erase(si2);
    }
    _data[sectionname2] = si1->second;
-   _data.erase(si1);
+   if (!copyflag) {
+       _data.erase(si1);
+   }
 }
 
 int

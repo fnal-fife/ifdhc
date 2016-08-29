@@ -23,7 +23,8 @@ class WimpyConfigParser {
          void read(std::string filename);
          void readfp(std::istream &s);
          void add_section(std::string sectionname);
-         void rename_section(std::string sectionname1,std::string sectionname2);
+         void rename_section(std::string sectionname1,std::string sectionname2, bool copyflag = false);
+         void copy_section(std::string sectionname1,std::string sectionname2);
          std::string rawget(std::string sectionname, std::string optionname);
          std::string expand(std::string val);
          std::string get(std::string sectionname, std::string optionname);

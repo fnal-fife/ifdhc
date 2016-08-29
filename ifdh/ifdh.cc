@@ -687,16 +687,23 @@ ifdh::ifdh(std::string baseuri) {
      } else {
        _baseuri = baseuri;
     }
+    _debug && std::cerr << "ifdh constructor: _baseuri is '" << _baseuri << "'\n";
+    
+    // -------------------------------------------------------
+    // parse and initialize config file
+    //  
     const char *ccffile = getenv("IFDHC_CONFIG_DIR");
     if (ccffile == 0) {
         ccffile = getenv("IFDHC_DIR");
+        _debug && std::cerr << "ifdh: getting config file from IFDHC_DIR --  no IFDHC_CONFIG_DIR?!?\n";
     }
     if (ccffile == 0) {
 	throw( std::logic_error("no ifdhc config file environment variables found"));
     }
+    _debug && std::cerr << "ifdh: using config file: "<< ccffile << "/ifdh.cfg\n";
     std::string cffile(ccffile);
+
     _config.read(cffile + "/ifdh.cfg");
-    _debug && std::cerr << "ifdh constructor: _baseuri is '" << _baseuri << "'\n";
     std::vector<std::string> clist = _config.getlist("general","conditionals");
     _debug && std::cerr << "checking conditionals:\n";
     for( size_t i = 0; i < clist.size(); i++ ) { 
@@ -737,6 +744,16 @@ ifdh::ifdh(std::string baseuri) {
            continue;
         }
     }
+    // handle protocol aliases
+    std::vector<std::string> plist = _config.getlist("general","protocols");
+    std::string av;
+    for( size_t i = 0; i < plist.size(); i++ ) { 
+        av =  _config.get("protocol " + plist[i], "alias");
+        if (av != "" ) {
+             _config.copy_section("protocol " + av, "protocol " + plist[i]);
+        }
+    }
+    // -------------------------------------------------------
 }
 
 void

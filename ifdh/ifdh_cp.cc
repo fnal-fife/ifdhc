@@ -1564,8 +1564,8 @@ ifdh::lss( std::string loc, int recursion_depth, std::string force) {
 
     if (WIFEXITED(status) && WEXITSTATUS(status) != 0) {
   
-      _debug && std::cerr << "failed...\n";
-      res.clear();
+      _debug && std::cerr << "failed with exit status" << WEXITSTATUS(status) << "\n";
+      // res.clear();
       return res;
     }
 

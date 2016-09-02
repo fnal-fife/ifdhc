@@ -541,17 +541,39 @@ get_grid_credentials_if_needed() {
         }
         cmd += "&& voms-proxy-init -dont-verify-ac -rfc -noregen -debug -voms ";
 
-        if (experiment == "samdev")  // use fermilab for fake samdev expt
-           experiment = "fermilab";
+        // table based vo mapping...
+        std::string vo;
+        int numrules = ifdh::_config.getint("experiment_vo","numrules");
+        for(int i = 1; i <= numrules ; i++) {
 
-	if (experiment != "lbne" && experiment != "dzero" && experiment != "cdf" && experiment != "lsst" && experiment != "fermilab" && experiment != "dune" && experiment != "des" ) {
-	   cmd += "fermilab:/fermilab/" + experiment + "/Role=Analysis";
-	} else if (experiment == "dzero" ) {
-           // dzero has an extra "users" component
-	   cmd +=  experiment + ":/" + experiment  + "/users/Role=Analysis";
-	} else {
-	   cmd += experiment + ":/" + experiment + "/Role=Analysis";
-	}
+            stringstream numbuf;
+            numbuf << i;
+            std::string match(ifdh::_config.get("experiment_vo", "match"+numbuf.str()));
+            regexp exre(match);
+            std::string repl(ifdh::_config.get("experiment_vo","repl"+numbuf.str()));
+            regmatch m1(exre(experiment));
+
+	    ifdh::_debug && std::cerr << "vo map: " << i << " of  " << numrules << "\n";
+	    ifdh::_debug && std::cerr << "vo map: checking: /" << match << "/ against: " << experiment << "\n";
+
+            if (m1) {
+                vo = repl;
+                while (has(vo,"$1")) {
+                    vo = vo.replace(vo.find("$1"),2,m1[1]);
+                }
+                while (has(vo,"$2")) {
+                    vo = vo.replace(vo.find("$2"),2,m1[2]);
+                }
+                while (has(vo,"$3")) {
+                    vo = vo.replace(vo.find("$3"),2,m1[3]);
+                }
+                ifdh::_debug && std::cerr << "vo map: matched: /" << match << "/ got : " << vo << "\n";
+                break;
+            }
+            
+        }
+        cmd += vo + "/Role=Analysis" ;
+
         if (ifdh::_debug) {
             cmd += " >&2";
         } else {

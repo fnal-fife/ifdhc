@@ -28,6 +28,7 @@ class WimpyConfigParser {
          std::string rawget(std::string sectionname, std::string optionname);
          std::string expand(std::string val);
          std::string get(std::string sectionname, std::string optionname);
+         int size();
          int getint(std::string sectionname, std::string optionname);
          std::vector<std::string> getlist(std::string sectionname, std::string optionname);
          void set(std::string sectionname, std::string optionname, std::string value);

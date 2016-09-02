@@ -109,6 +109,10 @@ WimpyConfigParser::dump() {
     }
 }
 
+int
+WimpyConfigParser::size() {
+   return _data.size();
+}
 void
 WimpyConfigParser::add_section(std::string sectionname) {
    std::map<std::string, std::string> np;

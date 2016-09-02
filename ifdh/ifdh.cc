@@ -34,6 +34,9 @@ namespace ifdh_ns {
 int
 ifdh::_debug = 0;
 
+WimpyConfigParser
+ifdh::_config;
+
 void
 path_prepend( string s1, string s2) {
     stringstream setenvbuf;
@@ -692,6 +695,7 @@ ifdh::ifdh(std::string baseuri) {
     // -------------------------------------------------------
     // parse and initialize config file
     //  
+    if (_config.size() == 0) {
     const char *ccffile = getenv("IFDHC_CONFIG_DIR");
     if (ccffile == 0) {
         ccffile = getenv("IFDHC_DIR");
@@ -754,6 +758,7 @@ ifdh::ifdh(std::string baseuri) {
         }
     }
     // -------------------------------------------------------
+    }
 }
 
 void

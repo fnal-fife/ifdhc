@@ -17,8 +17,8 @@ class ifdh {
         std::string _lastinput;
         std::string unique_string();
         std::vector<std::string> build_stage_list( std::vector<std::string>, int, char *stage_via);
-        WimpyConfigParser _config;
    public:
+        static WimpyConfigParser _config;
         static int _debug;
         static std::string _default_base_uri;
         static std::string _default_base_ssl_uri;

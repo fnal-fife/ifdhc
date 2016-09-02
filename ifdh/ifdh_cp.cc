@@ -1185,7 +1185,7 @@ ifdh::cp( std::vector<std::string> args ) {
     std::vector<std::string>::size_type curarg = 0;
     std::vector<CpPair> cplist;
     int res = 0, rres = 0;
-    long int srcsize = 0, dstsize = 0;
+    long int srcsize = 0, dstsize = 0, xfersize=0;
     struct stat *sbp;
     size_t lock_low, lock_hi;
     cpn_lock cpn;
@@ -1230,11 +1230,14 @@ ifdh::cp( std::vector<std::string> args ) {
     curarg = 0;
     for (std::vector<CpPair>::iterator cpp = cplist.begin();  cpp != cplist.end(); cpp++) {
         // try to keep a total copied
+        xfersize = -1;
 	if (0 != (sbp =  cache_stat(cpp->src.path))) {
 		srcsize += sbp->st_size;
+                xfersize = sbp->st_size;
         }
 	if (0 != (sbp =  cache_stat(cpp->dst.path))) {
 		dstsize += sbp->st_size;
+                xfersize = sbp->st_size;
         }
 
         // take  a lock if needed
@@ -1242,8 +1245,16 @@ ifdh::cp( std::vector<std::string> args ) {
             cpn.lock();
         }
 
+        stringstream cpstartmessage;
+        cpstartmessage << "ifdh starting transfer: " << cpp->src.path << ", " << cpp->dst.path << "\n";
+        log(cpstartmessage.str());
+
         // actually do the copy
         res = do_cp(*cpp, _config, intermed_file_flag, recursive, cpn);
+
+        stringstream cpdonemessage;
+        cpdonemessage << "ifdh finished transfer: " << cpp->src.path << ", " << cpp->dst.path << " size: " << xfersize << "\n";
+        log(cpdonemessage.str());
 
         // release lock if needed
         if (curarg == lock_hi && lock_hi >= lock_low) {

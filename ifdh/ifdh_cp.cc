@@ -845,7 +845,7 @@ make_canonical( std::string &arg ) {
        fpos += 3;
    }
    size_t dspos = arg.rfind("//");
-   while (dspos != string::npos && dspos > fpos) {
+   while (dspos != string::npos && dspos >= fpos) {
       arg = arg.substr(0,dspos) + arg.substr(dspos+1);
       dspos = arg.rfind("//");
    }
@@ -1417,6 +1417,11 @@ ifdh::ll( std::string loc, int recursion_depth, std::string force) {
     std::string r, recursive;
     std::stringstream rdbuf;
 
+    // handle default param
+    if (recursion_depth == -1) {
+         recursion_depth = 1;
+    }
+
     // ---------------------------
     // strings for command replacement
     rdbuf << recursion_depth;
@@ -1566,6 +1571,9 @@ ifdh::lss( std::string loc, int recursion_depth, std::string force) {
                        dirrepl = origloc + "/";
                    } else {
                        dirrepl = origloc.substr(0,origloc.rfind("/", origloc.size()-1)+1);
+                       if (dirrepl == "") {
+                          dirrepl = dir;
+                       }
                    }
 		   if ("//" == dirrepl.substr(dirrepl.size()-2) ) {
 		      dirrepl = dirrepl.substr(0,dirrepl.size()-1);

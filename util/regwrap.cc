@@ -47,6 +47,13 @@ regmatch::operator int() {
 
 regexp::regexp(std::string re) {
    int r1;
+   size_t pos;
+
+   // MacOS doesnt actually support \s in their re libs, so expand it...
+   while (std::string::npos != (pos = re.find("\\s"))) {
+       re = re.replace(pos,2,"[ \t]");
+   }
+
    //std::cerr << "In re constructor, re is: " << re << std::endl;
    r1= regcomp( &_re, re.c_str(), REG_EXTENDED);
    if (r1 != 0) {

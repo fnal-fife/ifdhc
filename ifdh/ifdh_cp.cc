@@ -1501,6 +1501,11 @@ ifdh::lss( std::string loc, int recursion_depth, std::string force) {
 
     // no c++ popen, so doing it C-style..
     FILE *pf = popen(lss_cmd.c_str(),"r");
+
+    if (pf == NULL) {
+       std::cerr << "ifdh lss: popen failed; errno == " << errno << "\n";
+       throw( std::logic_error("popen failed"));
+    }
     static char buf[512];
     std::string size, dir, file, dirflag;
     bool firstpass = true;

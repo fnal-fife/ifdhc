@@ -22,6 +22,7 @@
 #include "../util/Checksum.h"
 #include <setjmp.h>
 #include <memory>
+#include <gnu/libc-version.h>
 
 #if __cplusplus <= 199711L
 #define unique_ptr auto_ptr
@@ -44,6 +45,15 @@ path_prepend( string s1, string s2) {
 
     setenvbuf << s1 << s2 << ":" << curpath;
     setenv("PATH", setenvbuf.str().c_str(), 1);
+}
+
+void
+path_ish_append(const char *what, string s1, string s2) {
+    stringstream setenvbuf;
+    string curpath(getenv(what));
+
+    setenvbuf << curpath << ":" << s1 << s2;
+    setenv(what, setenvbuf.str().c_str(), 1);
 }
 
 //
@@ -76,6 +86,12 @@ check_env() {
 
         // we do not want it set...
         unsetenv("X509_USER_CERT");
+
+        char *ep;
+
+        if (0 != (ep = getenv("EXPERIMENT")) && 0 == getenv("CPN_LOCK_GROUP")) {
+            setenv("CPN_LOCK_GROUP", ep, 0);
+        }
               
         string path(getenv("PATH"));
         char *p;
@@ -94,6 +110,15 @@ check_env() {
              ;
         }
     }
+
+    // put cmvfs OSG utils at the end of our path as a failover/fallback
+    // currently assuming 64bit is okay
+    int glibcminor = atoi(gnu_get_libc_version()+2);
+    int slver = glibcminor > 5 ? (glibcminor > 12 ? 7 : 6) : 5;
+    stringstream cvmfs_dir;
+    cvmfs_dir << "/cvmfs/oasis.opensciencegrid.org/mis/osg-wn-client/3.3/current/el" <<  slver << "-x86_64";
+    path_ish_append("PATH",cvmfs_dir.str().c_str(),"/usr/bin");
+    path_ish_append("LD_LIBRARY_PATH",cvmfs_dir.str().c_str(),"/usr/lib64");
 }
 
 string cpn_loc  = "cpn";  // just use the one in the PATH -- its a product now

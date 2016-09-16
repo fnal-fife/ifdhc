@@ -126,7 +126,47 @@ locpath(IFile loc, std::string proto, WimpyConfigParser &_config) {
    return pre + loc.path;
 }
 
+bool
+is_dzero_node_path( std::string path ) {
+ // it could be a clued0 node, or it could be a d0srv node...
+ // and the d0srv is either at the front, or has user@ on the
+ // front of it...
+ return path.find("D0:") == 0;
+}
 
+void
+make_canonical( std::string &arg ) {
+
+    static char getcwd_buf[MAXPATHLEN];
+    static string cwd(getcwd(getcwd_buf, MAXPATHLEN));
+
+    if (cwd[0] != '/') {
+        throw( std::logic_error("unable to determine current working directory"));
+    }
+
+
+   if (arg[0] != ';' 
+       && arg[0] != '-' 
+       && arg[0] != '/' 
+       && (arg.find(":/") == string::npos || arg.find(":/") > 10)
+       && !is_dzero_node_path(arg)) {
+       ifdh::_debug && std::cerr << "adding cwd to " << arg << endl;
+       arg = cwd + "/" + arg;
+   }
+   // clean out doubled slashes...uless its the one in the ://
+   // set a fence position after the :// if any...
+   size_t fpos = arg.find("://");
+   if (fpos == string::npos || fpos > 10) {
+       fpos = 0;
+   } else {
+       fpos += 3;
+   }
+   size_t dspos = arg.rfind("//");
+   while (dspos != string::npos && dspos >= fpos) {
+      arg = arg.substr(0,dspos) + arg.substr(dspos+1);
+      dspos = arg.rfind("//");
+   }
+}
 
 struct stat *
 cache_stat(std::string s) {
@@ -301,14 +341,19 @@ std::vector<std::string> expandfile( std::string fname, std::vector<std::string>
   getline(listf, line);
   while( !listf.eof() && !listf.fail()) {
       ifdh::_debug && std::cerr << "expand: line: " << line << "\n";
-      if( !first ) {
-  	 res.push_back( ";" );
-      }
-      first = false;
       // trim trailing whitespace
       while ( ' ' == line[line.length()-1] || '\t' == line[line.length()-1] || '\r' == line[line.length()-1] ) {
           line = line.substr(0,line.length()-1);
       }
+      // skip lines that are blank
+      if (line.size() == 0) {
+         getline(listf, line);
+         continue;
+      }
+      if( !first ) {
+  	 res.push_back( ";" );
+      }
+      first = false;
       pos = line.find_first_of(" \t");
       if (pos != string::npos) {
          pos2 = pos;
@@ -330,6 +375,10 @@ std::vector<std::string> expandfile( std::string fname, std::vector<std::string>
      while (oldcount < oldargs.size()) {
         res.push_back(oldargs[oldcount++]);
      }
+  }
+
+  for( std::vector<std::string>::size_type i = 0; i < res.size(); i++ ) {
+     make_canonical(res[i]);
   }
  
   return res;
@@ -748,13 +797,6 @@ get_another_dcache_door( std::string &cmd, std::string door_regex, std::string d
     ifdh::_debug && cerr << "finally, cmd is: "  << cmd << "\n";
 }
 
-bool
-is_dzero_node_path( std::string path ) {
- // it could be a clued0 node, or it could be a d0srv node...
- // and the d0srv is either at the front, or has user@ on the
- // front of it...
- return path.find("D0:") == 0;
-}
 
 int
 retry_system(const char *cmd_str, int error_expected, cpn_lock &locker,  std::string door_regex = "", std::string door_url="", std::string door_proto = "", int maxtries = -1) {
@@ -817,39 +859,6 @@ retry_system(const char *cmd_str, int error_expected, cpn_lock &locker,  std::st
 }
 
 
-void
-make_canonical( std::string &arg ) {
-
-    static char getcwd_buf[MAXPATHLEN];
-    static string cwd(getcwd(getcwd_buf, MAXPATHLEN));
-
-    if (cwd[0] != '/') {
-        throw( std::logic_error("unable to determine current working directory"));
-    }
-
-
-   if (arg[0] != ';' 
-       && arg[0] != '-' 
-       && arg[0] != '/' 
-       && (arg.find(":/") == string::npos || arg.find(":/") > 10)
-       && !is_dzero_node_path(arg)) {
-       ifdh::_debug && std::cerr << "adding cwd to " << arg << endl;
-       arg = cwd + "/" + arg;
-   }
-   // clean out doubled slashes...uless its the one in the ://
-   // set a fence position after the :// if any...
-   size_t fpos = arg.find("://");
-   if (fpos == string::npos || fpos > 10) {
-       fpos = 0;
-   } else {
-       fpos += 3;
-   }
-   size_t dspos = arg.rfind("//");
-   while (dspos != string::npos && dspos >= fpos) {
-      arg = arg.substr(0,dspos) + arg.substr(dspos+1);
-      dspos = arg.rfind("//");
-   }
-}
 
 std::vector<std::string>::size_type 
 parse_opts( std::vector<std::string> &args, bool &dest_is_dir, bool &recursive, string &force, bool &no_zero_length, bool &intermed_file_flag ) {

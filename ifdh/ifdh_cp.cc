@@ -1650,6 +1650,11 @@ ifdh::lss( std::string loc, int recursion_depth, std::string force) {
 
        res = recls;
 
+    } 
+    if (recursion_depth == 0) {
+       if (res.size() > 1) {
+           res.erase( res.begin()+1, res.end());         
+       }
     }
     return res;
 }

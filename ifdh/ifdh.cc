@@ -210,7 +210,7 @@ ifdh::fetchInput( string src_uri ) {
 
     std::vector<std::string> args;
 
-    if (0 == src_uri.find("xrootd:") || 0 == src_uri.find("root:")) {
+    if (0 == src_uri.find("xroot:") || 0 == src_uri.find("root:")) {
         char *icx = getenv("IFDH_COPY_XROOTD");
         if (icx && atoi(icx)) {
              path = localPath( src_uri );

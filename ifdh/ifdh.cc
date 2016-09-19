@@ -22,7 +22,9 @@
 #include "../util/Checksum.h"
 #include <setjmp.h>
 #include <memory>
+#ifndef __APPLE__
 #include <gnu/libc-version.h>
+#endif
 
 #if __cplusplus <= 199711L
 #define unique_ptr auto_ptr
@@ -111,6 +113,7 @@ check_env() {
         }
     }
 
+#ifndef __APPLE__
     // put cmvfs OSG utils at the end of our path as a failover/fallback
     // currently assuming 64bit is okay
     int glibcminor = atoi(gnu_get_libc_version()+2);
@@ -119,6 +122,7 @@ check_env() {
     cvmfs_dir << "/cvmfs/oasis.opensciencegrid.org/mis/osg-wn-client/3.3/current/el" <<  slver << "-x86_64";
     path_ish_append("PATH",cvmfs_dir.str().c_str(),"/usr/bin");
     path_ish_append("LD_LIBRARY_PATH",cvmfs_dir.str().c_str(),"/usr/lib64");
+#endif
 }
 
 string cpn_loc  = "cpn";  // just use the one in the PATH -- its a product now

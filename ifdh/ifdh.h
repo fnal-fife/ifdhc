@@ -143,6 +143,8 @@ class ifdh {
 	int declareFile( std::string json_metadata);
         // modify file metadata
 	int modifyMetadata(std::string file,  std::string json_metadata);
+        // apply an ifdh command to all files under a directory 
+        // (recursively), matching a pattern
         int apply(std::vector<std::string> args);
 };
 }

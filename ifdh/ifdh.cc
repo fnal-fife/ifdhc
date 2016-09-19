@@ -973,15 +973,12 @@ ifdh::apply(std::vector<std::string> args) {
 
 	cmd = tmplcmd;
 
-        std::cerr << "before cmd is: " << cmd << "\n";
-
         if ( has(cmd,"%(file)s") ) {
             cmd = cmd.replace(cmd.find("%(file)s"), 8, file);
         }
         if ( has(cmd,"%(subdir)s") ) {
            cmd = cmd.replace(cmd.find("%(subdir)s"), 10, subdir);
         }
-        std::cerr << "running: " << cmd << "\n";
         _debug && std::cerr << "running: " << cmd << "\n";
 
         res = system(cmd.c_str());

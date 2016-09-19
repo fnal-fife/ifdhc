@@ -143,6 +143,7 @@ class ifdh {
 	int declareFile( std::string json_metadata);
         // modify file metadata
 	int modifyMetadata(std::string file,  std::string json_metadata);
+        int apply(std::vector<std::string> args);
 };
 }
 

@@ -47,10 +47,6 @@ using namespace std;
 namespace ifdh_ns {
 
 
-bool has(std::string s1, std::string s2) {
-   return s1.find(s2) != std::string::npos;
-}
-
 struct IFile {
      std::string location;
      std::string path;
@@ -637,7 +633,7 @@ get_grid_credentials_if_needed() {
 	   res = system(cmd.c_str());
         }
         if (!WIFEXITED(res) ||  0 != WEXITSTATUS(res)) {
-            std::cerr << "Error from voms-proxy-init... later things may fail\n";
+            std::cerr << "Error: exit code " << res << " from voms-proxy-init... later things may fail\n";
         }
     }
 }
@@ -1509,7 +1505,17 @@ ifdh::lss( std::string loc, int recursion_depth, std::string force) {
     _debug && std::cerr << "running: " << lss_cmd << "\n";
 
     // no c++ popen, so doing it C-style..
-    FILE *pf = popen(lss_cmd.c_str(),"r");
+    int fake_popen = _config.getint(lookup_proto,"lss_fake_popen");
+    std::string tmpfile;
+    int status;
+    FILE *pf;
+    if (fake_popen) {
+       tmpfile = localPath("lss_tmp");
+       status = system((lss_cmd + " > " + tmpfile).c_str());
+       pf = fopen(tmpfile.c_str(), "r");
+    } else {
+       pf = popen(lss_cmd.c_str(),"r");
+    }
 
     if (pf == NULL) {
        std::cerr << "ifdh lss: popen failed; errno == " << errno << "\n";
@@ -1611,7 +1617,12 @@ ifdh::lss( std::string loc, int recursion_depth, std::string force) {
         }
     }
   
-    int status = pclose(pf);
+    if (fake_popen) {
+        fclose(pf);
+        unlink(tmpfile.c_str());
+    } else {
+        status = pclose(pf);
+    }
 
     if (WIFSIGNALED(status)) {
       throw( std::logic_error("signalled while doing lss"));

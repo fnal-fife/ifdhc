@@ -939,6 +939,59 @@ ifdh::more(string loc) {
     return res;
 }
 
+int
+ifdh::apply(std::vector<std::string> args) {
+    std::vector<std::pair<std::string,long> > rlist;
+
+    std::string dir = args[0];
+    std::string pat = args[1];
+    args.erase(args.begin(), args.begin()+2);
+    std::string subdir;
+    int res = 0;
+    int rres = 0;
+
+    if (dir[dir.size()-1] != '/') {
+        dir = dir + "/";
+    }
+
+    rlist = findMatchingFiles(dir, pat);
+
+    std::string tmplcmd = "ifdh " + join(args, ' ');
+
+    for( size_t i = 0; i < rlist.size(); i++ ) {
+        std::string file = rlist[i].first;
+	std::string cmd;
+        std::cout << file << ":\n";
+        std::cout.flush();
+
+        if (has(file, "/")) {
+            subdir = file.substr(dir.size(),file.rfind('/'));
+            std::cerr << "dir " << dir << " subdir " << subdir << "\n";
+        } else {
+            subdir = "";
+        }
+
+	cmd = tmplcmd;
+
+        std::cerr << "before cmd is: " << cmd << "\n";
+
+        if ( has(cmd,"%(file)s") ) {
+            cmd = cmd.replace(cmd.find("%(file)s"), 8, file);
+        }
+        if ( has(cmd,"%(subdir)s") ) {
+           cmd = cmd.replace(cmd.find("%(subdir)s"), 10, subdir);
+        }
+        std::cerr << "running: " << cmd << "\n";
+        _debug && std::cerr << "running: " << cmd << "\n";
+
+        res = system(cmd.c_str());
+        if (res != 0) {
+            rres = res;
+        } 
+    }
+    return rres;
+}
+
 // mostly a little named pipe plumbing and a fork()...
 std::string
 ifdh::checksum(string loc) {

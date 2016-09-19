@@ -26,6 +26,7 @@
 #include <gnu/libc-version.h>
 #endif
 
+
 #if __cplusplus <= 199711L
 #define unique_ptr auto_ptr
 #endif

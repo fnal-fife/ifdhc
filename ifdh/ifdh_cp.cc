@@ -1072,6 +1072,11 @@ pick_proto(CpPair &p, WimpyConfigParser & _config, std::string force) {
         if (force[force.size()-1] != ':') {
             force = force + ":";
         }
+        std::string check = _config.get("protocol " + force, "cp_cmd");
+        if (check == "") {
+            std::cerr << "Unknown --force= protocol " << force << "\n";
+            throw( std::logic_error("Unknown force option"));
+        }
         // only take the force if the src and dst both have it...
         if (srcps.find(force) != std::string::npos && srcps.find(force) != std::string::npos ) {
 	    p.proto = force;
@@ -1385,6 +1390,11 @@ pick_proto_path(std::string loc, std::string force, std::string &proto, std::str
             force = force + ":";
         }
         proto = force;
+        std::string check = _config.get("protocol " + force, "cp_cmd");
+        if (check == "") {
+            std::cerr << "Unknown --force= protocol " << force << "\n";
+            throw( std::logic_error("Unknown force option"));
+        }
     } else if (src.proto != "" ) {
        proto = src.proto;
     } else {

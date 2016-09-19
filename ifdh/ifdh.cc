@@ -22,7 +22,7 @@
 #include "../util/Checksum.h"
 #include <setjmp.h>
 #include <memory>
-#ifndef __APPLE__
+#ifndef __APPLE_CC__
 #include <gnu/libc-version.h>
 #endif
 
@@ -114,7 +114,8 @@ check_env() {
         }
     }
 
-#ifndef __APPLE__
+#ifdef _GNU_LIBC_VERSION_H
+
     // put cmvfs OSG utils at the end of our path as a failover/fallback
     // currently assuming 64bit is okay
     int glibcminor = atoi(gnu_get_libc_version()+2);

@@ -1019,6 +1019,10 @@ do_cp_bg(CpPair &cpp, WimpyConfigParser &_config, bool intermed_file_flag, bool 
     ifdh::_debug && std::cerr << "do_cp_bg: starting...\n";
     int res2 = fork();
     if (res2 == 0) {
+       // disable retries in backgroun d copy..
+       char envbuf[] = "IFDH_CP_MAXRETRIES=0";
+       putenv(envbuf);
+
        ifdh::_debug && std::cerr << "do_cp_bg: in child, about to call do_cp\n";
        int res = do_cp(cpp, _config, intermed_file_flag, recursive, cpn);
        ifdh::_debug && std::cerr << "do_cp_bg: in child, to return "<< res << "\n";

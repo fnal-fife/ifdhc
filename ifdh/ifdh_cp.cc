@@ -553,7 +553,8 @@ void
 get_grid_credentials_if_needed() {
     std::string cmd;
     std::string experiment(getexperiment());
-    std::stringstream proxyfileenv;
+    std::stringstream plainproxyfile;
+    std::stringstream vomsproxyfile;
     int res;
 
     ifdh::_debug && std::cerr << "Checking for proxy cert..."<< endl;
@@ -561,14 +562,28 @@ get_grid_credentials_if_needed() {
     if( getenv("IFDH_NO_PROXY"))
         return;
    
+    string role;
+    string user(getenv("GRID_USER")?getenv("GRID_USER"):getenv("USER"));
+    string prouser(getexperiment());
+    prouser = prouser + "pro";
+    if (user == prouser ) {
+         role = "Production";
+    } else {
+         role = "Analysis";
+    }
+    if ( getenv("X509_USER_PROXY") ) {
+        plainproxyfile <<  getenv("X509_USER_PROXY");
+    } else {
+        plainproxyfile <<  "/tmp/x509up_u" << getuid();
+    }
+    vomsproxyfile <<  "/tmp/x509up_voms_" << getexperiment() << "_" << role << "_" << getuid();
     if (!check_grid_credentials() && have_kerberos_creds()) {
         // if we don't have credentials, try our standard copy cache file
-        proxyfileenv << datadir() << "/x509up_cp" << getuid();
-	ifdh::_debug && std::cerr << "no credentials, trying " << proxyfileenv.str() << endl;
-        setenv("X509_USER_PROXY", proxyfileenv.str().c_str(),1);
+	ifdh::_debug && std::cerr << "no credentials, trying " << vomsproxyfile.str() << endl;
+        setenv("X509_USER_PROXY", vomsproxyfile.str().c_str(),1);
         // for xrdcp...
-        setenv("XrdSecGSIUSERCERT", proxyfileenv.str().c_str(),1);
-        setenv("XrdSecGSIUSERKEY", proxyfileenv.str().c_str(),1);
+        setenv("XrdSecGSIUSERCERT", vomsproxyfile.str().c_str(),1);
+        setenv("XrdSecGSIUSERKEY", vomsproxyfile.str().c_str(),1);
         ifdh::_debug && std::cerr << "Now X509_USER_PROXY is: " << getenv("X509_USER_PROXY")<< endl;
     }
 
@@ -576,15 +591,24 @@ get_grid_credentials_if_needed() {
         // if we still don't have credentials, try to get some from kx509
 	ifdh::_debug && std::cerr << "trying to kx509/voms-proxy-init...\n " ;
 
-        ifdh::_debug && system("echo X509_USER_PROXY is $X509_USER_PROXY >&2");
+	cmd = "kx509 -o ";
+        cmd += plainproxyfile.str();
 
-	cmd = "kx509 ";
         if (ifdh::_debug) {
             cmd += " >&2 ";
         } else {
             cmd += " >/dev/null 2>&1 ";
         }
-        cmd += "&& voms-proxy-init -dont-verify-ac -rfc -noregen -debug -voms ";
+	ifdh::_debug && std::cerr << "running: " << cmd << endl;
+        system(cmd.c_str()); 
+
+        cmd = "voms-proxy-init -dont-verify-ac -rfc -noregen -debug -cert " ;
+        cmd += plainproxyfile.str() ;
+        cmd += " -key " ;
+        cmd +=  plainproxyfile.str() ;
+        cmd += " -out ";
+        cmd +=  vomsproxyfile.str() ;
+        cmd += " -voms ";
 
         // table based vo mapping...
         std::string vo;
@@ -617,7 +641,7 @@ get_grid_credentials_if_needed() {
             }
             
         }
-        cmd += vo + "/Role=Analysis" ;
+        cmd += vo + "/Role=" + role;
 
         if (ifdh::_debug) {
             cmd += " >&2";

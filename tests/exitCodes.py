@@ -48,6 +48,7 @@ class exitcodecases(unittest.TestCase):
             raise
 
     def setUp(self):
+        self.forceMethods=["", "--force=gsiftp","--force=srm","--force=root"]
         sys.stdout.flush()
         sys.stderr.flush()
         print "starting setUp"
@@ -59,8 +60,9 @@ class exitcodecases(unittest.TestCase):
             self.experiment=exp
         else:
             self.experiment="nova"
-        filename = "file%s.txt" % os.getpid()     
-        self.goodRemoteDir = "/pnfs/%s/scratch/users/test_ifdh_%s_%s" % (self.experiment, socket.gethostname(), os.getpid())
+        filename = "file%s.txt" % os.getppid()     
+
+        self.goodRemoteDir = "/pnfs/%s/scratch/users/%s/test_ifdh_%s_%s" % (self.experiment, os.getenv('GRID_USER',os.getenv('USER')), socket.gethostname(), os.getppid())
         self.goodRemoteFile = "%s/%s" % (self.goodRemoteDir, filename)
         self.badRemoteDir = "/pnfs/%s/nope/nope/nope" % self.experiment
         self.badRemoteFile = "%s/%s" % (self.badRemoteDir, filename)
@@ -69,9 +71,20 @@ class exitcodecases(unittest.TestCase):
         f = open(self.goodLocalFile, "w")
         f.write("hello world\n")
         f.close()
-        self.forceMethods=["", "--force=gridftp","--force=srmcp","--force=root"]
-        res = os.system("EXPERIMENT=%s ifdh mkdir %s "% (self.experiment, self.goodRemoteDir))
-        res = os.system("EXPERIMENT=%s ifdh cp %s  %s "% (self.experiment, self.goodLocalFile, self.goodRemoteFile))
+        os.environ["EXPERIMENT"] = self.experiment
+        os.environ["IFDH_GRIDFTP_EXTRA"] = "-debug"
+        res = self.ifdh_handle.mkdir(self.goodRemoteDir,"")
+        del os.environ["IFDH_GRIDFTP_EXTRA"]
+        if (res != 0):
+            print "setUp: couldn't make ", self.goodRemoteDir
+        res = self.ifdh_handle.cp([self.goodLocalFile, self.goodRemoteFile])
+        if (res != 0):
+            print "setUp: couldn't create ", self.goodRemoteFile
+        res = self.ifdh_handle.ls(self.goodRemoteDir,1,"")
+        if len(res) == 0:
+            print "setUp: couldn't create ", self.goodRemoteFile
+        print "goodRemoteDir ls gives:" , res
+          
         sys.stdout.flush()
         sys.stderr.flush()
         print "finished setUp"
@@ -86,6 +99,8 @@ class exitcodecases(unittest.TestCase):
         res = os.system("EXPERIMENT=%s ifdh rm %s "% (self.experiment, self.goodLocalFile))
         res = os.system("EXPERIMENT=%s ifdh rm %s "% (self.experiment, self.goodRemoteFile))
         for fname in self.ifdh_handle.ls(self.goodRemoteDir,1,''):
+            if (fname == self.goodRemoteDir) :
+                continue
             print "cleaning up unexpected: " , fname
             if fname[-1] == "/":
                 res = os.system("EXPERIMENT=%s ifdh rmdir  %s "% (self.experiment, fname))
@@ -222,7 +237,9 @@ class exitcodecases(unittest.TestCase):
             cmd = "EXPERIMENT=%s ifdh rm %s   %s > /dev/null 2>&1" %\
                     (self.experiment,  tgt_file, force)
             res = os.system(cmd)
-            if force == "":
+            # actually, most of the srm/uberftp, etc. commands are 
+            # capable of removing a local file..
+            if force not in ["--force=gsiftp", "--force=root"]:
                 self.assertEqual(res, 0, cmd)
             else:
                 self.assertNotEqual(res, 0, cmd)
@@ -277,7 +294,7 @@ class exitcodecases(unittest.TestCase):
 ## checksum ##
 
     #this test hangs indefinitely
-    def do_not_run_test_checksum_noexist_local(self):
+    def test_checksum_noexist_local(self):
         res = os.system("EXPERIMENT=%s ifdh checksum %s  > /dev/null 2>&1" % 
                 (self.experiment, self.badLocalFile))
         self.assertNotEqual(res,0)
@@ -309,15 +326,16 @@ class exitcodecases(unittest.TestCase):
             sys.stderr.flush()
             print "trying with %s" % force
             sys.stdout.flush()
-            cmd = "EXPERIMENT=%s ifdh mkdir %s %s  > /dev/null 2>&1" %\
+            #cmd = "EXPERIMENT=%s ifdh mkdir %s %s  > /dev/null 2>&1" %\
+            cmd = "EXPERIMENT=%s ifdh mkdir %s %s  " %\
                     (self.experiment, src, force)
             res = os.system(cmd)
             self.assertEqual(res, 0, cmd)
-            cmd = "EXPERIMENT=%s ifdh rmdir %s %s > /dev/null 2>&1" %\
+            #cmd = "EXPERIMENT=%s ifdh rmdir %s %s > /dev/null 2>&1" %\
+            cmd = "EXPERIMENT=%s ifdh rmdir %s %s " %\
                     (self.experiment, src, force)
             res = os.system(cmd)
             self.assertEqual(res, 0, cmd)
-
 
 ## rename ## uses force
 

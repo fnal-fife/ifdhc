@@ -862,6 +862,7 @@ retry_system(const char *cmd_str, int error_expected, cpn_lock &locker,  std::st
         if (res != 0 && error_expected) {
            return res;
         }
+	ifdh::_debug && std::cerr << "program: " << cmd_str << "exited status " << res << "\n";
         if (res != 0 && tries < maxtries - 1) {
             if (dolock)
                 locker.free();
@@ -978,6 +979,9 @@ do_cp(CpPair &cpp, WimpyConfigParser &_config, bool intermed_file_flag, bool rec
 	   unlink(iftmp.path.c_str());
 	   return res2;
 	} else {
+           // disable retries in background copy..
+           char envbuf[] = "IFDH_CP_MAXRETRIES=0";
+           putenv(envbuf);
 	   pid = do_cp_bg(cp1, _config, intermed_file_flag, recursive, cpn);
            if (pid > 0) {
 	       res2 = do_cp(cp2, _config, intermed_file_flag, recursive, cpn);
@@ -1043,14 +1047,12 @@ do_cp_bg(CpPair &cpp, WimpyConfigParser &_config, bool intermed_file_flag, bool 
     ifdh::_debug && std::cerr << "do_cp_bg: starting...\n";
     int res2 = fork();
     if (res2 == 0) {
-       // disable retries in backgroun d copy..
-       char envbuf[] = "IFDH_CP_MAXRETRIES=0";
-       putenv(envbuf);
 
        ifdh::_debug && std::cerr << "do_cp_bg: in child, about to call do_cp\n";
        int res = do_cp(cpp, _config, intermed_file_flag, recursive, cpn);
        ifdh::_debug && std::cerr << "do_cp_bg: in child, to return "<< res << "\n";
        if (res != 0 ) {
+           sleep(5);
            // unwedge other side if cp failed
            int f = open(cpp.dst.path.c_str(),O_WRONLY|O_NDELAY, 0700);
            if (f >= 0) {
@@ -1131,8 +1133,8 @@ pick_proto(CpPair &p, WimpyConfigParser & _config, std::string force) {
          if (*sp == "" || *sp == "\t" || *sp == " ") {
             continue;
          }
-         // only take file: if it is actually visible here
-         if (*sp == "file:" && 0 != access(parent_dir(p.src.path).c_str(),R_OK)) {
+         // only take file: if it is actually visible here -- or there's no other option
+         if (*sp == "file:" && 0 != access(parent_dir(p.src.path).c_str(),R_OK) && sp+1 != slist.end()) {
              ifdh::_debug && cerr << "ignoring src file: -- not visible\n";
              continue;
          }
@@ -1140,8 +1142,8 @@ pick_proto(CpPair &p, WimpyConfigParser & _config, std::string force) {
 	     if (*dp == "" || *dp == "\t" || *dp == " ") {
 		continue;
 	     }
-             // only take file: if it is a path actually visible here
-             if (*dp == "file:" && 0 != access(parent_dir(p.dst.path).c_str(),R_OK)) {
+             // only take file: if it is a path actually visible here -- or there's no other option
+             if (*dp == "file:" && 0 != access(parent_dir(p.dst.path).c_str(),R_OK) && dp+1 != dlist.end()) {
                  ifdh::_debug && cerr << "ignoring dst file: -- not visible\n";
                  continue;
              }
@@ -1774,7 +1776,7 @@ ifdh::mkdir(string loc, string force) {
         retries = 1;
     }
     cpn_lock locker;
-    int status = retry_system(cmd.c_str(), 0, locker, "","","",retries);
+    int status = retry_system(cmd.c_str(), 0, locker, "","","",retries+1);
     if (WIFSIGNALED(status)) {
       // throw( std::logic_error("signalled while doing mkdir"));
       return -1;

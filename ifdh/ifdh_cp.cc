@@ -1618,14 +1618,23 @@ ifdh::lss( std::string loc, int recursion_depth, std::string force) {
                    continue;
                }
 
-               _debug && std::cerr << "file: " << file << " dir " << dir << " size " << size << "\n";
 
+               _debug && std::cerr << "file: " << file << " dir " << dir << " size " << size << " dirflag: "  << dirflag << "\n";
+
+               if (file == "" && dir == "" && dirflag == "") {
+                  
+                  _debug && std::cerr << "skipping blank...\n";
+                  continue;
+               }
                if (firstpass) {
                    // if the list doesn't start with the thing we asked for
                    // (i.e it's a directory and shows contents but not dir)
                    // stick the dir on the front.
                    firstpass = false;
                    std::string basename = origloc.substr(origloc.rfind("/",origloc.size()-2)+1);
+                   if ('/' == basename[basename.size()-1] ) {
+                      basename = basename.substr(0,basename.size()-1);
+                   }
                    _debug && std::cerr << "basename: |" <<  basename << "| file |" << file << "|\n";
                    if (file != basename) {
                        dirrepl = origloc + "/";

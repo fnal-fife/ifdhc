@@ -12,7 +12,7 @@ HDR=ifdh.h
 SWIGCXXFLAGS=-fPIC -I../util -I../numsg -I../../util -I../../numsg -I../../ifdh -g -I$${PYTHON_INCLUDE:-`echo /usr/include/python*`} $(ARCH)
 CXXFLAGS=-pedantic-errors -Wall -Wextra -Werror -fPIC -I../../util -I../util -I ../../numsg -I../numsg -g  $(ARCH) -I$(SRCDIR)
 OBJ=ifdh.o ifdh_cp.o
-ALL_OBJS=$(OBJ) ../util/WebAPI.o ../numsg/numsg.o ../util/SyslogAPI.o ../util/utils.o ../util/regwrap.o ../util/Checksum.o
+ALL_OBJS=$(OBJ) ../util/WebAPI.o ../numsg/numsg.o ../util/SyslogAPI.o ../util/utils.o ../util/regwrap.o ../util/Checksum.o ../util/WimpyConfigParser.o
 genOBJ=ifdh_main.o ifdh_wrap.o python/_ifdh.$(SHLIB)
 genSRC=ifdh_wrap.cxx ifdh_main.cc
 PYMOD_OBJS=$(ALL_OBJS) ifdh_wrap.o
@@ -79,7 +79,7 @@ ifdh_main.o: ifdh_main.cc
 %.o: %.cc
 	g++ -c -o $@  $(CXXFLAGS) $< 
 
-ifdh_cp.o: ifdh_cp.cc ifdh.h ../util/WebAPI.h ../util/../numsg/numsg.h ../util/../numsg/../util/SyslogAPI.h 
+ifdh_cp.o: ifdh_cp.cc ifdh.h ../util/WebAPI.h ../util/../numsg/numsg.h ../util/../numsg/../util/SyslogAPI.h ../util/regwrap.h
 
 ifdh_main.o: ifdh_main.cc ifdh.h ../util/WebAPI.h 
 

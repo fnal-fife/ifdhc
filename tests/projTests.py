@@ -82,7 +82,8 @@ class SAMCases(unittest.TestCase):
 
     def test_1_locate_notfound(self):
         self.log(self._testMethodName)
-        self.assertRaises(RuntimeError, self.ifdh_handle.locateFile,"nosuchfile")
+        res = self.ifdh_handle.locateFile("nosuchfile")
+        self.assertEqual(res,(),self._testMethodName )
         
     def test_1_locate_multi_notfound(self):
         self.log(self._testMethodName)

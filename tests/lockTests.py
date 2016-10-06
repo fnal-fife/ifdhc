@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import unittest
+import unittest2 as unittest
 import ifdh
 import socket
 import os
@@ -53,11 +53,11 @@ class ifdh_lock_cases(unittest.TestCase):
     def start_copy(self, source="/dev/null"):
 
         if source == "/dev/null":
-            dest = "/grid/data/mengel/.empty"
+            dest = "/nova/data/mengel/.empty"
         else:
             dest = "/dev/null"
 
-        self.cp_s = Popen("exec ifdh cp --force=cpn %s %s 2>&1" % (source, dest),shell=True, bufsize=1024, stdout=PIPE, preexec_fn=os.setsid)
+        self.cp_s = Popen("exec ifdh cp --force=cp %s %s 2>&1" % (source, dest),shell=True, bufsize=1024, stdout=PIPE, preexec_fn=os.setsid)
         self.cp_p = self.cp_s.stdout
 
     def get_lock_line(self):
@@ -177,7 +177,7 @@ class ifdh_lock_cases(unittest.TestCase):
     def test_04_interrupted_copy(self):
 
         # start a copy which will sleep
-        self.start_copy("/grid/data/ifmon/CPNTEST/FILES/20G")
+        self.start_copy("/nova/data/mengel/ifmon/CPNTEST/FILES/20G")
         s = self.expect_lock_line(" lock ")
 
        
@@ -191,7 +191,7 @@ class ifdh_lock_cases(unittest.TestCase):
     def test_05_interrupted_just_cp(self):
 
         # start a copy which will sleep
-        self.start_copy("/grid/data/ifmon/CPNTEST/FILES/20G")
+        self.start_copy("/nova/data/mengel/ifmon/CPNTEST/FILES/20G")
         s = self.expect_lock_line(" lock ")
 
         # kill off just the underlying cp...

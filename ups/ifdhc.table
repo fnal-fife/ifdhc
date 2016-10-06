@@ -207,6 +207,7 @@ Common:
 	envPrepend(LD_LIBRARY_PATH, ${IFDHC_LIB})
     endif ( test `uname` = "Darwin" )
     ExeActionOptional(ExtraSetup)
+    SetupOptional(ifdhc_config)
     SetupOptional(cpn)
     SetupOptional(ifdh_platform_pkgs) 
     # get the Amazon S3 client if possible

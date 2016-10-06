@@ -51,8 +51,8 @@ numsg::init(const char *jobname, int parentflag) {
         strcpy(hostbuf, "fifelog.fnal.gov");
         port = 5140;
     }
-    if (jobname == 0 && getenv("NU_MSG_TAG"))  {
-        jobname = getenv("NU_MSG_TAG");
+    if (jobname == 0 && getenv("NU_LOG_TAG"))  {
+        jobname = getenv("NU_LOG_TAG");
     }
     numsg::_singleton = new numsg(jobname, hostbuf, port, parentflag);
     return numsg::_singleton;

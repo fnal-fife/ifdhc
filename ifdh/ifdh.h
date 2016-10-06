@@ -4,6 +4,7 @@
 #include <string>
 #include <vector>
 #include "../util/WebAPI.h"
+#include "../util/WimpyConfigParser.h"
 #include <stdlib.h>
 #include <map>
 #include <utility>
@@ -16,9 +17,8 @@ class ifdh {
         std::string _lastinput;
         std::string unique_string();
         std::vector<std::string> build_stage_list( std::vector<std::string>, int, char *stage_via);
-        bool _have_gfal;
-        std::vector<std::pair<std::string,long> > try_ls_lR_file( std::string loc );
    public:
+        static WimpyConfigParser _config;
         static int _debug;
         static std::string _default_base_uri;
         static std::string _default_base_ssl_uri;
@@ -139,6 +139,13 @@ class ifdh {
         // get a grid proxy for the current experiment if needed, 
         // return the path
         std::string getProxy();
+        // declare file metadata
+	int declareFile( std::string json_metadata);
+        // modify file metadata
+	int modifyMetadata(std::string file,  std::string json_metadata);
+        // apply an ifdh command to all files under a directory 
+        // (recursively), matching a pattern
+        int apply(std::vector<std::string> args);
 };
 }
 

@@ -11,6 +11,11 @@ namespace ifdh_util_ns {
 // get experiment name, either from CONDOR_TMP setting, or
 // from group-id...
 //
+
+bool has(std::string s1, std::string s2) {
+   return s1.find(s2) != std::string::npos;
+}
+
 #define MAXEXPBUF 64
 const
 char *getexperiment() {

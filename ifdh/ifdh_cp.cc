@@ -819,7 +819,7 @@ get_another_dcache_door( std::string &cmd, std::string door_regex, std::string d
 
 
 int
-retry_system(const char *cmd_str, int error_expected, cpn_lock &locker,  std::string door_regex = "", std::string door_url="", std::string door_proto = "", int maxtries = -1) {
+retry_system(const char *cmd_str, int error_expected, cpn_lock &locker,  std::string door_regex = "", std::string door_url="", std::string door_proto = "", int maxtries = -1, std::string unlink_on_error = "", ifdh *ih = 0) {
     int res = 1;
     int tries = 0;
     int delay;
@@ -867,9 +867,14 @@ retry_system(const char *cmd_str, int error_expected, cpn_lock &locker,  std::st
             if (dolock)
                 locker.free();
             std::cerr << "program: " << cmd_str << "exited status " << res << "\n";
-            delay =random() % (55 << tries);
-            std::cerr << "delaying " << delay << " ...\n";
-            sleep(delay);
+            if (unlink_on_error != "" && ih) {
+                ih->rm(unlink_on_error);
+                unlink_on_error = "";
+            } else {
+                delay =random() % (55 << tries);
+                std::cerr << "delaying " << delay << " ...\n";
+                sleep(delay);
+            }
             std::cerr << "retrying...\n";
             if (dolock)
                 locker.lock();
@@ -960,31 +965,31 @@ dstpath(CpPair &cpp, WimpyConfigParser &_config) {
 }
 
 int
-do_cp_bg(CpPair &cpp, WimpyConfigParser &_config, bool intermed_file_flag, bool recursive, cpn_lock &cpn);
+do_cp_bg(CpPair &cpp, WimpyConfigParser &_config, bool intermed_file_flag, bool recursive, cpn_lock &cpn, ifdh *ih);
 
 int
-do_cp(CpPair &cpp, WimpyConfigParser &_config, bool intermed_file_flag, bool recursive, cpn_lock &cpn) {
+do_cp(CpPair &cpp, WimpyConfigParser &_config, bool intermed_file_flag, bool recursive, cpn_lock &cpn, ifdh *ih) {
     int res1, res2, pid;
     if ( cpp.proto2 != "" ) {
         // deail with cross-protocol copies
 	IFile iftmp = get_intermed(intermed_file_flag);
 	CpPair cp1(cpp.src, iftmp, cpp.proto), cp2(iftmp, cpp.dst, cpp.proto2);
 	if (intermed_file_flag) {
-	   res1 = do_cp(cp1, _config, intermed_file_flag, recursive, cpn); 
+	   res1 = do_cp(cp1, _config, intermed_file_flag, recursive, cpn, ih); 
            if (res1 != 0) {
                unlink(iftmp.path.c_str());
                return res1;
            }
-	   res2 = do_cp(cp2, _config, intermed_file_flag, recursive, cpn);
+	   res2 = do_cp(cp2, _config, intermed_file_flag, recursive, cpn, ih);
 	   unlink(iftmp.path.c_str());
 	   return res2;
 	} else {
            // disable retries in background copy..
            char envbuf[] = "IFDH_CP_MAXRETRIES=0";
            putenv(envbuf);
-	   pid = do_cp_bg(cp1, _config, intermed_file_flag, recursive, cpn);
+	   pid = do_cp_bg(cp1, _config, intermed_file_flag, recursive, cpn, ih);
            if (pid > 0) {
-	       res2 = do_cp(cp2, _config, intermed_file_flag, recursive, cpn);
+	       res2 = do_cp(cp2, _config, intermed_file_flag, recursive, cpn, ih);
 	       (void)waitpid(pid, &res1, 0);
                unlink(iftmp.path.c_str());
                return res2;
@@ -1034,8 +1039,12 @@ do_cp(CpPair &cpp, WimpyConfigParser &_config, bool intermed_file_flag, bool rec
             door_re = _config.get("location " + cpp.dst.location, "door_repl_re");
             door_uri = _config.get("location " + cpp.dst.location, "lookup_door_uri");
         }
+        std::string unlink_this_on_error = "";
+        if (getenv( "IFDH_CP_UNLINK_ON_ERROR") && atoi(getenv( "IFDH_CP_UNLINK_ON_ERROR"))) {
+            unlink_this_on_error = cpp.dst.path; 
+        }
         
-        return retry_system(cp_cmd.c_str(), 0, cpn, door_re, door_uri, cpp.proto );
+        return retry_system(cp_cmd.c_str(), 0, cpn, door_re, door_uri, cpp.proto, -1, unlink_this_on_error, ih);
     }
 }
 
@@ -1043,13 +1052,13 @@ do_cp(CpPair &cpp, WimpyConfigParser &_config, bool intermed_file_flag, bool rec
 // do a copy in background, return the pid or -1
 //
 int
-do_cp_bg(CpPair &cpp, WimpyConfigParser &_config, bool intermed_file_flag, bool recursive, cpn_lock &cpn) {
+do_cp_bg(CpPair &cpp, WimpyConfigParser &_config, bool intermed_file_flag, bool recursive, cpn_lock &cpn, ifdh *ih = 0) {
     ifdh::_debug && std::cerr << "do_cp_bg: starting...\n";
     int res2 = fork();
     if (res2 == 0) {
 
        ifdh::_debug && std::cerr << "do_cp_bg: in child, about to call do_cp\n";
-       int res = do_cp(cpp, _config, intermed_file_flag, recursive, cpn);
+       int res = do_cp(cpp, _config, intermed_file_flag, recursive, cpn, ih);
        ifdh::_debug && std::cerr << "do_cp_bg: in child, to return "<< res << "\n";
        if (res != 0 ) {
            sleep(5);
@@ -1290,7 +1299,7 @@ ifdh::cp( std::vector<std::string> args ) {
         log(cpstartmessage.str());
 
         // actually do the copy
-        res = do_cp(*cpp, _config, intermed_file_flag, recursive, cpn);
+        res = do_cp(*cpp, _config, intermed_file_flag, recursive, cpn, this);
 
         stringstream cpdonemessage;
         cpdonemessage << "ifdh finished transfer: " << cpp->src.path << ", " << cpp->dst.path << " size: " << xfersize << "\n";

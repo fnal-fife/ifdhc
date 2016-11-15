@@ -728,18 +728,21 @@ ifdh::ifdh(std::string baseuri) {
     //  
     if (_config.size() == 0) {
     const char *ccffile = getenv("IFDHC_CONFIG_DIR");
-    if (ccffile == 0) {
-        ccffile = getenv("IFDHC_FQ_DIR");
-        if (ccffile == 0) {
-             ccffile = getenv("IFDHC_DIR");
-        }
+    const char *ccffile1 = getenv("IFDHC_DIR");
+    const char *ccffile2 = getenv("IFDHC_FQ_DIR");
+    std::string cffile;
+    if (ccffile) {
+        cffile = std::string(ccffile); 
+    } else if ( (ccffile1) && (std::ifstream(std::string(ccffile1) + "/ifdh.cfg")) ) {
+        cffile = std::string(ccffile1); 
         _debug && std::cerr << "ifdh: getting config file from IFDHC_DIR --  no IFDHC_CONFIG_DIR?!?\n";
-    }
-    if (ccffile == 0) {
+    } else if ( (ccffile2) && (std::ifstream(std::string(ccffile2) + "/ifdh.cfg")) ) {
+        cffile = std::string(ccffile2); 
+        _debug && std::cerr << "ifdh: getting config file from IFDHC_FQ_DIR --  no IFDHC_CONFIG_DIR?!?\n";
+    } else {
 	throw( std::logic_error("no ifdhc config file environment variables found"));
     }
     _debug && std::cerr << "ifdh: using config file: "<< ccffile << "/ifdh.cfg\n";
-    std::string cffile(ccffile);
 
     _config.read(cffile + "/ifdh.cfg");
     std::vector<std::string> clist = _config.getlist("general","conditionals");

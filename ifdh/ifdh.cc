@@ -729,7 +729,10 @@ ifdh::ifdh(std::string baseuri) {
     if (_config.size() == 0) {
     const char *ccffile = getenv("IFDHC_CONFIG_DIR");
     if (ccffile == 0) {
-        ccffile = getenv("IFDHC_DIR");
+        ccffile = getenv("IFDHC_FQ_DIR");
+        if (ccffile == 0) {
+             ccffile = getenv("IFDHC_DIR");
+        }
         _debug && std::cerr << "ifdh: getting config file from IFDHC_DIR --  no IFDHC_CONFIG_DIR?!?\n";
     }
     if (ccffile == 0) {

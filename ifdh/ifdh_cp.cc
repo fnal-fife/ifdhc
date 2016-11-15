@@ -2027,12 +2027,16 @@ ifdh::findMatchingFiles( string path, string glob) {
             continue;
         }
         for(size_t j = 0; j < batch.size(); j++ ) {
-            if (_debug) cerr << "checking file: " << batch[j].first << endl;
+            if (_debug) cerr << "checking file: " << batch[j].first;
             regexp globre(glob);
             regmatch m(globre(batch[j].first));
             if (m) {
+                if (_debug) cerr << " +";
                 res.push_back(batch[j]);
+            } else { 
+                if (_debug) cerr << " -";
             }
+            if (_debug) cerr << endl;
         }
    }
    return res;

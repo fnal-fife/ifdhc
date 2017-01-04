@@ -734,6 +734,7 @@ get_pnfs_uri(std::string door_url = "http://fndca3a.fnal.gov:2288/info/doors", s
     if (0 == nodes.size() || cached_node_proto != door_proto) {
         nodes.clear();
         ifdh::_debug && cerr << "looking for dcache " << door_proto << " doors..\n";
+        try {
         WebAPI wa(door_url);
 	while (!wa.data().eof() && !wa.data().fail()) {
 	    getline(wa.data(), line);
@@ -764,6 +765,9 @@ get_pnfs_uri(std::string door_url = "http://fndca3a.fnal.gov:2288/info/doors", s
                ifdh::_debug && cerr << "found dcache door: " << node << "\n";
 	    }
 	}
+        }  catch( exception e ) {
+        ;
+        }
     }
     cached_node_proto = door_proto;
     if ( nodes.size() == 0) {
@@ -1527,6 +1531,13 @@ ifdh::lss( std::string loc, int recursion_depth, std::string force) {
     std::string fullurl, proto, lookup_proto;
     pick_proto_path(loc, force, proto, fullurl, lookup_proto, _config);
 
+    // if we are given a postive recursion depth, it must be a directory
+    // so make sure to put on a trailng slash
+    if (recursion_depth > 0) {
+       if (loc[loc.size()-1] != '/') {
+          loc = loc + '/';
+       }
+    }
     if (-1 == recursion_depth ) {
        recursion_depth = 1;
     }
@@ -1990,7 +2001,7 @@ ifdh::findMatchingFiles( string path, string glob) {
        if (dlist1[i] == "srm" || dlist1[i] == "gsiftp" || dlist1[i] == "http"|| dlist1[i] == "s3" || dlist1[i] == "i") {
             prefix = dlist1[i] + ':';
        } else {
-            dlist.push_back(prefix + dlist1[i]);
+	    dlist.push_back(prefix + dlist1[i]);
             prefix = "";
        }
    }

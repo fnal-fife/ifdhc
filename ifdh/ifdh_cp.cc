@@ -722,6 +722,7 @@ get_pnfs_uri(std::string door_url,  std::string door_proto, std::vector<std::str
     int state = 0;
     static vector<string> nodes;
     static string cached_node_proto;
+    static string cached_door_url;
     string line;
     static string cached_result;
 
@@ -731,7 +732,7 @@ get_pnfs_uri(std::string door_url,  std::string door_proto, std::vector<std::str
         door_proto= door_proto.substr(0,door_proto.size()-1);
     }
 
-    if (0 == nodes.size() || cached_node_proto != door_proto) {
+    if (0 == nodes.size() || cached_node_proto != door_proto || cached_door_url != door_url) {
         nodes.clear();
         ifdh::_debug && cerr << "looking for dcache " << door_proto << " doors..\n";
         try {
@@ -770,6 +771,7 @@ get_pnfs_uri(std::string door_url,  std::string door_proto, std::vector<std::str
         }
     }
     cached_node_proto = door_proto;
+    cached_door_url = door_url;
     if ( nodes.size() == 0) {
        nodes = def_doors;   
     }
@@ -844,6 +846,8 @@ ifdh::retry_system(const char *cmd_str, int error_expected, cpn_lock &locker, in
             std::string door_url =   _config.get(section, "lookup_door_uri");
             std::string door_proto = _config.get(section, "door_proto");
             std::vector<std::string> def_doors = _config.getlist(section, "default_doors");
+
+            _debug && cerr << "trying rotation: " << rot_list[i] << "\n";
 
             regexp door_re(door_regex);
 

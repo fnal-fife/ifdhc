@@ -63,7 +63,7 @@ struct CpPair {
 
 
 IFile
-lookup_loc(std::string url, WimpyConfigParser &_config) {
+ifdh::lookup_loc(std::string url) {
     IFile res;
     std::vector<std::string>  prefixes = split(_config.rawget("general","prefixes"),' ');
     ifdh::_debug && cerr << "lookup_loc " << url << "\n";
@@ -108,7 +108,7 @@ lookup_loc(std::string url, WimpyConfigParser &_config) {
 
 // one special case here, when you're copying to a local 
 std::string
-locpath(IFile loc, std::string proto, WimpyConfigParser &_config) {
+ifdh::locpath(IFile loc, std::string proto) {
    std::string pre;
    if (loc.location == "local_fs") { // XXX should be a flag
       if (_config.getint("protocol " + proto, "strip_file_prefix")) {
@@ -181,9 +181,9 @@ cache_stat(std::string s) {
 }
 
 bool
-have_stage_subdirs(std::string uri, ifdh *ih) {
+ifdh::have_stage_subdirs(std::string uri) {
    int count = 0;
-   vector<string> list = ih->ls(uri,1,"");
+   vector<string> list = ls(uri,1,"");
 
    for (size_t i = 0; i < list.size(); i++) {
        if(list[i].find("ifdh_stage/queue/") != string::npos ) count++;
@@ -439,7 +439,7 @@ ifdh::build_stage_list(std::vector<std::string> args, int curarg, char *stage_vi
    }
 
    // make sure directory hierarchy is there..
-   if (!have_stage_subdirs(base_uri + "/ifdh_stage", this)) {
+   if (!have_stage_subdirs(base_uri + "/ifdh_stage")) {
        try{ mkdir( base_uri , "");               } catch (...){;};
        try{ mkdir( base_uri + "/ifdh_stage", ""); } catch(...) {;};
        try{ mkdir( base_uri + "/ifdh_stage/queue" , "");}  catch(...){;}
@@ -718,10 +718,11 @@ parse_ifdh_stage_via() {
 
 
 string
-get_pnfs_uri(std::string door_url = "http://fndca3a.fnal.gov:2288/info/doors", std::string door_proto = "gsiftp") {
+get_pnfs_uri(std::string door_url,  std::string door_proto, std::vector<std::string>&def_doors  ) {
     int state = 0;
     static vector<string> nodes;
     static string cached_node_proto;
+    static string cached_door_url;
     string line;
     static string cached_result;
 
@@ -731,9 +732,10 @@ get_pnfs_uri(std::string door_url = "http://fndca3a.fnal.gov:2288/info/doors", s
         door_proto= door_proto.substr(0,door_proto.size()-1);
     }
 
-    if (0 == nodes.size() || cached_node_proto != door_proto) {
+    if (0 == nodes.size() || cached_node_proto != door_proto || cached_door_url != door_url) {
         nodes.clear();
         ifdh::_debug && cerr << "looking for dcache " << door_proto << " doors..\n";
+        try {
         WebAPI wa(door_url);
 	while (!wa.data().eof() && !wa.data().fail()) {
 	    getline(wa.data(), line);
@@ -764,12 +766,14 @@ get_pnfs_uri(std::string door_url = "http://fndca3a.fnal.gov:2288/info/doors", s
                ifdh::_debug && cerr << "found dcache door: " << node << "\n";
 	    }
 	}
+        }  catch( exception e ) {
+        ;
+        }
     }
     cached_node_proto = door_proto;
+    cached_door_url = door_url;
     if ( nodes.size() == 0) {
-       // couldn't get nodes from website...
-       // or didn't find a match..
-       return "";
+       nodes = def_doors;   
     }
     int32_t rn;
     rn = random();
@@ -778,7 +782,7 @@ get_pnfs_uri(std::string door_url = "http://fndca3a.fnal.gov:2288/info/doors", s
 }
 
 void
-get_another_dcache_door( std::string &cmd, std::string door_regex, std::string door_url, std::string door_proto ) {
+get_another_dcache_door( std::string &cmd, std::string door_regex, std::string door_url, std::string door_proto, std::vector<std::string>&def_doors ) {
     size_t base;
     std::string repl;
 
@@ -794,7 +798,7 @@ get_another_dcache_door( std::string &cmd, std::string door_regex, std::string d
          if (!doors) {
              break;
          }
-         repl = get_pnfs_uri(door_url, door_proto);
+         repl = get_pnfs_uri(door_url, door_proto, def_doors);
 
          if (repl == "") {
              return;
@@ -819,7 +823,7 @@ get_another_dcache_door( std::string &cmd, std::string door_regex, std::string d
 
 
 int
-retry_system(const char *cmd_str, int error_expected, cpn_lock &locker,  std::string door_regex = "", std::string door_url="", std::string door_proto = "", int maxtries = -1, std::string unlink_on_error = "", ifdh *ih = 0) {
+ifdh::retry_system(const char *cmd_str, int error_expected, cpn_lock &locker, int maxtries, std::string unlink_on_error) {
     int res = 1;
     int tries = 0;
     int delay;
@@ -835,19 +839,22 @@ retry_system(const char *cmd_str, int error_expected, cpn_lock &locker,  std::st
 
 
     while( res != 0 && tries < maxtries ) {
-        if (door_regex != "" ) {
+        std::vector<std::string> rot_list = _config.getlist("general","rotations");
+        for (size_t i = 0; i < rot_list.size(); i++ ) {
+            std::string section = std::string("rotation ")+rot_list[i];
+            std::string door_regex = _config.get(section, "door_repl_re");
+            std::string door_url =   _config.get(section, "lookup_door_uri");
+            std::string door_proto = _config.get(section, "door_proto");
+            std::vector<std::string> def_doors = _config.getlist(section, "default_doors");
+
+            _debug && cerr << "trying rotation: " << rot_list[i] << "\n";
+
             regexp door_re(door_regex);
 
 	    cmd_str_string = cmd_str;
 
-	    // do door proto etc. here...
-            // XXX someday there may be *two* dcache-ish instances
-            // we are copying between, and we want to rotate both
-            // doors, so we would need to call this twice, once with
-            // the src door one, and once with the destination...
-            // so we may need *two* door_re's etc...
 	    if (0 != door_re(cmd_str_string)) {
-	       get_another_dcache_door(cmd_str_string, door_regex, door_url, door_proto );   
+	       get_another_dcache_door(cmd_str_string, door_regex, door_url, door_proto, def_doors );   
                cmd_str = cmd_str_string.c_str();
 	    }
         }
@@ -867,8 +874,8 @@ retry_system(const char *cmd_str, int error_expected, cpn_lock &locker,  std::st
             if (dolock)
                 locker.free();
             std::cerr << "program: " << cmd_str << "exited status " << res << "\n";
-            if (unlink_on_error != "" && ih) {
-                ih->rm(unlink_on_error);
+            if (unlink_on_error != "" ) {
+                rm(unlink_on_error);
                 unlink_on_error = "";
             } else {
                 delay =random() % (55 << tries);
@@ -883,7 +890,6 @@ retry_system(const char *cmd_str, int error_expected, cpn_lock &locker,  std::st
     }
     return res;
 }
-
 
 
 std::vector<std::string>::size_type 
@@ -938,9 +944,9 @@ get_intermed(bool intermed_file_flag) {
 
 
 std::string
-srcpath(CpPair &cpp, WimpyConfigParser &_config) {
+ifdh::srcpath(CpPair &cpp) {
    struct stat sb;
-   std::string res = locpath(cpp.src, cpp.proto, _config);
+   std::string res = locpath(cpp.src, cpp.proto);
    if (_config.getint("protocol " + cpp.proto, "redir_pipe")) {
        if (0 == stat(res.c_str(), &sb)) {
           if (S_ISFIFO(sb.st_mode)) {
@@ -952,9 +958,9 @@ srcpath(CpPair &cpp, WimpyConfigParser &_config) {
 }
 
 std::string
-dstpath(CpPair &cpp, WimpyConfigParser &_config) {
+ifdh::dstpath(CpPair &cpp) {
    struct stat sb;
-   std::string res = locpath(cpp.dst, cpp.proto, _config);
+   std::string res = locpath(cpp.dst, cpp.proto);
    if (_config.getint("protocol " + cpp.proto, "redir_pipe")) {
        if (0 == stat(res.c_str(), &sb)) {
           if (S_ISFIFO(sb.st_mode)) {
@@ -965,31 +971,28 @@ dstpath(CpPair &cpp, WimpyConfigParser &_config) {
 }
 
 int
-do_cp_bg(CpPair &cpp, WimpyConfigParser &_config, bool intermed_file_flag, bool recursive, cpn_lock &cpn, ifdh *ih);
-
-int
-do_cp(CpPair &cpp, WimpyConfigParser &_config, bool intermed_file_flag, bool recursive, cpn_lock &cpn, ifdh *ih) {
+ifdh::do_cp(CpPair &cpp, bool intermed_file_flag, bool recursive, cpn_lock &cpn) {
     int res1, res2, pid;
     if ( cpp.proto2 != "" ) {
         // deail with cross-protocol copies
 	IFile iftmp = get_intermed(intermed_file_flag);
 	CpPair cp1(cpp.src, iftmp, cpp.proto), cp2(iftmp, cpp.dst, cpp.proto2);
 	if (intermed_file_flag) {
-	   res1 = do_cp(cp1, _config, intermed_file_flag, recursive, cpn, ih); 
+	   res1 = do_cp(cp1, intermed_file_flag, recursive, cpn); 
            if (res1 != 0) {
                unlink(iftmp.path.c_str());
                return res1;
            }
-	   res2 = do_cp(cp2, _config, intermed_file_flag, recursive, cpn, ih);
+	   res2 = do_cp(cp2, intermed_file_flag, recursive, cpn);
 	   unlink(iftmp.path.c_str());
 	   return res2;
 	} else {
            // disable retries in background copy..
            char envbuf[] = "IFDH_CP_MAXRETRIES=0";
            putenv(envbuf);
-	   pid = do_cp_bg(cp1, _config, intermed_file_flag, recursive, cpn, ih);
+	   pid = do_cp_bg(cp1, intermed_file_flag, recursive, cpn);
            if (pid > 0) {
-	       res2 = do_cp(cp2, _config, intermed_file_flag, recursive, cpn, ih);
+	       res2 = do_cp(cp2, intermed_file_flag, recursive, cpn);
 	       (void)waitpid(pid, &res1, 0);
                unlink(iftmp.path.c_str());
                return res2;
@@ -1020,8 +1023,8 @@ do_cp(CpPair &cpp, WimpyConfigParser &_config, bool intermed_file_flag, bool rec
         } else {
 	    cp_cmd = _config.get(lookup, "cp_cmd");
         }
-        cp_cmd.replace(cp_cmd.find("%(src)s"), 7, srcpath(cpp, _config));
-        cp_cmd.replace(cp_cmd.find("%(dst)s"), 7, dstpath(cpp, _config));
+        cp_cmd.replace(cp_cmd.find("%(src)s"), 7, srcpath(cpp));
+        cp_cmd.replace(cp_cmd.find("%(dst)s"), 7, dstpath(cpp));
         if (! extra_env_val)
             extra_env_val = "";
         std::string seev(extra_env_val);
@@ -1044,7 +1047,7 @@ do_cp(CpPair &cpp, WimpyConfigParser &_config, bool intermed_file_flag, bool rec
             unlink_this_on_error = cpp.dst.path; 
         }
         
-        return retry_system(cp_cmd.c_str(), 0, cpn, door_re, door_uri, cpp.proto, -1, unlink_this_on_error, ih);
+        return retry_system(cp_cmd.c_str(), 0, cpn, -1, unlink_this_on_error);
     }
 }
 
@@ -1052,13 +1055,13 @@ do_cp(CpPair &cpp, WimpyConfigParser &_config, bool intermed_file_flag, bool rec
 // do a copy in background, return the pid or -1
 //
 int
-do_cp_bg(CpPair &cpp, WimpyConfigParser &_config, bool intermed_file_flag, bool recursive, cpn_lock &cpn, ifdh *ih = 0) {
+ifdh::do_cp_bg(CpPair &cpp, bool intermed_file_flag, bool recursive, cpn_lock &cpn) {
     ifdh::_debug && std::cerr << "do_cp_bg: starting...\n";
     int res2 = fork();
     if (res2 == 0) {
 
        ifdh::_debug && std::cerr << "do_cp_bg: in child, about to call do_cp\n";
-       int res = do_cp(cpp, _config, intermed_file_flag, recursive, cpn, ih);
+       int res = do_cp(cpp, intermed_file_flag, recursive, cpn);
        ifdh::_debug && std::cerr << "do_cp_bg: in child, to return "<< res << "\n";
        if (res != 0 ) {
            sleep(5);
@@ -1074,8 +1077,9 @@ do_cp_bg(CpPair &cpp, WimpyConfigParser &_config, bool intermed_file_flag, bool 
        return res2;
     }
 }
+
 void
-pick_proto(CpPair &p, WimpyConfigParser & _config, std::string force) {
+ifdh::pick_proto(CpPair &p, std::string force) {
     // pick the first common protocol between the two..
     // XXX should this instead go through our overall protocol list,
     // and pick the first one in both lists? Or if we're consistent
@@ -1179,7 +1183,7 @@ pick_proto(CpPair &p, WimpyConfigParser & _config, std::string force) {
 }
 
 std::vector<CpPair>
-handle_args( std::vector<std::string> args, std::vector<std::string>::size_type curarg, bool dest_is_dir,  WimpyConfigParser &_config, size_t &lock_low, size_t &lock_hi, string &force) {
+ifdh::handle_args( std::vector<std::string> args, std::vector<std::string>::size_type curarg, bool dest_is_dir, size_t &lock_low, size_t &lock_hi, string &force) {
 
     std::vector<CpPair> res;
     CpPair p;
@@ -1192,7 +1196,7 @@ handle_args( std::vector<std::string> args, std::vector<std::string>::size_type 
         if (args[curarg] == ";") {
            continue;
         } else {
-           l = lookup_loc(args[curarg], _config);
+           l = lookup_loc(args[curarg]);
         
            if (curarg+1 != args.size() && args[curarg+1] != ";") {
                // its another src
@@ -1205,7 +1209,7 @@ handle_args( std::vector<std::string> args, std::vector<std::string>::size_type 
                    if ( dest_is_dir ) {
                        res[j].dst.path = dest_file(res[j].src.path, res[j].dst.path);
                    }
-                   pick_proto(res[j], _config, force);
+                   pick_proto(res[j], force);
                }
                lastslot = res.size();
            }
@@ -1274,7 +1278,7 @@ ifdh::cp( std::vector<std::string> args ) {
          need_copyback = true;
     }
 
-    cplist = handle_args(args, curarg, dest_is_dir, _config, lock_low, lock_hi, force);
+    cplist = handle_args(args, curarg, dest_is_dir, lock_low, lock_hi, force);
 
     curarg = 0;
     for (std::vector<CpPair>::iterator cpp = cplist.begin();  cpp != cplist.end(); cpp++) {
@@ -1299,7 +1303,7 @@ ifdh::cp( std::vector<std::string> args ) {
         log(cpstartmessage.str());
 
         // actually do the copy
-        res = do_cp(*cpp, _config, intermed_file_flag, recursive, cpn, this);
+        res = do_cp(*cpp, intermed_file_flag, recursive, cpn);
 
         stringstream cpdonemessage;
         cpdonemessage << "ifdh finished transfer: " << cpp->src.path << ", " << cpp->dst.path << " size: " << xfersize << "\n";
@@ -1395,10 +1399,10 @@ ifdh::ls(string loc, int recursion_depth, string force) {
 }
 
 void
-pick_proto_path(std::string loc, std::string force, std::string &proto, std::string &fullurl, std::string &lookup_proto, WimpyConfigParser &_config) {
+ifdh::pick_proto_path(std::string loc, std::string force, std::string &proto, std::string &fullurl, std::string &lookup_proto ) {
     make_canonical(loc);
     
-    IFile src = lookup_loc(loc,_config);
+    IFile src = lookup_loc(loc);
 
     std::string  protos;
 
@@ -1454,7 +1458,7 @@ pick_proto_path(std::string loc, std::string force, std::string &proto, std::str
          proto = proto.substr(0,pos);
     }
 
-    fullurl = locpath(src, proto, _config);
+    fullurl = locpath(src, proto);
     lookup_proto = "protocol " + proto;
 
     if (_config.getint(lookup_proto, "need_proxy") ) {
@@ -1465,7 +1469,7 @@ int
 ifdh::ll( std::string loc, int recursion_depth, std::string force) {
 
     std::string fullurl, proto, lookup_proto;
-    pick_proto_path(loc, force, proto, fullurl, lookup_proto, _config);
+    pick_proto_path(loc, force, proto, fullurl, lookup_proto);
    
     std::string cmd    = _config.get(lookup_proto, "ll_cmd");
     std::string r, recursive;
@@ -1525,8 +1529,15 @@ ifdh::lss( std::string loc, int recursion_depth, std::string force) {
     string origloc(loc);
 
     std::string fullurl, proto, lookup_proto;
-    pick_proto_path(loc, force, proto, fullurl, lookup_proto, _config);
+    pick_proto_path(loc, force, proto, fullurl, lookup_proto);
 
+    // if we are given a postive recursion depth, it must be a directory
+    // so make sure to put on a trailng slash
+    if (recursion_depth > 0) {
+       if (loc[loc.size()-1] != '/') {
+          loc = loc + '/';
+       }
+    }
     if (-1 == recursion_depth ) {
        recursion_depth = 1;
     }
@@ -1778,7 +1789,7 @@ ifdh::mkdir_p(string loc, string force, int depth) {
 int
 ifdh::mkdir(string loc, string force) {
     std::string fullurl, proto, lookup_proto;
-    pick_proto_path(loc, force, proto, fullurl, lookup_proto, _config);
+    pick_proto_path(loc, force, proto, fullurl, lookup_proto);
     int retries;
    
     std::string cmd     = _config.get(lookup_proto, "mkdir_cmd");
@@ -1794,7 +1805,7 @@ ifdh::mkdir(string loc, string force) {
         retries = 1;
     }
     cpn_lock locker;
-    int status = retry_system(cmd.c_str(), 0, locker, "","","",retries+1);
+    int status = retry_system(cmd.c_str(), 0, locker,retries+1);
     if (WIFSIGNALED(status)) {
       // throw( std::logic_error("signalled while doing mkdir"));
       return -1;
@@ -1806,7 +1817,7 @@ ifdh::mkdir(string loc, string force) {
 int
 ifdh::rm(string loc, string force) {
     std::string fullurl, proto, lookup_proto;
-    pick_proto_path(loc, force, proto, fullurl, lookup_proto, _config);
+    pick_proto_path(loc, force, proto, fullurl, lookup_proto);
    
     std::string cmd     = _config.get(lookup_proto, "rm_cmd");
 
@@ -1823,7 +1834,7 @@ ifdh::rm(string loc, string force) {
 int
 ifdh::rmdir(string loc, string force) {
     std::string fullurl, proto, lookup_proto;
-    pick_proto_path(loc, force, proto, fullurl, lookup_proto, _config);
+    pick_proto_path(loc, force, proto, fullurl, lookup_proto);
    
     std::string cmd     = _config.get(lookup_proto, "rmdir_cmd");
 
@@ -1872,7 +1883,7 @@ rwx(string smode) {
 int
 ifdh::chmod(string mode, string loc, string force) {
     std::string fullurl, proto, lookup_proto;
-    pick_proto_path(loc, force, proto, fullurl, lookup_proto, _config);
+    pick_proto_path(loc, force, proto, fullurl, lookup_proto);
    
     std::string cmd     = _config.get(lookup_proto, "chmod_cmd");
 
@@ -1908,7 +1919,7 @@ ifdh::pin(string loc, long int secs) {
     std::stringstream secsbuf;
     std::string fullurl, proto, lookup_proto;
     // the only pin interface we have is from srm, so look it up there
-    pick_proto_path(loc, "srm:", proto, fullurl, lookup_proto, _config);
+    pick_proto_path(loc, "srm:", proto, fullurl, lookup_proto);
    
     std::string cmd     = _config.get(lookup_proto, "pin_cmd");
 
@@ -1929,8 +1940,8 @@ int
 ifdh::rename(string loc, string loc2, string force) {
     std::string fullurl, proto, lookup_proto;
     std::string fullurl2, proto2, lookup_proto2;
-    pick_proto_path(loc, force, proto, fullurl, lookup_proto, _config);
-    pick_proto_path(loc2, force, proto2, fullurl2, lookup_proto2, _config);
+    pick_proto_path(loc, force, proto, fullurl, lookup_proto);
+    pick_proto_path(loc2, force, proto2, fullurl2, lookup_proto2);
 
     if (proto != proto2) {
         throw( std::logic_error("Cannot rename accros protocols/locations"));
@@ -1990,7 +2001,7 @@ ifdh::findMatchingFiles( string path, string glob) {
        if (dlist1[i] == "srm" || dlist1[i] == "gsiftp" || dlist1[i] == "http"|| dlist1[i] == "s3" || dlist1[i] == "i") {
             prefix = dlist1[i] + ':';
        } else {
-            dlist.push_back(prefix + dlist1[i]);
+	    dlist.push_back(prefix + dlist1[i]);
             prefix = "";
        }
    }
@@ -2027,12 +2038,16 @@ ifdh::findMatchingFiles( string path, string glob) {
             continue;
         }
         for(size_t j = 0; j < batch.size(); j++ ) {
-            if (_debug) cerr << "checking file: " << batch[j].first << endl;
+            if (_debug) cerr << "checking file: " << batch[j].first;
             regexp globre(glob);
             regmatch m(globre(batch[j].first));
             if (m) {
+                if (_debug) cerr << " +";
                 res.push_back(batch[j]);
+            } else { 
+                if (_debug) cerr << " -";
             }
+            if (_debug) cerr << endl;
         }
    }
    return res;

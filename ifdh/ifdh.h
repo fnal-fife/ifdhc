@@ -12,6 +12,10 @@
 
 namespace ifdh_ns {
 
+class  cpn_lock;
+struct IFile;
+struct CpPair;
+
 class ifdh {
         std::string _baseuri;
         std::string _lastinput;
@@ -146,6 +150,18 @@ class ifdh {
         // apply an ifdh command to all files under a directory 
         // (recursively), matching a pattern
         int apply(std::vector<std::string> args);
+    private:
+        IFile lookup_loc(std::string url) ;
+        std::string locpath(IFile loc, std::string proto) ;
+        int retry_system(const char *cmd_str, int error_expected, cpn_lock &locker,   int maxtries = -1, std::string unlink_on_error = "") ;
+        std::string srcpath(CpPair &cpp) ;
+        std::string dstpath(CpPair &cpp) ;
+        int do_cp_bg(CpPair &cpp, bool intermed_file_flag, bool recursive, cpn_lock &cpn);
+        int do_cp(CpPair &cpp,  bool intermed_file_flag, bool recursive, cpn_lock &cpn) ;
+	void pick_proto(CpPair &p, std::string force) ;
+        std::vector<CpPair> handle_args( std::vector<std::string> args, std::vector<std::string>::size_type curarg, bool dest_is_dir,  size_t &lock_low, size_t &lock_hi, std::string &force);
+        bool have_stage_subdirs(std::string uri);
+        void pick_proto_path(std::string loc, std::string force, std::string &proto, std::string &fullurl, std::string &lookup_proto );
 };
 }
 

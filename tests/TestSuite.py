@@ -1,4 +1,5 @@
-import unittest2 as unittest
+#import unittest2 as unittest
+import unittest
 import ifdh
 import socket
 import os
@@ -29,6 +30,7 @@ def suite():
     return thissuite
 
 if __name__ == '__main__':
-    runner = unittest.TextTestRunner(verbosity=2, buffer=True)
+    #runner = unittest.TextTestRunner(verbosity=2, buffer=True)
+    runner = unittest.TextTestRunner(verbosity=2)
     result = runner.run(suite())
 

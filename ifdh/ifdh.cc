@@ -733,10 +733,10 @@ ifdh::ifdh(std::string baseuri) {
     std::string cffile;
     if (ccffile) {
         cffile = std::string(ccffile); 
-    } else if ( (ccffile1) && (std::ifstream(std::string(ccffile1) + "/ifdh.cfg")) ) {
+    } else if ( (ccffile1) && (std::ifstream((std::string(ccffile1) + "/ifdh.cfg").c_str()) )) {
         cffile = std::string(ccffile1); 
         _debug && std::cerr << "ifdh: getting config file from IFDHC_DIR --  no IFDHC_CONFIG_DIR?!?\n";
-    } else if ( (ccffile2) && (std::ifstream(std::string(ccffile2) + "/ifdh.cfg")) ) {
+    } else if ( (ccffile2) && (std::ifstream((std::string(ccffile2) + "/ifdh.cfg").c_str())) ) {
         cffile = std::string(ccffile2); 
         _debug && std::cerr << "ifdh: getting config file from IFDHC_FQ_DIR --  no IFDHC_CONFIG_DIR?!?\n";
     } else {

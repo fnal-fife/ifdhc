@@ -69,7 +69,8 @@ do
         printf "\ttry {\n"
 	xlate=true;
 	;;
-    \}\;)
+    # \}\;)
+    private:)
         $xlate || continue
 	printf "\telse {\nusage(); exit(1);\t\n\t}\n"
         printf "   } catch (std::exception &e) {\n"
@@ -82,6 +83,7 @@ do
 	printf "void usage(){\n"
         printf "$help\n"
 	printf "}\n"
+	xlate=false;
         ;;
     std::vector*std::pair*)
         pfunc="dvpsl"

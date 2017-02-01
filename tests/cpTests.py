@@ -645,13 +645,13 @@ class ifdh_cp_cases(unittest.TestCase):
     def test_bluearc_dcache(self):
          self.log(self._testMethodName)
          try: 
-             if self.ifdh_handle.ls("%s/foo.txt" % self.data_dir,0,"--force=srm"):
-                 self.ifdh_handle.rm("%s/foo.txt" % self.data_dir,"--force=srm")
+             if self.ifdh_handle.ls("%s/foo.txt" % self.data_dir,0,""):
+                 self.ifdh_handle.rm("%s/foo.txt" % self.data_dir,"")
          except:
              pass
          try: 
-             if self.ifdh_handle.ls("/pnfs/nova/scratch/users/mengel/foo.txt",0,"--force=srm"):
-                 self.ifdh_handle.rm("/pnfs/nova/scratch/users/mengel/foo.txt","--force=srm")
+             if self.ifdh_handle.ls("/pnfs/nova/scratch/users/mengel/foo.txt",0,""):
+                 self.ifdh_handle.rm("/pnfs/nova/scratch/users/mengel/foo.txt","")
          except:
              pass
          f =open("%s/foo.txt" % self.work,"w") 

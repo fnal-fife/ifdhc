@@ -783,14 +783,15 @@ get_pnfs_uri(std::string door_url,  std::string door_proto, std::vector<std::str
 
 void
 get_another_dcache_door( std::string &cmd, std::string door_regex, std::string door_url, std::string door_proto, std::vector<std::string>&def_doors ) {
-    size_t base;
+    size_t base, oldbase;
     std::string repl;
 
     regexp door_re(door_regex);
     
     base = 0;
+    oldbase = 0;
 
-    while(1)  {
+    while (base < cmd.size()) {
          std::string subcmd =  cmd.substr(base);
 
          regmatch doors(door_re(subcmd));
@@ -816,6 +817,8 @@ get_another_dcache_door( std::string &cmd, std::string door_regex, std::string d
          ifdh::_debug && cerr << "replacing: " << cmd.substr(base + doors.data()[0].rm_so, doors.data()[0].rm_eo - doors.data()[0].rm_so) << "with " << trimrepl << "\n";
          cmd.replace(base + doors.data()[0].rm_so, doors.data()[0].rm_eo - doors.data()[0].rm_so, trimrepl);
          base = base + doors.data()[0].rm_eo;
+         if (oldbase == base)
+              return;
     }
     
     ifdh::_debug && cerr << "finally, cmd is: "  << cmd << "\n";
@@ -2038,12 +2041,16 @@ ifdh::findMatchingFiles( string path, string glob) {
             continue;
         }
         for(size_t j = 0; j < batch.size(); j++ ) {
-            if (_debug) cerr << "checking file: " << batch[j].first << endl;
+            if (_debug) cerr << "checking file: " << batch[j].first;
             regexp globre(glob);
             regmatch m(globre(batch[j].first));
             if (m) {
+                if (_debug) cerr << " +";
                 res.push_back(batch[j]);
+            } else { 
+                if (_debug) cerr << " -";
             }
+            if (_debug) cerr << endl;
         }
    }
    return res;

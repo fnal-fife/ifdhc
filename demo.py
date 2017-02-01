@@ -17,7 +17,9 @@ print i.describeDefinition("mwm_test_2")
 # now start a project, and consume its files, alternately skipping or consuming
 # them...
 projname=time.strftime("mwm_%Y%m%d%H_%%d")%os.getpid()
-cpurl=i.startProject(projname,"samdev", "gen_cfg", "mengel", "samdev")
+dataset="gen_cfg"
+dataset="testds_novagpvm02.fnal.gov_1476740789_4675"
+cpurl=i.startProject(projname,"samdev", dataset, "mengel", "samdev")
 time.sleep(2)
 cpurl=i.findProject(projname,"samdev")
 consumer_id=i.establishProcess( cpurl, "demo","1", "bel-kwinith.fnal.gov","mengel" )

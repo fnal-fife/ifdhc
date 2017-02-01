@@ -120,6 +120,8 @@ check_env() {
     // currently assuming 64bit is okay
     int glibcminor = atoi(gnu_get_libc_version()+2);
     int slver = glibcminor > 5 ? (glibcminor > 12 ? 7 : 6) : 5;
+    path_ish_append("PATH","/usr/bin","");
+    path_ish_append("LD_LIBRARY_PATH","/usr/lib64","");
     stringstream cvmfs_dir;
     cvmfs_dir << "/cvmfs/oasis.opensciencegrid.org/mis/osg-wn-client/3.3/current/el" <<  slver << "-x86_64";
     path_ish_append("PATH",cvmfs_dir.str().c_str(),"/usr/bin");
@@ -733,7 +735,7 @@ ifdh::ifdh(std::string baseuri) {
     std::string cffile;
     if (ccffile) {
         cffile = std::string(ccffile); 
-    } else if ( (ccffile1) && (std::ifstream((std::string(ccffile1) + "/ifdh.cfg").c_str()) )) {
+    } else if ( (ccffile1) && (std::ifstream((std::string(ccffile1) + "/ifdh.cfg").c_str())) ) {
         cffile = std::string(ccffile1); 
         _debug && std::cerr << "ifdh: getting config file from IFDHC_DIR --  no IFDHC_CONFIG_DIR?!?\n";
     } else if ( (ccffile2) && (std::ifstream((std::string(ccffile2) + "/ifdh.cfg").c_str())) ) {

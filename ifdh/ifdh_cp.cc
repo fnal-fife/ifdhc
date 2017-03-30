@@ -1098,7 +1098,7 @@ ifdh::pick_proto(CpPair &p, std::string force) {
     std::string srcps = _config.get("location "+p.src.location,"protocols");
     std::string dstps = _config.get("location "+p.dst.location,"protocols");
 
-    if (force != "") {
+    if (force != "" && force != "--force=" ) {
         if (force[0] == '-' && force[1] == '-') {
             force = force.substr(8);
         }
@@ -1120,8 +1120,18 @@ ifdh::pick_proto(CpPair &p, std::string force) {
         }
         std::string check = _config.get("protocol " + force, "cp_cmd");
         if (check == "") {
-            std::cerr << "Unknown --force= protocol " << force << "\n";
-            throw( std::logic_error("Unknown force option"));
+            std::cerr << "Notice: Ignoring unknown force option " << force << "\n";
+            std::cerr << "    force options should be --force=protocol \n";
+            std::cerr << "    or export IFDH_FORCE=protocol \n";
+            std::cerr << "    known protocols are: \n";
+            std::cerr << "    " << _config.get("general","protocols") << "\n";
+            
+            // old versions ignored bad --force options, so for backwards
+            // compatability just ignore it
+            //  no more: throw( std::logic_error("Unknown force option"));
+            // call ourselves again without the force flag...
+            putenv((char *)"IFDH_FORCE=");
+            pick_proto(p, "");
         }
         // only take the force if the src and dst both have it...
         if (srcps.find(force) != std::string::npos && srcps.find(force) != std::string::npos ) {
@@ -1415,7 +1425,8 @@ ifdh::pick_proto_path(std::string loc, std::string force, std::string &proto, st
           force += getenv("IFDH_FORCE");
        }
     }
-    if (force != "") {
+    _debug && std::cerr << "entering pick_proto_path, force== '" << force << "'\n";
+    if (force != "" && force != "--force=" ) {
         if (force[0] == '-' && force[1] == '-') {
             force = force.substr(8);
         }
@@ -1438,8 +1449,18 @@ ifdh::pick_proto_path(std::string loc, std::string force, std::string &proto, st
         proto = force;
         std::string check = _config.get("protocol " + force, "cp_cmd");
         if (check == "") {
-            std::cerr << "Unknown --force= protocol " << force << "\n";
-            throw( std::logic_error("Unknown force option"));
+            std::cerr << "Notice: Ignoring unknown force option " << force << "\n";
+            std::cerr << "    force options should be --force=protocol \n";
+            std::cerr << "    or export IFDH_FORCE=protocol \n";
+            std::cerr << "    known protocols are: \n";
+            std::cerr << "    " << _config.get("general","protocols") << "\n";
+            
+            // old versions ignored bad --force options, so for backwards
+            // compatability just ignore it
+            //  no more: throw( std::logic_error("Unknown force option"));
+            // call ourselves again without the force flag...
+            putenv((char *)"IFDH_FORCE=");
+            pick_proto_path(loc, "",proto,fullurl, lookup_proto );
         }
     } else if (src.proto != "" ) {
        proto = src.proto;

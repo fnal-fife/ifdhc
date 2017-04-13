@@ -169,6 +169,10 @@ cache_stat(std::string s) {
    int res;
    static struct stat sbuf;
    static string last_s;
+   if (s.find("file://") == 0) {
+       s = s.substr(7);
+       ifdh::_debug && std::cerr << "cache_stat trimmed to " << s << "\n";
+   }
    if (last_s == s) {
        return &sbuf;
    }

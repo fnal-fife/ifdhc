@@ -210,9 +210,7 @@ ifdh::localPath( string src_uri ) {
 int
 flushdir(){
     // according to legend this flushes NFS directory cachng...
-    DIR *dp;
-    dp = opendir(datadir().c_str());
-    closedir(dp);
+    closedir( opendir(datadir().c_str()));
     return 1;
 }
 

@@ -15,9 +15,9 @@ void fixquotes(char *s, int debug);
 
 // get all but the first item of a vector..
 std::vector<std::string> vector_cdr(std::vector<std::string> &vec);
-
 const char *getexperiment();
-
+int flushdir(const char *dir);
+std::string parent_dir(std::string path);
 
 }
 using namespace ifdh_util_ns;

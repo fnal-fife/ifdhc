@@ -4,7 +4,6 @@
 #include <string>
 #include <sstream>
 #include <iostream>
-#include <dirent.h>
 #include <../numsg/numsg.h>
 #include <stdlib.h>
 #include <sys/stat.h>
@@ -207,12 +206,6 @@ ifdh::localPath( string src_uri ) {
     return datadir() + "/" + src_uri.substr(baseloc);
 }
 
-int
-flushdir(){
-    // according to legend this flushes NFS directory cachng...
-    closedir( opendir(datadir().c_str()));
-    return 1;
-}
 
 string 
 ifdh::fetchInput( string src_uri ) {
@@ -253,7 +246,7 @@ ifdh::fetchInput( string src_uri ) {
        args.push_back(src_uri);
     args.push_back(path);
     try {
-       if ( 0 == cp( args ) && flushdir() && 0 == access(path.c_str(),R_OK)) {
+       if ( 0 == cp( args ) && flushdir(datadir().c_str()) && 0 == access(path.c_str(),R_OK)) {
           _lastinput = path;
           return path;
        } else {

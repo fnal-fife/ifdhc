@@ -176,8 +176,11 @@ cache_stat(std::string s) {
    if (last_s == s) {
        return &sbuf;
    }
+   // try to flush NFS dir cache ?
+   flushdir(parent_dir(s).c_str());
    res = stat(s.c_str(), &sbuf);
    if (res != 0) {
+       last_s = "";
        return 0;
    }
    last_s = s;
@@ -382,19 +385,6 @@ std::vector<std::string> expandfile( std::string fname, std::vector<std::string>
   }
  
   return res;
-}
-
-std::string parent_dir(std::string path) {
-   size_t pos = path.rfind('/');
-   if (pos == path.length() - 1) {
-       pos = path.rfind('/', pos - 1);
-   }
-   // root of filesystem fix, return / for parent of /tmp ,etc.
-   if (0 == pos) { 
-      pos = 1;
-   }
-   ifdh::_debug && cerr << "parent of " << path << " is " << path.substr(0, pos ) << endl;
-   return path.substr(0, pos);
 }
 
 //
@@ -1301,11 +1291,11 @@ ifdh::cp( std::vector<std::string> args ) {
     for (std::vector<CpPair>::iterator cpp = cplist.begin();  cpp != cplist.end(); cpp++) {
         // try to keep a total copied
         xfersize = -1;
-	if (0 != (sbp =  cache_stat(cpp->src.path))) {
+	if (0 != (sbp =  cache_stat(srcpath(*cpp)))) {
 		srcsize += sbp->st_size;
                 xfersize = sbp->st_size;
         }
-	if (0 != (sbp =  cache_stat(cpp->dst.path))) {
+	if (0 != (sbp =  cache_stat(dstpath(*cpp)))) {
 		dstsize += sbp->st_size;
                 xfersize = sbp->st_size;
         }

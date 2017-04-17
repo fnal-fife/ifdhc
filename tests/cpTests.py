@@ -142,6 +142,7 @@ class ifdh_cp_cases(unittest.TestCase):
                 f.write("foo\n")
                 f.close()
         os.system("ls -R %s" % self.work)
+        time.sleep(1) # wait for NFS
         print "Setup complete."
 
     def tearDown(self):

@@ -110,7 +110,10 @@ ifdh::lookup_loc(std::string url) {
 std::string
 ifdh::locpath(IFile loc, std::string proto) {
    std::string pre;
-   if (loc.location == "local_fs") { // XXX should be a flag
+   if (loc.location == "local_fs" || 
+        // if it is a full path and is locally visible, just use path?
+        (loc.path[0] == '/' && 0 == access(loc.path.c_str(),R_OK)) ) { // XXX should be a flag?
+
       if (_config.getint("protocol " + proto, "strip_file_prefix")) {
           pre = "";
       } else {
@@ -484,6 +487,7 @@ ifdh::build_stage_list(std::vector<std::string> args, int curarg, char *stage_vi
    } else {
       res.pop_back();
    }
+   stageout.close();
 
    return res;
 }

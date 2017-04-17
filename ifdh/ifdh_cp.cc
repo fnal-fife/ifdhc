@@ -169,6 +169,7 @@ cache_stat(std::string s) {
    int res;
    static struct stat sbuf;
    static string last_s;
+   ifdh::_debug && std::cerr << "cache_stat ( " << s << ")\n";
    if (s.find("file://") == 0) {
        s = s.substr(7);
        ifdh::_debug && std::cerr << "cache_stat trimmed to " << s << "\n";
@@ -177,8 +178,14 @@ cache_stat(std::string s) {
        return &sbuf;
    }
    // try to flush NFS dir cache ?
-   flushdir(parent_dir(s).c_str());
    res = stat(s.c_str(), &sbuf);
+   if (res != 0 || sbuf.st_size == 0) {
+      ifdh::_debug && std::cerr << "got bad bits on stat("  << s << ") trying again\n";
+      // if it looks wonky (failed, no size) flush and retry
+      flushdir(parent_dir(s).c_str());
+      close(open(s.c_str(),O_RDONLY));
+      res = stat(s.c_str(), &sbuf);
+   }
    if (res != 0) {
        last_s = "";
        return 0;
@@ -1290,15 +1297,6 @@ ifdh::cp( std::vector<std::string> args ) {
     curarg = 0;
     for (std::vector<CpPair>::iterator cpp = cplist.begin();  cpp != cplist.end(); cpp++) {
         // try to keep a total copied
-        xfersize = -1;
-	if (0 != (sbp =  cache_stat(srcpath(*cpp)))) {
-		srcsize += sbp->st_size;
-                xfersize = sbp->st_size;
-        }
-	if (0 != (sbp =  cache_stat(dstpath(*cpp)))) {
-		dstsize += sbp->st_size;
-                xfersize = sbp->st_size;
-        }
 
         // take  a lock if needed
         if (curarg == lock_low) {
@@ -1311,6 +1309,16 @@ ifdh::cp( std::vector<std::string> args ) {
 
         // actually do the copy
         res = do_cp(*cpp, intermed_file_flag, recursive, cpn);
+
+        xfersize = -1;
+	if (0 != (sbp =  cache_stat(locpath(cpp->src, "local_fs")))) {
+		srcsize += sbp->st_size;
+                xfersize = sbp->st_size;
+        }
+	if (0 != (sbp =  cache_stat(locpath(cpp->dst, "local_fs")))) {
+		dstsize += sbp->st_size;
+                xfersize = sbp->st_size;
+        }
 
         stringstream cpdonemessage;
         cpdonemessage << "ifdh finished transfer: " << cpp->src.path << ", " << cpp->dst.path << " size: " << xfersize << "\n";

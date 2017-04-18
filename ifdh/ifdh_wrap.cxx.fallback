@@ -9,7 +9,7 @@
  * ----------------------------------------------------------------------------- */
 
 #ifdef __APPLE__
-typedef long int ptrdiff_t
+typedef long int ptrdiff_t;
 #endif
 
 #define SWIGPYTHON

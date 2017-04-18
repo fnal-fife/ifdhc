@@ -206,6 +206,7 @@ ifdh::localPath( string src_uri ) {
     return datadir() + "/" + src_uri.substr(baseloc);
 }
 
+
 string 
 ifdh::fetchInput( string src_uri ) {
     stringstream cmd;
@@ -245,7 +246,7 @@ ifdh::fetchInput( string src_uri ) {
        args.push_back(src_uri);
     args.push_back(path);
     try {
-       if ( 0 == cp( args ) && 0 == access(path.c_str(),R_OK)) {
+       if ( 0 == cp( args ) && flushdir(datadir().c_str()) && 0 == access(path.c_str(),R_OK)) {
           _lastinput = path;
           return path;
        } else {

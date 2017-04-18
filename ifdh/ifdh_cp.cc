@@ -110,7 +110,8 @@ ifdh::lookup_loc(std::string url) {
 std::string
 ifdh::locpath(IFile loc, std::string proto) {
    std::string pre;
-   if (loc.location == "local_fs") { // XXX should be a flag
+   if (loc.location == "local_fs") { // XXX should be a flag?
+
       if (_config.getint("protocol " + proto, "strip_file_prefix")) {
           pre = "";
       } else {
@@ -169,11 +170,25 @@ cache_stat(std::string s) {
    int res;
    static struct stat sbuf;
    static string last_s;
+   ifdh::_debug && std::cerr << "cache_stat ( " << s << ")\n";
+   if (s.find("file://") == 0) {
+       s = s.substr(7);
+       ifdh::_debug && std::cerr << "cache_stat trimmed to " << s << "\n";
+   }
    if (last_s == s) {
        return &sbuf;
    }
+   // try to flush NFS dir cache ?
    res = stat(s.c_str(), &sbuf);
+   if (res != 0 || sbuf.st_size == 0) {
+      ifdh::_debug && std::cerr << "got bad bits on stat("  << s << ") trying again\n";
+      // if it looks wonky (failed, no size) flush and retry
+      flushdir(parent_dir(s).c_str());
+      close(open(s.c_str(),O_RDONLY));
+      res = stat(s.c_str(), &sbuf);
+   }
    if (res != 0) {
+       last_s = "";
        return 0;
    }
    last_s = s;
@@ -380,19 +395,6 @@ std::vector<std::string> expandfile( std::string fname, std::vector<std::string>
   return res;
 }
 
-std::string parent_dir(std::string path) {
-   size_t pos = path.rfind('/');
-   if (pos == path.length() - 1) {
-       pos = path.rfind('/', pos - 1);
-   }
-   // root of filesystem fix, return / for parent of /tmp ,etc.
-   if (0 == pos) { 
-      pos = 1;
-   }
-   ifdh::_debug && cerr << "parent of " << path << " is " << path.substr(0, pos ) << endl;
-   return path.substr(0, pos);
-}
-
 //
 // figure the destination filename for a source file
 // and a destination directory.
@@ -483,6 +485,7 @@ ifdh::build_stage_list(std::vector<std::string> args, int curarg, char *stage_vi
    } else {
       res.pop_back();
    }
+   stageout.close();
 
    return res;
 }
@@ -1296,15 +1299,6 @@ ifdh::cp( std::vector<std::string> args ) {
     curarg = 0;
     for (std::vector<CpPair>::iterator cpp = cplist.begin();  cpp != cplist.end(); cpp++) {
         // try to keep a total copied
-        xfersize = -1;
-	if (0 != (sbp =  cache_stat(cpp->src.path))) {
-		srcsize += sbp->st_size;
-                xfersize = sbp->st_size;
-        }
-	if (0 != (sbp =  cache_stat(cpp->dst.path))) {
-		dstsize += sbp->st_size;
-                xfersize = sbp->st_size;
-        }
 
         // take  a lock if needed
         if (curarg == lock_low) {
@@ -1317,6 +1311,16 @@ ifdh::cp( std::vector<std::string> args ) {
 
         // actually do the copy
         res = do_cp(*cpp, intermed_file_flag, recursive, cpn);
+
+        xfersize = -1;
+	if (0 != (sbp =  cache_stat(locpath(cpp->src, "local_fs")))) {
+		srcsize += sbp->st_size;
+                xfersize = sbp->st_size;
+        }
+	if (0 != (sbp =  cache_stat(locpath(cpp->dst, "local_fs")))) {
+		dstsize += sbp->st_size;
+                xfersize = sbp->st_size;
+        }
 
         stringstream cpdonemessage;
         cpdonemessage << "ifdh finished transfer: " << cpp->src.path << ", " << cpp->dst.path << " size: " << xfersize << "\n";

@@ -8,6 +8,10 @@
  * interface file instead. 
  * ----------------------------------------------------------------------------- */
 
+#ifdef __APPLE__
+typedef long int ptrdiff_t
+#endif
+
 #define SWIGPYTHON
 #define SWIG_PYTHON_DIRECTOR_NO_VTABLE
 

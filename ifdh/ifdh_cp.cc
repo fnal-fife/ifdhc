@@ -242,8 +242,7 @@ public:
         struct ifaddrs *ifap, *ifscan;
 
         if (_locked) {
-            std::cerr << "ifdh bug: lock() called when already locked\n");
-	    log("ifdh bug: lock called when already locked\n");
+            std::cerr << "ifdh bug: lock() called when already locked\n";
             return;
         }
 

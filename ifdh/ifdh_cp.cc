@@ -241,6 +241,12 @@ public:
         int status;
         struct ifaddrs *ifap, *ifscan;
 
+        if (_locked) {
+            std::cerr << "ifdh bug: lock() called when already locked\n");
+	    log("ifdh bug: lock called when already locked\n");
+            return;
+        }
+
         // check if we're onsite -- don't get locks if not 
         // Just check for 131.225.* or 2620:6a:0:*
         

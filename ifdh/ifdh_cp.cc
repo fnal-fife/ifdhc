@@ -61,6 +61,35 @@ struct CpPair {
      CpPair( IFile s, IFile d, std::string p ) : src(s), dst(d), proto(p) {;};
 };
 
+struct stat *
+cache_stat(std::string s) {
+   int res;
+   static struct stat sbuf;
+   static string last_s;
+   ifdh::_debug && std::cerr << "cache_stat ( " << s << ")\n";
+   if (s.find("file://") == 0) {
+       s = s.substr(7);
+       ifdh::_debug && std::cerr << "cache_stat trimmed to " << s << "\n";
+   }
+   if (last_s == s) {
+       return &sbuf;
+   }
+   // try to flush NFS dir cache ?
+   res = stat(s.c_str(), &sbuf);
+   if (res != 0 || sbuf.st_size == 0) {
+      ifdh::_debug && std::cerr << "got bad bits on stat("  << s << ") trying again\n";
+      // if it looks wonky (failed, no size) flush and retry
+      flushdir(parent_dir(s).c_str());
+      close(open(s.c_str(),O_RDONLY));
+      res = stat(s.c_str(), &sbuf);
+   }
+   if (res != 0) {
+       last_s = "";
+       return 0;
+   }
+   last_s = s;
+   return  &sbuf;
+}
 
 IFile
 ifdh::lookup_loc(std::string url) {
@@ -109,18 +138,26 @@ ifdh::lookup_loc(std::string url) {
 // one special case here, when you're copying to a local 
 std::string
 ifdh::locpath(IFile loc, std::string proto) {
-   std::string pre;
-   if (loc.location == "local_fs") { // XXX should be a flag?
+    std::string pre, spre;
+    if (loc.location == "local_fs") { // XXX should be a flag?
 
-      if (_config.getint("protocol " + proto, "strip_file_prefix")) {
-          pre = "";
-      } else {
-          pre = "file:///";
-      }
-   } else {
-      pre  = _config.get("location " + loc.location, "prefix_"+proto.substr(0,proto.size()-1));
-   }
-   return pre + loc.path;
+       if (_config.getint("protocol " + proto, "strip_file_prefix")) {
+           pre = "";
+       } else {
+           pre = "file:///";
+       }
+    } else {
+       // genericized: use file:// prefix for bluearc if stat-able
+       // becomes use "can_stat" prefix for locations that have one
+       // if we can stat the location
+       spre = _config.get("location " + loc.location, "can_stat");
+       if (spre.size() > 0 && 0 != cache_stat(parent_dir(loc.path))) {
+          pre = spre;
+       } else {
+          pre  = _config.get("location " + loc.location, "prefix_"+proto.substr(0,proto.size()-1));
+       }
+    }
+    return pre + loc.path;
 }
 
 bool
@@ -165,35 +202,6 @@ make_canonical( std::string &arg ) {
    }
 }
 
-struct stat *
-cache_stat(std::string s) {
-   int res;
-   static struct stat sbuf;
-   static string last_s;
-   ifdh::_debug && std::cerr << "cache_stat ( " << s << ")\n";
-   if (s.find("file://") == 0) {
-       s = s.substr(7);
-       ifdh::_debug && std::cerr << "cache_stat trimmed to " << s << "\n";
-   }
-   if (last_s == s) {
-       return &sbuf;
-   }
-   // try to flush NFS dir cache ?
-   res = stat(s.c_str(), &sbuf);
-   if (res != 0 || sbuf.st_size == 0) {
-      ifdh::_debug && std::cerr << "got bad bits on stat("  << s << ") trying again\n";
-      // if it looks wonky (failed, no size) flush and retry
-      flushdir(parent_dir(s).c_str());
-      close(open(s.c_str(),O_RDONLY));
-      res = stat(s.c_str(), &sbuf);
-   }
-   if (res != 0) {
-       last_s = "";
-       return 0;
-   }
-   last_s = s;
-   return  &sbuf;
-}
 
 bool
 ifdh::have_stage_subdirs(std::string uri) {
@@ -232,6 +240,11 @@ public:
         int parent_pid;
         int status;
         struct ifaddrs *ifap, *ifscan;
+
+        if (_locked) {
+            std::cerr << "ifdh bug: lock() called when already locked\n";
+            return;
+        }
 
         // check if we're onsite -- don't get locks if not 
         // Just check for 131.225.* or 2620:6a:0:*
@@ -1298,7 +1311,6 @@ ifdh::cp( std::vector<std::string> args ) {
 
     curarg = 0;
     for (std::vector<CpPair>::iterator cpp = cplist.begin();  cpp != cplist.end(); cpp++) {
-        // try to keep a total copied
 
         // take  a lock if needed
         if (curarg == lock_low) {
@@ -1312,6 +1324,7 @@ ifdh::cp( std::vector<std::string> args ) {
         // actually do the copy
         res = do_cp(*cpp, intermed_file_flag, recursive, cpn);
 
+        // try to keep a total copied
         xfersize = -1;
 	if (0 != (sbp =  cache_stat(locpath(cpp->src, "local_fs")))) {
 		srcsize += sbp->st_size;
@@ -1331,11 +1344,13 @@ ifdh::cp( std::vector<std::string> args ) {
             cpn.free();
         }
 
+
         // update overall success
         if (res != 0 && rres == 0) {
             rres = res;
         }
 
+        curarg++;
     }
 
     gettimeofday(&time_after,0);

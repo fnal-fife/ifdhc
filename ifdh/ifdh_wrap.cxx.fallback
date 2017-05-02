@@ -8,6 +8,8 @@
  * interface file instead. 
  * ----------------------------------------------------------------------------- */
 
+typedef long int ptrdiff_t;
+
 #define SWIGPYTHON
 #define SWIG_PYTHON_DIRECTOR_NO_VTABLE
 

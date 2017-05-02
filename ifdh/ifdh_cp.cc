@@ -1298,7 +1298,6 @@ ifdh::cp( std::vector<std::string> args ) {
 
     curarg = 0;
     for (std::vector<CpPair>::iterator cpp = cplist.begin();  cpp != cplist.end(); cpp++) {
-        // try to keep a total copied
 
         // take  a lock if needed
         if (curarg == lock_low) {
@@ -1312,6 +1311,7 @@ ifdh::cp( std::vector<std::string> args ) {
         // actually do the copy
         res = do_cp(*cpp, intermed_file_flag, recursive, cpn);
 
+        // try to keep a total copied
         xfersize = -1;
 	if (0 != (sbp =  cache_stat(locpath(cpp->src, "local_fs")))) {
 		srcsize += sbp->st_size;
@@ -1331,11 +1331,13 @@ ifdh::cp( std::vector<std::string> args ) {
             cpn.free();
         }
 
+
         // update overall success
         if (res != 0 && rres == 0) {
             rres = res;
         }
 
+        curarg++;
     }
 
     gettimeofday(&time_after,0);

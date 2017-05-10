@@ -110,6 +110,11 @@ def check_locations(cp, locations):
 
 def check_protocols(cp):
     plist = cp.get3('general','protocols').split(' ')
+    for s in cp.sections():
+        if s.startswith('conditional'):
+           l = cp.get3(s, 'rename_proto', '').split(' ')
+           if len(l) and l[0]:
+               plist.append(l[0])
     for p in plist:
         if p == '':
             continue

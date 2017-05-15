@@ -2128,4 +2128,11 @@ ifdh::fetchSharedFiles( vector<pair<string,long> > list, string schema ) {
    return res;
 }
 
+std::string
+ifdh::getUrl(string loc, string force) {
+    std::string fullurl, proto, lookup_proto;
+    pick_proto_path(loc, force, proto, fullurl, lookup_proto);
+    return fullurl;
+}
+
 }

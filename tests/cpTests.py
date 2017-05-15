@@ -112,7 +112,7 @@ class ifdh_cp_cases(unittest.TestCase):
 
        
     def setUp(self):
-        os.environ['IFDH_CP_MAXRETRIES'] = "1"
+        os.environ['IFDH_CP_MAXRETRIES'] = "0"
         os.environ['EXPERIMENT'] =  ifdh_cp_cases.experiment
         os.environ['SAVE_CPN_DIR'] = os.environ.get('CPN_DIR','')
         os.environ['CPN_DIR'] = '/no/such/dir'
@@ -718,8 +718,8 @@ class ifdh_cp_cases(unittest.TestCase):
                 if fields[8] == 'free':
                     frees = frees + 1
         f.close()
-        AssertEqual( locks, 1)
-        AssertEqual( frees, 1)
+        self.assertEqual( locks, 1)
+        self.assertEqual( frees, 1)
          
 def suite():
     suite =  unittest.TestLoader().loadTestsFromTestCase(ifdh_cp_cases)

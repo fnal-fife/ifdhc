@@ -17,15 +17,75 @@ except:
             except:
                 return default
 
+
+class IFDHConfigError(Exception):
+    """Base class for exceptions in IFDH."""
+    type = "IFDHConditionalError"
+
+
+class IFDHConditionalError(IFDHConfigError):
+    def __init__(self, msg):
+        #self.expr = expr
+        self.type = "IFDHConditionalError"
+        self.msg = msg
+
+class IFDHRotationError(IFDHConfigError):
+    def __init__(self, msg):
+        #self.expr = expr
+        self.type = "IFDHRotationError"
+        self.msg = msg
+
+class IFDHVOError(IFDHConfigError):
+    def __init__(self, msg):
+        #self.expr = expr
+        self.type = "IFDHVOError"
+        self.msg = msg
+
+class IFDHPrefixError(IFDHConfigError):
+    def __init__(self, msg):
+        #self.expr = expr
+        self.type = "IFDHPrefixError"
+        self.msg = msg
+
+class IFDHLocationError(IFDHConfigError):
+    def __init__(self, msg):
+        #self.expr = expr
+        self.type = "IFDHLocationError"
+        self.msg = msg
+
+class IFDHProtocolError(IFDHConfigError):
+    def __init__(self, msg):
+        #self.expr = expr
+        self.type = "IFDHProtocolError"
+        self.msg = msg
+
+
+
 import re
 import os
 import sys
 
 def verify(x, name, section,  *args):
     if not x:
-        sys.stderr.write("Error: %s in [%s] %s \n" % (name, section, ' '.join(args)))
+        error_type = section.split(' ', 1)[0]
+        print "ERROR DUDE: ", error_type
+        if error_type == "conditional":
+            raise IFDHConditionalError("Error: %s in [%s] %s \n" % (name, section, ' '.join(args)))
+        elif error_type == "rotation":
+            raise IFDHRotationError("Error: %s in [%s] %s \n" % (name, section, ' '.join(args)))
+        elif error_type == "experiment_vo":
+            raise IFDHVOError("Error: %s in [%s] %s \n" % (name, section, ' '.join(args)))
+        elif error_type == "prefix":
+            raise IFDHPrefixError("Error: %s in [%s] %s \n" % (name, section, ' '.join(args)))
+        elif error_type == "location":
+            raise IFDHLocationError("Error: %s in [%s] %s \n" % (name, section, ' '.join(args)))
+        elif error_type == "protocol":
+            raise IFDHProtocolError("Error: %s in [%s] %s \n" % (name, section, ' '.join(args)))
+        else:
+            raise IFDHConfigError
 
 def check_conditionals(cp):
+    print "\tChecking conditionals..."
     clist = cp.get3('general','conditionals').split(' ')
     for c in clist:
         if c == '':
@@ -37,6 +97,7 @@ def check_conditionals(cp):
         verify(t and (a1 or a2), 'Conditional needs test and command', s)
 
 def check_rotations(cp):
+    print "\tChecking rotations..."
     rlist = cp.get3('general','rotations').split(' ')
     for r in rlist:
         if r == '':
@@ -46,11 +107,14 @@ def check_rotations(cp):
         drre = cp.get3(s, 'door_repl_re', None)
         du = cp.get3(s,'lookup_door_uri', None)
         dd = cp.get3(s,'default_doors', None)
-        verify(dp and drre and du and dd,'Rotations need door_proto, door_repl_re,lookup_door_uri and default_doors', r)
+        verify( dp and drre and du and dd, 'Rotations need door_proto, door_repl_re,lookup_door_uri and default_doors', s)
 
 def check_vo_rules(cp):
+    print "\tChecking virtual organizations..."
     s = 'experiment_vo'
     n = int(cp.get3(s,'numrules', 0))
+    if n == 0:
+        raise IFDHVOError("Please specify numrules for experiment_vo")
     for i in range(1,n+1):
         verify(cp.get3(s,'match%d' % i, None) and cp.get3(s,'repl%d' % i, None),'experiment_vo needs match_i and repl_i tags for all i in 1..numrules',s)
 
@@ -63,8 +127,9 @@ def check_percents(cp, filetext):
 
     for s in l1:
         verify(s in s1, 'expansion %s needs definition' % s, '')
-    
+
 def check_prefixes(cp):
+    print "\tChecking prefixes..."
     plist = cp.get3('general','prefixes').split(' ')
     locations = set()
     for p in plist:
@@ -95,9 +160,10 @@ def check_prefixes(cp):
     return locations
 
 def check_locations(cp, locations):
+    print "\tChecking locations..."
     for l in locations:
         s = 'location %s' % l
-        
+
         for t in ['need_cpn_lock','protocols'] + ['prefix_%s'%x[:-1] for x in cp.get3(s,'protocols','').split(' ')]:
             if t == 'prefix_':
                 continue
@@ -109,6 +175,7 @@ def check_locations(cp, locations):
            verify(loc in locations, 'Locations need to be referenced',s, loc)
 
 def check_protocols(cp):
+    print "\tChecking protocols..."
     plist = cp.get3('general','protocols').split(' ')
     for p in plist:
         if p == '':
@@ -134,13 +201,20 @@ def do_check(filename):
     f.close()
     cp.read(filename)
     # list from Feature issue #16503
-    check_conditionals(cp)
-    check_rotations(cp)
-    check_vo_rules(cp)
+    #check_conditionals(cp)
+    #check_rotations(cp)
+    #check_vo_rules(cp)
     check_percents(cp, filetext)
-    loclist = check_prefixes(cp)
-    check_locations(cp, loclist) # handles several items
-    check_protocols(cp) # several items
+    #loclist = check_prefixes(cp)
+    #check_locations(cp, loclist) # handles several items
+    #check_protocols(cp) # several items
 
 if __name__ == '__main__':
-    do_check(os.environ['IFDHC_CONFIG_DIR']+'/ifdh.cfg')
+    print "Checking the configuration file...."
+    try:
+        do_check(os.environ['IFDHC_CONFIG_DIR']+'/ifdh.cfg')
+    except (IFDHConfigError, IFDHConditionalError, IFDHRotationError, IFDHVOError, IFDHPrefixError, IFDHLocationError, IFDHProtocolError) as ex:
+        print "Exception has been raised: ", ex.type
+        print ex.msg
+        sys.exit(2)
+    print "Configuration is acceptable"

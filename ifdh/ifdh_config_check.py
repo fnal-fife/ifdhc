@@ -126,10 +126,7 @@ def check_vo_rules(cp):
         verify(cp.get3(s,'match%d' % i, None) and cp.get3(s,'repl%d' % i, None),'experiment_vo needs match_i and repl_i tags for all i in 1..numrules',s)
 
 def check_percents(cp, filetext):
-<<<<<<< HEAD
     print "\tChecking expansions..."
-=======
->>>>>>> 9fd3841382a88b966d0626f3b47dfac03d3aeea0
     l1  = re.findall('\%\([a-z0-9-_]*\)', filetext)
     s1 = set(['%(src)','%(dst)', '%(r)', '%(dst)', '%(extra)','%(recursion_flag)','%(recursion_depth)','%(mode)','%(obits)','%(gbits)','%(secs)'])
     ml = cp.options('macros')

@@ -32,7 +32,11 @@ std::string parent_dir(std::string path) {
 int
 flushdir(const char *dir){
     // according to legend this flushes NFS directory cachng...
-    closedir( opendir(dir));
+    DIR *dp;
+    dp = opendir(dir);
+    if (dp) {
+        closedir(dp);
+    }
     return 1;
 }
 

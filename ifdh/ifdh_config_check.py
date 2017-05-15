@@ -59,6 +59,12 @@ class IFDHProtocolError(IFDHConfigError):
         self.type = "IFDHProtocolError"
         self.msg = msg
 
+class IFDHExpansionError(IFDHConfigError):
+    def __init__(self, msg):
+        #self.expr = expr
+        self.type = "IFDHExpansionError"
+        self.msg = msg
+
 
 
 import re
@@ -68,7 +74,6 @@ import sys
 def verify(x, name, section,  *args):
     if not x:
         error_type = section.split(' ', 1)[0]
-        print "ERROR DUDE: ", error_type
         if error_type == "conditional":
             raise IFDHConditionalError("Error: %s in [%s] %s \n" % (name, section, ' '.join(args)))
         elif error_type == "rotation":
@@ -81,6 +86,8 @@ def verify(x, name, section,  *args):
             raise IFDHLocationError("Error: %s in [%s] %s \n" % (name, section, ' '.join(args)))
         elif error_type == "protocol":
             raise IFDHProtocolError("Error: %s in [%s] %s \n" % (name, section, ' '.join(args)))
+        elif error_type == "expansion":
+            raise IFDHExpansionError('expansion %s needs definition' % name)
         else:
             raise IFDHConfigError
 
@@ -114,19 +121,20 @@ def check_vo_rules(cp):
     s = 'experiment_vo'
     n = int(cp.get3(s,'numrules', 0))
     if n == 0:
-        raise IFDHVOError("Please specify numrules for experiment_vo")
+        raise IFDHVOError("Please specify the field numrules for [experiment_vo]")
     for i in range(1,n+1):
         verify(cp.get3(s,'match%d' % i, None) and cp.get3(s,'repl%d' % i, None),'experiment_vo needs match_i and repl_i tags for all i in 1..numrules',s)
 
 def check_percents(cp, filetext):
-    l1  = re.findall('\%\([a-z0-9-_]\)', filetext)
-    s1 = set(['%(src)','%(dst)', '%(r)', '%(dst)'])
+    print "\tChecking expansions..."
+    l1  = re.findall('\%\([a-z0-9-_]*\)', filetext)
+    s1 = set(['%(src)','%(dst)', '%(r)', '%(dst)', '%(extra)','%(recursion_flag)','%(recursion_depth)','%(mode)','%(obits)','%(gbits)','%(secs)'])
     ml = cp.options('macros')
     for m in ml:
         s1.add('%%(%s)s' % m)
 
     for s in l1:
-        verify(s in s1, 'expansion %s needs definition' % s, '')
+        verify(s in s1, 'expansion %s needs definition' % s, 'expansion')
 
 def check_prefixes(cp):
     print "\tChecking prefixes..."
@@ -177,11 +185,6 @@ def check_locations(cp, locations):
 def check_protocols(cp):
     print "\tChecking protocols..."
     plist = cp.get3('general','protocols').split(' ')
-    for s in cp.sections():
-        if s.startswith('conditional'):
-           l = cp.get3(s, 'rename_proto', '').split(' ')
-           if len(l) and l[0]:
-               plist.append(l[0])
     for p in plist:
         if p == '':
             continue
@@ -206,19 +209,19 @@ def do_check(filename):
     f.close()
     cp.read(filename)
     # list from Feature issue #16503
-    #check_conditionals(cp)
-    #check_rotations(cp)
-    #check_vo_rules(cp)
+    check_conditionals(cp)
+    check_rotations(cp)
+    check_vo_rules(cp)
     check_percents(cp, filetext)
-    #loclist = check_prefixes(cp)
-    #check_locations(cp, loclist) # handles several items
-    #check_protocols(cp) # several items
+    loclist = check_prefixes(cp)
+    check_locations(cp, loclist) # handles several items
+    check_protocols(cp) # several items
 
 if __name__ == '__main__':
     print "Checking the configuration file...."
     try:
         do_check(os.environ['IFDHC_CONFIG_DIR']+'/ifdh.cfg')
-    except (IFDHConfigError, IFDHConditionalError, IFDHRotationError, IFDHVOError, IFDHPrefixError, IFDHLocationError, IFDHProtocolError) as ex:
+    except (IFDHConfigError, IFDHConditionalError, IFDHRotationError, IFDHVOError, IFDHPrefixError, IFDHLocationError, IFDHProtocolError, IFDHExpansionError) as ex:
         print "Exception has been raised: ", ex.type
         print ex.msg
         sys.exit(2)

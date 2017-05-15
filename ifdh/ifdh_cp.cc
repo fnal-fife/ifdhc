@@ -148,9 +148,9 @@ ifdh::locpath(IFile loc, std::string proto) {
        }
     } else {
        // genericized: use file:// prefix for bluearc if stat-able
-       // becomes use "can_stat" prefix for locations that have one
-       // if we can stat the location
-       spre = _config.get("location " + loc.location, "can_stat");
+       // becomes use "can_stat_"+proto prefix for locations that have one
+       // if we can stat the location and we're using protocol proto
+       spre = _config.get("location " + loc.location, "can_stat_" + proto);
        if (spre.size() > 0 && 0 != cache_stat(parent_dir(loc.path))) {
           pre = spre;
        } else {

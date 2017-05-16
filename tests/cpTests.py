@@ -112,7 +112,7 @@ class ifdh_cp_cases(unittest.TestCase):
 
        
     def setUp(self):
-        os.environ['IFDH_CP_MAXRETRIES'] = "1"
+        os.environ['IFDH_CP_MAXRETRIES'] = "0"
         os.environ['EXPERIMENT'] =  ifdh_cp_cases.experiment
         os.environ['SAVE_CPN_DIR'] = os.environ.get('CPN_DIR','')
         os.environ['CPN_DIR'] = '/no/such/dir'
@@ -120,8 +120,10 @@ class ifdh_cp_cases(unittest.TestCase):
         self.hostname = socket.gethostname()
         self.work="%s/work%d" % (os.environ.get('TMPDIR','/tmp'),os.getpid())
 	self.data_dir_root="/pnfs/fnal.gov/usr/%s/scratch/users/%s/%s" % (ifdh_cp_cases.experiment, os.environ.get('TEST_USER', os.environ['USER']), self.hostname)
+	self.blue_data_dir_root="/%s/data/users/%s/%s" % (ifdh_cp_cases.experiment, os.environ.get('TEST_USER', os.environ['USER']), self.hostname)
 	self.data_dir="%s/%s" % (self.data_dir_root, os.getpid())
-        for d in [self.data_dir_root, self.data_dir, '%s/started'% (self.data_dir), '/pnfs/nova/scratch/ifdh_stage/test']:
+	self.blue_data_dir="%s/%s" % (self.blue_data_dir_root, os.getpid())
+        for d in [self.data_dir_root, self.data_dir, '%s/started'% (self.data_dir), '/pnfs/nova/scratch/ifdh_stage/test', self.blue_data_dir]:
 	    try:
                 print "trying to mkdir: ", d, "... ",
 		self.ifdh_handle.mkdir(d,'')
@@ -690,6 +692,34 @@ class ifdh_cp_cases(unittest.TestCase):
         f.close()
         self.ifdh_handle.cp([ "-f", "%s/list" % self.work])
         self.assertEqual(self.check_test_txt(), True, self._testMethodName)
+
+    def test_lock_bits(self):
+        
+        # make some test files
+        args = []
+        for fn in ["t1", "t2", "t3", "t4"]:
+             full = "%s/%s" % (self.work, fn)
+             args.append(full)
+             f = open( full, "w")
+             f.write("blah blah blah")
+             f.close()
+        # copying them to bluearc should get and free one lock
+        # ...if we enable locking again:
+        os.environ['CPN_DIR'] = os.environ['SAVE_CPN_DIR']
+        os.system("CPN_LOCK_GROUP=gpcf ifdh cp -D %s %s 2>out" % ( ' '.join(args), self.blue_data_dir))
+        f = open("out","r")
+        locks = 0
+        frees = 0
+        for line in f:
+            fields = line.split(' ')
+            if fields[0] == 'LOCK':
+                if fields[8] == 'lock':
+                    locks = locks + 1
+                if fields[8] == 'free':
+                    frees = frees + 1
+        f.close()
+        self.assertEqual( locks, 1)
+        self.assertEqual( frees, 1)
          
 def suite():
     suite =  unittest.TestLoader().loadTestsFromTestCase(ifdh_cp_cases)

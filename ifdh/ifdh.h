@@ -150,6 +150,7 @@ class ifdh {
         // apply an ifdh command to all files under a directory 
         // (recursively), matching a pattern
         int apply(std::vector<std::string> args);
+        std::string getUrl(std::string loc, std::string force);
     private:
         IFile lookup_loc(std::string url) ;
         std::string locpath(IFile loc, std::string proto) ;

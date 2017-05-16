@@ -60,7 +60,7 @@ class ifdhInstall(install):
 
         # install ifdh executables
         self.copy_tree(self.build_lib, self.install_lib)
-        print "install/run self has: ", self.__dict__.keys()
+        print( "install/run self has: ", self.__dict__.keys())
 
         self.copy_tree(self.build_lib + '/../bin', self.install_base + '/bin')
 

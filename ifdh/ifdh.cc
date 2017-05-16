@@ -53,7 +53,12 @@ path_prepend( string s1, string s2) {
 void
 path_ish_append(const char *what, string s1, string s2) {
     stringstream setenvbuf;
-    string curpath(getenv(what));
+    string curpath;
+    if (getenv(what)) {
+        curpath = getenv(what);
+     } else {
+        curpath="";
+     }
 
     setenvbuf << curpath << ":" << s1 << s2;
     setenv(what, setenvbuf.str().c_str(), 1);

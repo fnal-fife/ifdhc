@@ -1155,7 +1155,7 @@ ifdh::pick_proto(CpPair &p, std::string force) {
             pick_proto(p, "");
         }
         // only take the force if the src and dst both have it...
-        if (srcps.find(force) != std::string::npos && srcps.find(force) != std::string::npos ) {
+        if (srcps.find(force) != std::string::npos && dstps.find(force) != std::string::npos ) {
 	    p.proto = force;
 	    p.proto2 = "";
 	    return;

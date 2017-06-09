@@ -706,18 +706,24 @@ class ifdh_cp_cases(unittest.TestCase):
         # copying them to bluearc should get and free one lock
         # ...if we enable locking again:
         os.environ['CPN_DIR'] = os.environ['SAVE_CPN_DIR']
-        os.system("CPN_LOCK_GROUP=gpcf ifdh cp -D %s %s 2>out" % ( ' '.join(args), self.blue_data_dir))
+        print "CPN_DIR is " , os.environ['CPN_DIR']
+        print "dest is", self.blue_data_dir
+        self.ifdh_handle.mkdir_p(self.blue_data_dir)
+        os.system("CPN_LOCK_GROUP=gpcf ifdh cp -D %s %s >out 2>&1" % ( ' '.join(args), self.blue_data_dir))
         f = open("out","r")
         locks = 0
         frees = 0
         for line in f:
             fields = line.split(' ')
+            print line
+            print fields
             if fields[0] == 'LOCK':
-                if fields[8] == 'lock':
+                if fields[9] == 'lock':
                     locks = locks + 1
-                if fields[8] == 'free':
+                if fields[9] == 'freed':
                     frees = frees + 1
         f.close()
+        print "counts: locks ", locks, " frees ", frees
         self.assertEqual( locks, 1)
         self.assertEqual( frees, 1)
          

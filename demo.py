@@ -3,12 +3,12 @@
 import os
 import time
 
-if not os.environ.has_key("IFDH_BASE_URI"):
-    os.environ["IFDH_BASE_URI"] = "http://samweb-minerva.fnal.gov:20004/sam/minerva/api"
+if not os.environ.has_key("EXPERIMENT"):
+    os.environ["EXPERIMENT"] = "samdev"
 
 import ifdh
 
-i = ifdh.ifdh(os.environ["IFDH_BASE_URI"])
+i = ifdh.ifdh()
 
 # test locate/describe
 print i.locateFile("MV_00003142_0014_numil_v09_1105080215_RawDigits_v1_linjc.root")
@@ -17,12 +17,16 @@ print i.describeDefinition("mwm_test_2")
 # now start a project, and consume its files, alternately skipping or consuming
 # them...
 projname=time.strftime("mwm_%Y%m%d%H_%%d")%os.getpid()
-cpurl=i.startProject(projname,"minerva", "mwm_test_2", "mengel", "minerva")
+dataset="gen_cfg"
+dataset="testds_novagpvm02.fnal.gov_1476740789_4675"
+cpurl=i.startProject(projname,"samdev", dataset, "mengel", "samdev")
 time.sleep(2)
-cpurl=i.findProject(projname,"minerva")
+cpurl=i.findProject(projname,"samdev")
 consumer_id=i.establishProcess( cpurl, "demo","1", "bel-kwinith.fnal.gov","mengel" )
+print "got cpurl, consumer_id: ", cpurl, consumer_id
 flag=True
 furi=i.getNextFile(cpurl,consumer_id)
+print "received furi: ", furi
 while furi:
 	fname=i.fetchInput(furi)
         if flag:
@@ -38,6 +42,7 @@ while furi:
         except:
             pass
         furi=i.getNextFile(cpurl,consumer_id)
+        print "received furi: ", furi
 i.setStatus( cpurl, consumer_id, "bad")
 i.endProject( cpurl )
 i.cleanup()

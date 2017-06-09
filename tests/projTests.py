@@ -1,3 +1,4 @@
+#import unittest2 as unittest
 import unittest
 import ifdh
 import socket
@@ -82,19 +83,8 @@ class SAMCases(unittest.TestCase):
 
     def test_1_locate_notfound(self):
         self.log(self._testMethodName)
-        try:
-            self.ifdh_handle.locateFile("nosuchfile")
-        except RuntimeError:
-            self.log("PASS %s"%self._testMethodName)
-            pass
-        except Exception as e:
-            err="FAIL %s unexpected exception: %s"%(self._testMethodName,e)
-            self.log(err)
-            self.fail(err)
-        else:
-            err="FAIL %s should have thrown RuntimeError but did not"%self._testMethodName
-            self.log(err)
-            self.fail(err)
+        res = self.ifdh_handle.locateFile("nosuchfile")
+        self.assertEqual(res,(),self._testMethodName )
         
     def test_1_locate_multi_notfound(self):
         self.log(self._testMethodName)
@@ -163,14 +153,8 @@ class SAMCases(unittest.TestCase):
         time.sleep(1)
         cpurl = self.ifdh_handle.findProject(SAMCases.curproject,'')
         uri = self.ifdh_handle.getNextFile(cpurl, SAMCases.curconsumer)
-        try:
-           path = self.ifdh_handle.fetchInput(uri)
-           res = os.access(path,os.R_OK)
-        except:
-           errmsg="Exception in fetchInput:%s"% sys.exc_info()[0]
-           print errmsg
-           self.log("%s %s"%(self._testMethodName,errmsg))
-           res = True
+        path = self.ifdh_handle.fetchInput(uri)
+        res = os.access(path,os.R_OK)
         self.ifdh_handle.updateFileStatus(cpurl, SAMCases.curconsumer, uri, 'transferred')
         time.sleep(1)
         self.ifdh_handle.updateFileStatus(cpurl, SAMCases.curconsumer, uri, 'consumed')

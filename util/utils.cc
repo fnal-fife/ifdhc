@@ -5,12 +5,41 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include <grp.h>
+#include <dirent.h>
 
 namespace ifdh_util_ns {
 //
 // get experiment name, either from CONDOR_TMP setting, or
 // from group-id...
 //
+
+bool has(std::string s1, std::string s2) {
+   return s1.find(s2) != std::string::npos;
+}
+
+std::string parent_dir(std::string path) {
+   size_t pos = path.rfind('/');
+   if (pos == path.length() - 1) {
+       pos = path.rfind('/', pos - 1);
+   }
+   // root of filesystem fix, return / for parent of /tmp ,etc.
+   if (0 == pos) { 
+      pos = 1;
+   }
+   return path.substr(0, pos);
+}
+
+int
+flushdir(const char *dir){
+    // according to legend this flushes NFS directory cachng...
+    DIR *dp;
+    dp = opendir(dir);
+    if (dp) {
+        closedir(dp);
+    }
+    return 1;
+}
+
 #define MAXEXPBUF 64
 const
 char *getexperiment() {

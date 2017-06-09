@@ -14,6 +14,7 @@
 #include <pwd.h>
 #include "ifdh_version.h"
 #include <sys/wait.h>
+#include <fcntl.h>
 
 
 namespace ifdh_util_ns {
@@ -247,6 +248,11 @@ WebAPI::WebAPI(std::string url, int postflag, std::string postdata) throw(WebAPI
                 dup(inp[0]);   
                 close(1);
                 dup(outp[1]);
+                // send stderr to /dev/null -- get rid of annoying
+                // validation messages.  Might lose some real errors,
+                // but...
+                close(2);
+                open("/dev/null",O_RDONLY);
 
                 close(inp[0]); close(inp[1]); 
                 close(outp[0]);close(outp[1]);
@@ -293,10 +299,20 @@ WebAPI::WebAPI(std::string url, int postflag, std::string postdata) throw(WebAPI
 	 _tosite << "User-Agent: " << "WebAPI/" << IFDH_VERSION << "/Experiment/" << getexperiment() << "\r\n";
 	 _debug && std::cerr << "sending header: " << "User-Agent: " << "WebAPI/" << IFDH_VERSION << "/Experiment/" << getexperiment() << "\r\n";
          if (postflag) {
-             _debug && std::cerr << "sending post data: " << postdata << "\n" << "length: " << postdata.length() << "\n"; 
 
-             _tosite << "Content-Type: application/x-www-form-urlencoded\r\n";
+             if ( postflag == 1) {
+                  _debug && std::cerr << "sending header:" << "Content-Type: application/x-www-form-urlencoded\r\n";
+                 _tosite << "Content-Type: application/x-www-form-urlencoded\r\n";
+             } else if ( postflag == 2) {
+                  _debug && std::cerr << "sending header:" <<  "Content-Type: application/json\r\n";
+                 _tosite << "Content-Type: application/json\r\n";
+             } else {
+                  _debug && std::cerr << "sending header:" << "Content-Type: text/plain\r\n";
+                 _tosite << "Content-Type: text/plain\r\n";
+             }
+	      _debug && std::cerr << "sending header:"<< "Content-Length: " << postdata.length() << "\r\n";
              _tosite << "Content-Length: " << postdata.length() << "\r\n";
+             _debug && std::cerr << "sending post data: " << postdata << "\n" << "length: " << postdata.length() << "\n"; 
 	     _tosite << "\r\n";
              _tosite << postdata;
          } else {

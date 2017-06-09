@@ -1,0 +1,11 @@
+File=table
+Product=ifdhc_config
+
+# wrapper product for just table file product
+
+Flavor=ANY
+Qualifiers=
+
+Action=setup
+   proddir()
+    SetupEnv()

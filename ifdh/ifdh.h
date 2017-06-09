@@ -4,6 +4,7 @@
 #include <string>
 #include <vector>
 #include "../util/WebAPI.h"
+#include "../util/WimpyConfigParser.h"
 #include <stdlib.h>
 #include <map>
 #include <utility>
@@ -11,14 +12,17 @@
 
 namespace ifdh_ns {
 
+class  cpn_lock;
+struct IFile;
+struct CpPair;
+
 class ifdh {
         std::string _baseuri;
         std::string _lastinput;
         std::string unique_string();
         std::vector<std::string> build_stage_list( std::vector<std::string>, int, char *stage_via);
-        bool _have_gfal;
-        std::vector<std::pair<std::string,long> > try_ls_lR_file( std::string loc );
    public:
+        static WimpyConfigParser _config;
         static int _debug;
         static std::string _default_base_uri;
         static std::string _default_base_ssl_uri;
@@ -136,8 +140,30 @@ class ifdh {
         std::string checksum(std::string loc);
         // make a directory with intervening directories
         int mkdir_p(std::string loc, std::string force = "", int depth = -1);
+        // get a grid proxy for the current experiment if needed, 
+        // return the path
+        std::string getProxy();
+        // declare file metadata
+	int declareFile( std::string json_metadata);
+        // modify file metadata
+	int modifyMetadata(std::string file,  std::string json_metadata);
+        // apply an ifdh command to all files under a directory 
+        // (recursively), matching a pattern
+        int apply(std::vector<std::string> args);
+        std::string getUrl(std::string loc, std::string force);
+    private:
+        IFile lookup_loc(std::string url) ;
+        std::string locpath(IFile loc, std::string proto) ;
+        int retry_system(const char *cmd_str, int error_expected, cpn_lock &locker,   int maxtries = -1, std::string unlink_on_error = "") ;
+        std::string srcpath(CpPair &cpp) ;
+        std::string dstpath(CpPair &cpp) ;
+        int do_cp_bg(CpPair &cpp, bool intermed_file_flag, bool recursive, cpn_lock &cpn);
+        int do_cp(CpPair &cpp,  bool intermed_file_flag, bool recursive, cpn_lock &cpn) ;
+	void pick_proto(CpPair &p, std::string force) ;
+        std::vector<CpPair> handle_args( std::vector<std::string> args, std::vector<std::string>::size_type curarg, bool dest_is_dir,  size_t &lock_low, size_t &lock_hi, std::string &force);
+        bool have_stage_subdirs(std::string uri);
+        void pick_proto_path(std::string loc, std::string force, std::string &proto, std::string &fullurl, std::string &lookup_proto );
 };
-
 }
 
 using namespace ifdh_ns;

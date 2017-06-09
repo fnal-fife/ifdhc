@@ -2,13 +2,14 @@
 
 # "cp" style utility for web locations, uses curl...
 
-curlopts="-f -L --silent"
+curlopts="-f -L --silent "
 
 # allow extra curl flags
 
 while :
 do
 case "x$1" in
+x--ls*|x--mv*|x--rmdir*|x--mkdir*|x--chmod*) break;;
 x-*)  curlopts="$curlopts $1"; shift;;
 x*)   break;;
 esac
@@ -19,7 +20,7 @@ dst="$2"
 
 if [ -r "${X509_USER_PROXY:=/tmp/x509up_u`id -u`}" ]
 then
-    curlopts="$curlopts --cert $X509_USER_PROXY --key $X509_USER_PROXY --cacert $X509_USER_PROXY --capath ${X509_CERT_DIR:=/etc/grid-security}"
+    curlopts="$curlopts --cert $X509_USER_PROXY --key $X509_USER_PROXY --cacert $X509_USER_PROXY --capath ${X509_CERT_DIR:=/etc/grid-security/certificates}"
 fi
 
 if [ x$IFDH_UCONDB_UPASS != x ]
@@ -46,11 +47,24 @@ http*//*\;/*)
     curl $curlopts -o "$dst" "$src" 
     ;;
 /*\;http*://*) 
-    curl $curlopts -T "$src" "$dst"
+    ( cat ) < $src | curl $curlopts -T - "$dst"
     ;;
 http*://*\;http*://*)
     curl $curlopts -o - "$src" | curl $curlopts  -T - "$dst"
     ;;
+--ls*) 
+  
+    curl $curlopts -o - -X PROPFIND "$dst" --upload-file - -H "Depth: 1" <<EOF  | perl -pe 's/>/>\n/go;'  |  egrep '</d:href>|</d:getcontentlength>|<d:getcontentlength/>'  | perl -pe 'if (/d:href/) { chomp();} s{<d:getcontentlength/>}{0 }; s{<[^>]*>}{ }go;'
+<?xml version="1.0"?>
+<a:propfind xmlns:a="DAV:">
+ <a:prop><a:resourcetype/><a:getcontentlength/></a:prop>
+</a:propfind>
+EOF
+
+# <a:allprop>
+# <a:prop><a:resourcetype/><a:getcontentlength/></a:prop>
+# <a:prop><a:resourcetype/></a:prop>
+     ;;
 --ls*|--mv*|--rmdir*|--mkdir*|--chmod*)
     echo "Not yet implemented" >&2
     exit 1

@@ -1,3 +1,4 @@
+#import unittest2 as unittest
 import unittest
 import ifdh
 import socket
@@ -35,7 +36,7 @@ class xproto_cases(unittest.TestCase):
         self.ifdh_handle = ifdh.ifdh()
         self.hostname = socket.gethostname()
         self.local = '/tmp/test.txt'
-        self.s3loc = 's3://nova-public-bucket-test/test.txt'
+        self.s3loc = 's3://ifdh-stage/test.txt'
         self.username = os.environ.get('TEST_USER',os.environ.get('USER','nobody'))
         self.gridftploc = 'gsiftp://fndca1.fnal.gov/pnfs/fnal.gov/usr/nova/scratch/users/%s/test.txt'% self.username
         self.httploc = 'https://fndca4a.fnal.gov:2880/pnfs/fnal.gov/usr/nova/scratch/users/%s/httptest.txt'% self.username
@@ -63,7 +64,7 @@ class xproto_cases(unittest.TestCase):
         self.ifdh_handle.cp([self.gridftploc, self.s3loc ])
         res = self.ifdh_handle.ls(self.s3loc,1,'')
         print "saw:" , res
-        self.assertEqual(len(res),2,self._testMethodName)
+        self.assertEqual(len(res),1,self._testMethodName)
 
     def test_xproto_hg(self):
         self.log(self._testMethodName)

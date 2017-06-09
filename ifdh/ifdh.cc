@@ -1,5 +1,6 @@
 #include "ifdh.h"
 #include "utils.h"
+#include <fcntl.h>
 #include <string>
 #include <sstream>
 #include <iostream>
@@ -21,6 +22,10 @@
 #include "../util/Checksum.h"
 #include <setjmp.h>
 #include <memory>
+#ifndef __APPLE_CC__
+#include <gnu/libc-version.h>
+#endif
+
 
 #if __cplusplus <= 199711L
 #define unique_ptr auto_ptr
@@ -33,6 +38,9 @@ namespace ifdh_ns {
 int
 ifdh::_debug = 0;
 
+WimpyConfigParser
+ifdh::_config;
+
 void
 path_prepend( string s1, string s2) {
     stringstream setenvbuf;
@@ -40,6 +48,20 @@ path_prepend( string s1, string s2) {
 
     setenvbuf << s1 << s2 << ":" << curpath;
     setenv("PATH", setenvbuf.str().c_str(), 1);
+}
+
+void
+path_ish_append(const char *what, string s1, string s2) {
+    stringstream setenvbuf;
+    string curpath;
+    if (getenv(what)) {
+        curpath = getenv(what);
+     } else {
+        curpath="";
+     }
+
+    setenvbuf << curpath << ":" << s1 << s2;
+    setenv(what, setenvbuf.str().c_str(), 1);
 }
 
 //
@@ -69,6 +91,15 @@ check_env() {
               }
            }
         }
+
+        // we do not want it set...
+        unsetenv("X509_USER_CERT");
+
+        char *ep;
+
+        if (0 != (ep = getenv("EXPERIMENT")) && 0 == getenv("CPN_LOCK_GROUP")) {
+            setenv("CPN_LOCK_GROUP", ep, 0);
+        }
               
         string path(getenv("PATH"));
         char *p;
@@ -87,6 +118,20 @@ check_env() {
              ;
         }
     }
+
+#ifdef _GNU_LIBC_VERSION_H
+
+    // put cmvfs OSG utils at the end of our path as a failover/fallback
+    // currently assuming 64bit is okay
+    int glibcminor = atoi(gnu_get_libc_version()+2);
+    int slver = glibcminor > 5 ? (glibcminor > 12 ? 7 : 6) : 5;
+    path_ish_append("PATH","/usr/bin","");
+    path_ish_append("LD_LIBRARY_PATH","/usr/lib64","");
+    stringstream cvmfs_dir;
+    cvmfs_dir << "/cvmfs/oasis.opensciencegrid.org/mis/osg-wn-client/3.3/current/el" <<  slver << "-x86_64";
+    path_ish_append("PATH",cvmfs_dir.str().c_str(),"/usr/bin");
+    path_ish_append("LD_LIBRARY_PATH",cvmfs_dir.str().c_str(),"/usr/lib64");
+#endif
 }
 
 string cpn_loc  = "cpn";  // just use the one in the PATH -- its a product now
@@ -166,6 +211,7 @@ ifdh::localPath( string src_uri ) {
     return datadir() + "/" + src_uri.substr(baseloc);
 }
 
+
 string 
 ifdh::fetchInput( string src_uri ) {
     stringstream cmd;
@@ -178,7 +224,7 @@ ifdh::fetchInput( string src_uri ) {
 
     std::vector<std::string> args;
 
-    if (0 == src_uri.find("xrootd:") || 0 == src_uri.find("root:")) {
+    if (0 == src_uri.find("xroot:") || 0 == src_uri.find("root:")) {
         char *icx = getenv("IFDH_COPY_XROOTD");
         if (icx && atoi(icx)) {
              path = localPath( src_uri );
@@ -205,7 +251,7 @@ ifdh::fetchInput( string src_uri ) {
        args.push_back(src_uri);
     args.push_back(path);
     try {
-       if ( 0 == cp( args ) && 0 == access(path.c_str(),R_OK)) {
+       if ( 0 == cp( args ) && flushdir(datadir().c_str()) && 0 == access(path.c_str(),R_OK)) {
           _lastinput = path;
           return path;
        } else {
@@ -383,7 +429,12 @@ do_url_2(int postflag, va_list ap) {
     name = va_arg(ap,char *);
     val = va_arg(ap,char *);
     while (strlen(name)) {
-        (postflag ? postdata : url)  << sep << WebAPI::encode(name) << "=" << WebAPI::encode(val);
+        if (strlen(val)) {
+           (postflag ? postdata : url)  << sep << WebAPI::encode(name) << "=" << WebAPI::encode(val);
+        } else {
+           // handle single blob of data case, name with no value..
+           (postflag ? postdata : url)  << sep << name;
+        }
         sep = "&";
         name = va_arg(ap,char *);
         val = va_arg(ap,char *);
@@ -459,6 +510,7 @@ do_url_int(int postflag, ...) {
        unique_ptr<WebAPI> wap(do_url_2(postflag, ap));
        res = wap->getStatus() - 200;
     } catch( exception &e )  {
+       std::cerr << "Exception: " << e.what();
        res = 300;
     }
     if (ifdh::_debug) std::cerr << "got back int result: " << res << "\n";
@@ -484,6 +536,7 @@ do_url_str(int postflag,...) {
 	    }
 	}
     } catch( exception &e )  {
+       std::cerr << "Exception: " << e.what();
        return "";
     }
     if (ifdh::_debug) std::cerr << "got back string result: " << res << "\n";
@@ -507,15 +560,30 @@ do_url_lst(int postflag,...) {
 	    }
 	}
     } catch( exception &e )  {
-        return empty;
+       std::cerr << "Exception: " << e.what();
+       return empty;
     }
     return res;
+}
+
+int 
+ifdh::declareFile(string json_metadata) {
+  // debug...
+  WebAPI::_debug = 1;
+  return do_url_int(2,ssl_uri(_baseuri).c_str(),"files","",json_metadata.c_str(),"","","");
+}
+
+int 
+ifdh::modifyMetadata(string filename, string json_metadata) {
+  // debug...
+  WebAPI::_debug = 1;
+  return do_url_int(2,ssl_uri(_baseuri).c_str(),"files","name",filename.c_str(),"metadata","",json_metadata.c_str(),"","","");
 }
 
 //datasets
 int 
 ifdh::createDefinition( string name, string dims, string user, string group) {
-  return do_url_int(1,_baseuri.c_str(),"createDefinition","","name",name.c_str(), "dims", dims.c_str(), "user", user.c_str(),"group", group.c_str(), "","");
+  return do_url_int(1,ssl_uri(_baseuri).c_str(),"createDefinition","","name",name.c_str(), "dims", dims.c_str(), "user", user.c_str(),"group", group.c_str(), "","");
 }
 
 int 
@@ -647,9 +715,10 @@ int ifdh::endProject(string projecturi) {
   return do_url_int(1,projecturi.c_str(),"endProject","","","");
 }
 
+extern int host_matches(std::string glob);
+
 ifdh::ifdh(std::string baseuri) {
     check_env();
-    _have_gfal = (0 == system("gfal-copy --help > /dev/null 2>&1"));
     char *debug = getenv("IFDH_DEBUG");
     if (0 != debug ) { 
         std::cerr << "IFDH_DEBUG=" << debug << " => " << atoi(debug) << "\n";
@@ -661,7 +730,80 @@ ifdh::ifdh(std::string baseuri) {
        _baseuri = baseuri;
     }
     _debug && std::cerr << "ifdh constructor: _baseuri is '" << _baseuri << "'\n";
-    _debug && std::cerr << "ifdh constructor: _have_gfal == " << _have_gfal << "\n";
+    
+    // -------------------------------------------------------
+    // parse and initialize config file
+    //  
+    if (_config.size() == 0) {
+    const char *ccffile = getenv("IFDHC_CONFIG_DIR");
+    const char *ccffile1 = getenv("IFDHC_DIR");
+    const char *ccffile2 = getenv("IFDHC_FQ_DIR");
+    std::string cffile;
+    if (ccffile) {
+        cffile = std::string(ccffile); 
+    } else if ( (ccffile1) && (std::ifstream((std::string(ccffile1) + "/ifdh.cfg").c_str())) ) {
+        cffile = std::string(ccffile1); 
+        _debug && std::cerr << "ifdh: getting config file from IFDHC_DIR --  no IFDHC_CONFIG_DIR?!?\n";
+    } else if ( (ccffile2) && (std::ifstream((std::string(ccffile2) + "/ifdh.cfg").c_str())) ) {
+        cffile = std::string(ccffile2); 
+        _debug && std::cerr << "ifdh: getting config file from IFDHC_FQ_DIR --  no IFDHC_CONFIG_DIR?!?\n";
+    } else {
+	throw( std::logic_error("no ifdhc config file environment variables found"));
+    }
+    _debug && std::cerr << "ifdh: using config file: "<< ccffile << "/ifdh.cfg\n";
+
+    _config.read(cffile + "/ifdh.cfg");
+    std::vector<std::string> clist = _config.getlist("general","conditionals");
+    _debug && std::cerr << "checking conditionals:\n";
+    for( size_t i = 0; i < clist.size(); i++ ) { 
+	_debug && std::cerr << "conditional" << i << ": " << clist[i] << "\n";
+        if (clist[i] == "") {
+           continue;
+        }
+        std::string rtype;
+        std::string tststr = _config.get("conditional " + clist[i], "test");
+        std::vector<std::string> renamevec = _config.getlist("conditional " + clist[i], "rename_proto");
+        if (renamevec.size() > 0) {
+           rtype = "protocol ";
+        } else {
+           renamevec = _config.getlist("conditional " + clist[i], "rename_loc");
+           if (renamevec.size() > 0) {
+               rtype = "location ";
+           }
+        }
+        if (tststr[0] == '-' && tststr[1] == 'x') {
+            if (0 == access(tststr.substr(3).c_str(), X_OK)) {
+                _debug && std::cerr << "test: " << tststr << " renaming: " << renamevec[0] << " <= " << renamevec[1] << "\n";
+		_config.rename_section(rtype + renamevec[0], rtype + renamevec[1]);
+            }
+            continue;
+        }
+        if (tststr[0] == '-' && tststr[1] == 'r') {
+            if (0 == access(tststr.substr(3).c_str(), R_OK)) {
+                _debug && std::cerr << "test: " << tststr << " renaming: " << renamevec[0] << " <= " << renamevec[1] << "\n";
+		_config.rename_section(rtype + renamevec[0], rtype + renamevec[1]);
+            }
+            continue;
+        }
+        if (tststr[0] == '-' && tststr[1] == 'H') {
+           if (host_matches(tststr.substr(3))) {
+                _debug && std::cerr << "test: " << tststr << " renaming: " << renamevec[0] << " <= " << renamevec[1] << "\n";
+		_config.rename_section(rtype + renamevec[0], rtype + renamevec[1]);
+           }
+           continue;
+        }
+    }
+    // handle protocol aliases
+    std::vector<std::string> plist = _config.getlist("general","protocols");
+    std::string av;
+    for( size_t i = 0; i < plist.size(); i++ ) { 
+        av =  _config.get("protocol " + plist[i], "alias");
+        if (av != "" ) {
+             _config.copy_section("protocol " + av, "protocol " + plist[i]);
+        }
+    }
+    // -------------------------------------------------------
+    }
 }
 
 void
@@ -792,7 +934,16 @@ ifdh::more(string loc) {
             putenv(envbuf);
 
             // now fetch the file to the named pipe
-            this-> fetchInput(loc);
+            try {
+                fetchInput(loc);
+            } catch (...) {
+		// unwedge other side if cp failed
+		int f = open(c_where,O_WRONLY|O_NDELAY, 0700);
+		if (f >= 0) {
+		    close(f);
+		}
+                res = 1;
+            }
             waitpid(res2, 0,0);
             unlink(c_where);
 
@@ -808,6 +959,56 @@ ifdh::more(string loc) {
     return res;
 }
 
+int
+ifdh::apply(std::vector<std::string> args) {
+    std::vector<std::pair<std::string,long> > rlist;
+
+    std::string dir = args[0];
+    std::string pat = args[1];
+    args.erase(args.begin(), args.begin()+2);
+    std::string subdir;
+    int res = 0;
+    int rres = 0;
+
+    if (dir[dir.size()-1] != '/') {
+        dir = dir + "/";
+    }
+
+    rlist = findMatchingFiles(dir, pat);
+
+    std::string tmplcmd = "ifdh " + join(args, ' ');
+
+    for( size_t i = 0; i < rlist.size(); i++ ) {
+        std::string file = rlist[i].first;
+	std::string cmd;
+        std::cout << file << ":\n";
+        std::cout.flush();
+
+        if (has(file, "/")) {
+            subdir = file.substr(dir.size(),file.rfind('/'));
+            std::cerr << "dir " << dir << " subdir " << subdir << "\n";
+        } else {
+            subdir = "";
+        }
+
+	cmd = tmplcmd;
+
+        if ( has(cmd,"%(file)s") ) {
+            cmd = cmd.replace(cmd.find("%(file)s"), 8, file);
+        }
+        if ( has(cmd,"%(subdir)s") ) {
+           cmd = cmd.replace(cmd.find("%(subdir)s"), 10, subdir);
+        }
+        _debug && std::cerr << "running: " << cmd << "\n";
+
+        res = system(cmd.c_str());
+        if (res != 0) {
+            rres = res;
+        } 
+    }
+    return rres;
+}
+
 // mostly a little named pipe plumbing and a fork()...
 std::string
 ifdh::checksum(string loc) {
@@ -818,25 +1019,45 @@ ifdh::checksum(string loc) {
     std::string path;
     const char *c_where = where.c_str();
     int res2 ,res;
-    int parentpid = getpid();
     unsigned long sum;
     res  = mknod(c_where, 0600 | S_IFIFO, 0);
     if(_debug) cerr << "made node " << c_where << endl;
+
     if (res == 0) {
+       int status;
        res2 = fork();
        if(_debug) cerr << "fork says " << res2 << endl;
-       if (res2 == 0) {
+       if (res2 > 0) {
+            // turn off retries
+            char envbuf[] = "IFDH_CP_MAXRETRIES=0\0\0\0\0";
+            const char *was = getenv("IFDH_CP_MAXRETRIES");
+            putenv(envbuf);
+
+            res = 0;
             if(_debug) cerr << "starting fetchInput( " << loc << ")" << endl;
             try {
-                path =  this-> fetchInput(loc);
-            } catch (exception &e) {
-                cerr << "failed fetching " << loc << "\n";
-                kill(parentpid, SIGPIPE);
-                exit(1);
+                path = fetchInput(loc);
+            } catch (...) {
+		// unwedge other side if cp failed
+		int f = open(c_where,O_WRONLY|O_NDELAY, 0700);
+		if (f >= 0) {
+		    close(f);
+		}
+                res = 1;
             }
             if(_debug) cerr << "finished fetchInput( " << loc << ")" << endl;
-            exit(0);
-       } else if (res2 > 0) {
+
+            // put back retries
+            if (!was)
+               was = "0";
+            strcpy(envbuf+17,was);
+            putenv(envbuf);
+
+            waitpid(res2, &status,0);
+            unlink(c_where);
+
+            exit(res == 0 ? status : res);
+       } else if (res2 == 0) {
             if(_debug) cerr << "starting get_adler32( " << c_where << ")" << endl;
             sum = checksum::get_adler32(c_where);
 	    sumtext <<  "{\"crc_value\": \""  
@@ -844,11 +1065,6 @@ ifdh::checksum(string loc) {
                     << "\", \"crc_type\": \"adler 32 crc type\"}"
                     << endl;
             if(_debug) cerr << "finished get_adler32( " << c_where << ")" << endl;
-            pid_t wres = waitpid(res2, 0,0);
-            unlink(c_where);
-            if (wres != res2) {
-               throw( std::logic_error("background copy failed"));
-            }
        } else {
             throw( std::logic_error("fork failed"));
            

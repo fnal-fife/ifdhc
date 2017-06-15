@@ -76,7 +76,7 @@ cache_stat(std::string s) {
    }
    // try to flush NFS dir cache ?
    res = stat(s.c_str(), &sbuf);
-   if (res != 0 || sbuf.st_size == 0) {
+   if (res != 0 || (sbuf.st_size == 0 && !S_ISFIFO(sbuf.st_mode))) {
       ifdh::_debug && std::cerr << "got bad bits on stat("  << s << ") trying again\n";
       // if it looks wonky (failed, no size) flush and retry
       flushdir(parent_dir(s).c_str());
@@ -138,7 +138,8 @@ ifdh::lookup_loc(std::string url) {
 // one special case here, when you're copying to a local 
 std::string
 ifdh::locpath(IFile loc, std::string proto) {
-    std::string pre, spre;
+    std::string pre, cstag, spre;
+    ifdh::_debug && cerr << "Entering locpath\n";
     if (loc.location == "local_fs") { // XXX should be a flag?
 
        if (_config.getint("protocol " + proto, "strip_file_prefix")) {
@@ -150,7 +151,11 @@ ifdh::locpath(IFile loc, std::string proto) {
        // genericized: use file:// prefix for bluearc if stat-able
        // becomes use "can_stat_"+proto prefix for locations that have one
        // if we can stat the location and we're using protocol proto
-       spre = _config.get("location " + loc.location, "can_stat_" + proto);
+       cstag = "can_stat_";
+       cstag += proto.substr(0,proto.size()-1);
+       spre = _config.get("location " + loc.location,cstag);
+
+       ifdh::_debug && cerr << "for "<< proto <<" got " << cstag << ":" << spre <<"\n";
        if (spre.size() > 0 && 0 != cache_stat(parent_dir(loc.path))) {
           pre = spre;
        } else {
@@ -1150,7 +1155,7 @@ ifdh::pick_proto(CpPair &p, std::string force) {
             pick_proto(p, "");
         }
         // only take the force if the src and dst both have it...
-        if (srcps.find(force) != std::string::npos && srcps.find(force) != std::string::npos ) {
+        if (srcps.find(force) != std::string::npos && dstps.find(force) != std::string::npos ) {
 	    p.proto = force;
 	    p.proto2 = "";
 	    return;

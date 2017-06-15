@@ -1047,16 +1047,16 @@ ifdh::checksum(string loc) {
             }
             if(_debug) cerr << "finished fetchInput( " << loc << ")" << endl;
 
+            waitpid(res2, &status,0);
+            unlink(c_where);
+
             // put back retries
             if (!was)
                was = "0";
             strcpy(envbuf+17,was);
             putenv(envbuf);
 
-            waitpid(res2, &status,0);
-            unlink(c_where);
 
-            exit(res == 0 ? status : res);
        } else if (res2 == 0) {
             if(_debug) cerr << "starting get_adler32( " << c_where << ")" << endl;
             sum = checksum::get_adler32(c_where);
@@ -1065,6 +1065,7 @@ ifdh::checksum(string loc) {
                     << "\", \"crc_type\": \"adler 32 crc type\"}"
                     << endl;
             if(_debug) cerr << "finished get_adler32( " << c_where << ")" << endl;
+
        } else {
             throw( std::logic_error("fork failed"));
            

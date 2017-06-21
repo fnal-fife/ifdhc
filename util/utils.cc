@@ -182,6 +182,9 @@ split(std::string s, char c, bool quotes , bool runs){
    size_t pos, p2;
    pos = 0;
    std::vector<std::string> res;
+   if (s.size() == 0 ) {  // empty string -> empty list.
+      return res;
+   }
    while( std::string::npos != (p2 = find_end(s,c,pos,quotes)) ) {
 	res.push_back(s.substr(pos, p2 - pos));
         pos = p2 + 1;

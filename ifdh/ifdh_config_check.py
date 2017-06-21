@@ -101,7 +101,8 @@ def check_conditionals(cp):
         t = cp.get3(s, 'test', None)
         a1 = cp.get3(s, 'rename_proto', None)
         a2 = cp.get3(s, 'rename_loc', None)
-        verify(t and (a1 or a2), 'Conditional needs test and command', s)
+        a3 = cp.get3(s, 'rename_rot', None)
+        verify(t and (a1 or a2 or a3), 'Conditional needs test and command', s)
 
 def check_rotations(cp):
     print "\tChecking rotations..."

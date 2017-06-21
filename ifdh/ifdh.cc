@@ -763,14 +763,24 @@ ifdh::ifdh(std::string baseuri) {
         std::string rtype;
         std::string tststr = _config.get("conditional " + clist[i], "test");
         std::vector<std::string> renamevec = _config.getlist("conditional " + clist[i], "rename_proto");
-        if (renamevec.size() > 0) {
+        _debug && std::cerr <<"Renamevec.size() is " << renamevec.size() <<  " \n";
+        if (renamevec.size() > 1) {
            rtype = "protocol ";
         } else {
+            _debug && std::cerr <<  " trying rename_loc\n";
            renamevec = _config.getlist("conditional " + clist[i], "rename_loc");
-           if (renamevec.size() > 0) {
+           if (renamevec.size() > 1) {
                rtype = "location ";
+           } else {
+                _debug && std::cerr <<  " trying rename_rot\n";
+               renamevec = _config.getlist("conditional " + clist[i], "rename_rot");
+               if (renamevec.size() > 1) {
+                   rtype = "rotation ";
+               }
            }
         }
+        _debug && std::cerr <<  " renamevec: " << renamevec[0] << ", " << renamevec[1] << "\n";
+        _debug && std::cerr <<  " rtype: " << rtype << "\n";
         if (tststr[0] == '-' && tststr[1] == 'x') {
             if (0 == access(tststr.substr(3).c_str(), X_OK)) {
                 _debug && std::cerr << "test: " << tststr << " renaming: " << renamevec[0] << " <= " << renamevec[1] << "\n";

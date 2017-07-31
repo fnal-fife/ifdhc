@@ -710,6 +710,7 @@ class ifdh_cp_cases(unittest.TestCase):
         print "dest is", self.blue_data_dir
         self.ifdh_handle.mkdir_p(self.blue_data_dir)
         os.system("CPN_LOCK_GROUP=gpcf ifdh cp -D %s %s >out 2>&1" % ( ' '.join(args), self.blue_data_dir))
+        os.system("echo '==========';cat out;echo '============='")
         f = open("out","r")
         locks = 0
         frees = 0
@@ -718,9 +719,9 @@ class ifdh_cp_cases(unittest.TestCase):
             print line
             print fields
             if fields[0] == 'LOCK':
-                if fields[9] == 'lock':
+                if fields[8] == 'lock':
                     locks = locks + 1
-                if fields[9] == 'freed':
+                if fields[8] == 'freed':
                     frees = frees + 1
         f.close()
         print "counts: locks ", locks, " frees ", frees

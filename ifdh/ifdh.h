@@ -21,6 +21,7 @@ class ifdh {
         std::string _lastinput;
         std::string unique_string();
         std::vector<std::string> build_stage_list( std::vector<std::string>, int, char *stage_via);
+        std::string _errortxt;
    public:
         static WimpyConfigParser _config;
         static int _debug;

@@ -853,6 +853,7 @@ ifdh::retry_system(const char *cmd_str, int error_expected, cpn_lock &locker, in
     int delay;
     int dolock = locker.locked();
     std::string cmd_str_string;
+    std::string line;
     if (maxtries == -1) {
         if (0 != getenv("IFDH_CP_MAXRETRIES")) {
             maxtries = atoi(getenv("IFDH_CP_MAXRETRIES")) + 1;
@@ -861,6 +862,19 @@ ifdh::retry_system(const char *cmd_str, int error_expected, cpn_lock &locker, in
         }
     }
 
+    //
+    // we need to collect the error string, so some redirection silliness...
+    //
+    cmd_str_string = cmd_str;
+    std::stringstream pidbuf;
+    pidbuf << localPath("errtxt");
+    cmd_str_string = cmd_str_string + " 2>%(pidfile)s";
+    cmd_str_string.replace(cmd_str_string.find("%(pidfile)s"), 11, pidbuf.str());
+    cmd_str = cmd_str_string.c_str();
+
+    ifdh::_debug && std::cerr << "here: after err redirect: "  << cmd_str << "\n";
+
+    _errortxt.clear();
 
     while( res != 0 && tries < maxtries ) {
         std::vector<std::string> rot_list = _config.getlist("general","rotations");
@@ -875,7 +889,6 @@ ifdh::retry_system(const char *cmd_str, int error_expected, cpn_lock &locker, in
 
             regexp door_re(door_regex);
 
-	    cmd_str_string = cmd_str;
 
 	    if (0 != door_re(cmd_str_string)) {
 	       get_another_dcache_door(cmd_str_string, door_regex, door_url, door_proto, def_doors );   
@@ -890,6 +903,15 @@ ifdh::retry_system(const char *cmd_str, int error_expected, cpn_lock &locker, in
             std::cerr << "program: " << cmd_str<< " died from signal " << WTERMSIG(res) << "-- exiting.\n";
             exit(-1);
         }
+
+        std::ifstream errfile(pidbuf.str().c_str());
+
+        while( !errfile.eof() && !errfile.fail()) {
+           getline(errfile, line);
+           _errortxt = _errortxt + line;
+           std::cerr << line;
+        }
+        errfile.close();
         if (res != 0 && error_expected) {
            return res;
         }
@@ -1806,22 +1828,40 @@ int count_slashes(std::string loc) {
 
 int
 ifdh::mkdir_p(string loc, string force, int depth) {
+   int m;
    _debug && cerr << "mkdir_p(" << loc << "," << force << "," << "," << depth << ")\n";
    if (depth == -1) {
       // we weren't given a depth, assume first 3 dirs
       // from root must exist -- i.e /nova/app/users or
       // /pnfs/experiment/scratch...
       depth = count_slashes(loc) - 3;
+      // special case for /tmp, we can mkdir right at /tmp
+      if (loc.find("/tmp") <= 5) {
+         depth = depth + 2;
+      }
       _debug && cerr << "mkdir_l: depth is " << depth << "\n";
    }
+
    if (depth == 0) {
       return 0;
    }
 
-   std::vector<std::string> res = ls(loc, 0, force);
-   if (res.size() == 0) {
-      int m;
-      // parent does not exist
+   try {
+      m = mkdir(loc, force);
+   } catch (exception e) {
+      m = -1;
+   }
+
+   //
+   // if we succeeded, or we failed with a File exists error, we're done!
+   //
+   _debug && std::cerr << "checking error text: " << _errortxt << "\n";
+
+   if (m == 0 || string::npos != _errortxt.find("File exists")) {
+      return 0;
+
+   } else {
+      // try to make the parent directory first, and retry.
       mkdir_p(parent_dir(loc), force, depth - 1 );
       try {
          m = mkdir(loc, force);
@@ -1829,13 +1869,12 @@ ifdh::mkdir_p(string loc, string force, int depth) {
          m = -1;
       }
       return m;
-   } else {
-      return 0;
    }
 }
 
+
 int
-ifdh::mkdir(string loc, string force) {
+ifdh::mkdir(string loc, string force ) {
     std::string fullurl, proto, lookup_proto;
     pick_proto_path(loc, force, proto, fullurl, lookup_proto);
     int retries;
@@ -1854,6 +1893,8 @@ ifdh::mkdir(string loc, string force) {
     }
     cpn_lock locker;
     int status = retry_system(cmd.c_str(), 0, locker,retries+1);
+
+
     if (WIFSIGNALED(status)) {
       // throw( std::logic_error("signalled while doing mkdir"));
       return -1;

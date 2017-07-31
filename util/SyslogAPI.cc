@@ -50,17 +50,17 @@ SyslogAPI::send( int facility, int severity, const char *tag, const char *msg) {
 
      struct hostent *phe;
      char hostbuf[512];
+     char datebuf[24];
      std::stringstream st;
      int pri = facility * 8 + severity;
      time_t t = time(0);
-     char *date = ctime(&t)+4;
-     date[15] = 0;
+     strftime(datebuf, 24, "%Y-%m-%dT%H:%M:%SZ",gmtime(&t));
 
      gethostname(hostbuf, 512);
      phe = gethostbyname(hostbuf);
 
      st << "<" << pri << ">";
-     st << date;
+     st << datebuf;
      if (phe) {
          st << ' ' << phe->h_name  << ' ' ;
      } else if (hostbuf[0]) {

@@ -55,14 +55,19 @@ class ifdhInstall(install):
         self.set_undefined_options('build', ('build_scripts', 'build_scripts'))
 
     def run(self):
-        # run original install code
-        install.run(self)
 
         # install ifdh executables
         self.copy_tree(self.build_lib, self.install_lib)
         print( "install/run self has: ", self.__dict__.keys())
 
         self.copy_tree(self.build_lib + '/../bin', self.install_base + '/bin')
+
+        # move where headers go for virtualenvs
+
+        self.install_headers = self.install_base + '/localinclude'
+
+        # run original install code
+        install.run(self)
 
 
 def read(fname):

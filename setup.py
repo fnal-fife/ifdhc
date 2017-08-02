@@ -22,7 +22,7 @@ class ifdhBuild(build):
             'make',
             'all',
             'install',
-            'DESTDIR=%s' % build_path
+            'DESTDIR=%s/' % build_path
         ]
 
         def compile():
@@ -40,9 +40,9 @@ class ifdhBuild(build):
 
         if not self.dry_run:
             for target in target_files:
-                self.copy_file(target, self.build_lib)
+                self.copy_file('%s/%s' %(build_path, target), self.build_lib)
             for target in bin_target_files:
-                self.copy_file(target, bindir)
+                self.copy_file('%s/%s' %(build_path, target), bindir)
 
 
 class ifdhInstall(install):

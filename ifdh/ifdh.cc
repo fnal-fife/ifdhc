@@ -44,7 +44,7 @@ ifdh::_config;
 void
 path_prepend( string s1, string s2) {
     stringstream setenvbuf;
-    string curpath(getenv("PATH"));
+    string curpath(getenv("PATH")?getenv("PATH"):"");
 
     setenvbuf << s1 << s2 << ":" << curpath;
     setenv("PATH", setenvbuf.str().c_str(), 1);
@@ -101,7 +101,7 @@ check_env() {
             setenv("CPN_LOCK_GROUP", ep, 0);
         }
               
-        string path(getenv("PATH"));
+        string path(getenv("PATH")?getenv("PATH"):"");
         char *p;
 
         if (0 != (p = getenv("VDT_LOCATION"))) {

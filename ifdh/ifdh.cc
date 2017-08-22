@@ -732,8 +732,8 @@ ifdh::ifdh(std::string baseuri) {
     check_env();
     char *debug = getenv("IFDH_DEBUG");
     if (0 != debug ) { 
-        std::cerr << "IFDH_DEBUG=" << debug << " => " << atoi(debug) << "\n";
 	_debug = atoi(debug);
+        _debug && std::cerr << "IFDH_DEBUG=" << debug << " => " << atoi(debug) << "\n";
     }
     if ( baseuri == "" ) {
         _baseuri = getenv("IFDH_BASE_URI")?getenv("IFDH_BASE_URI"):(getenv("EXPERIMENT")?_default_base_uri+getenv("EXPERIMENT")+"/api":"") ;

@@ -881,15 +881,15 @@ ifdh::retry_system(const char *cmd_str, int error_expected, cpn_lock &locker, in
         std::vector<std::string> rot_list = _config.getlist("general","rotations");
         for (size_t i = 0; i < rot_list.size(); i++ ) {
             std::string section = std::string("rotation ")+rot_list[i];
-            if (! _config.has_section(section) {
+            if (! _config.has_section(section)) {
                 
-                ifdh::_debug && cerr << "Note: missing [" << setion << "] stanza in ifdh.cfg\n";
+                ifdh::_debug && cerr << "Note: missing [" << section << "] stanza in ifdh.cfg\n";
                 continue;
             }
             std::string door_regex = _config.get(section, "door_repl_re");
             if (! door_regex.size()) {
                 
-                ifdh::_debug && cerr << "Note: 'door_repl_re' missing from  [" << setion << "] stanza in ifdh.cfg\n";
+                ifdh::_debug && cerr << "Note: 'door_repl_re' missing from  [" << section << "] stanza in ifdh.cfg\n";
                 continue;
             }
             std::string door_url =   _config.get(section, "lookup_door_uri");
@@ -1561,7 +1561,7 @@ ifdh::ll( std::string loc, int recursion_depth, std::string force) {
     std::string r, recursive;
     std::stringstream rdbuf;
 
-    if (command.size() == 0) {
+    if (cmd.size() == 0) {
         std::cerr << "no 'll_cmd' in [" << lookup_proto << "] stanza of ifdh.cfg\n";
         return 1;
     }
@@ -1638,7 +1638,7 @@ ifdh::lss( std::string loc, int recursion_depth, std::string force) {
     std::string lss_re1_str = _config.get(lookup_proto, "lss_re1");
 
     if (lss_cmd.size() == 0 || lss_re1_str.size() == 0) {
-        std::err << "Missing lss_cmd or lss_re1 in [" << lookup_proto << "] stanza in ifdh.cfg\n";
+        std::cerr << "Missing lss_cmd or lss_re1 in [" << lookup_proto << "] stanza in ifdh.cfg\n";
         return res;
     }
     std::string lss_re2_str = _config.get(lookup_proto, "lss_re2");

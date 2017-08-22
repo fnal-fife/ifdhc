@@ -108,7 +108,15 @@ ifdh::lookup_loc(std::string url) {
         regmatch m(pre(url));
         if (m) {
             std::string lookup = "prefix " + s;
+            if (!_config.has_section(lookup)) {
+                ifdh::_debug && cerr << "Note: missing [" << lookup << "] stanza in ifdh.cfg\n";
+                continue;
+            }
             std::string location = _config.get(lookup, "location");
+            if (!location.size()) {
+                ifdh::_debug && cerr << "Note: missing 'location' in  [" << lookup << "] in ifdh.cfg\n";
+                continue;
+            }
             int slashstrip = _config.getint(lookup, "slashstrip");
             res.location = location;
             res.path = url;
@@ -629,6 +637,9 @@ get_grid_credentials_if_needed() {
             stringstream numbuf;
             numbuf << i;
             std::string match(ifdh::_config.get("experiment_vo", "match"+numbuf.str()));
+            if (match.size() == 0) {
+                continue;
+            }
             regexp exre(match);
             std::string repl(ifdh::_config.get("experiment_vo","repl"+numbuf.str()));
             regmatch m1(exre(experiment));
@@ -870,7 +881,17 @@ ifdh::retry_system(const char *cmd_str, int error_expected, cpn_lock &locker, in
         std::vector<std::string> rot_list = _config.getlist("general","rotations");
         for (size_t i = 0; i < rot_list.size(); i++ ) {
             std::string section = std::string("rotation ")+rot_list[i];
+            if (! _config.has_section(section) {
+                
+                ifdh::_debug && cerr << "Note: missing [" << setion << "] stanza in ifdh.cfg\n";
+                continue;
+            }
             std::string door_regex = _config.get(section, "door_repl_re");
+            if (! door_regex.size()) {
+                
+                ifdh::_debug && cerr << "Note: 'door_repl_re' missing from  [" << setion << "] stanza in ifdh.cfg\n";
+                continue;
+            }
             std::string door_url =   _config.get(section, "lookup_door_uri");
             std::string door_proto = _config.get(section, "door_proto");
             std::vector<std::string> def_doors = _config.getlist(section, "default_doors");
@@ -878,7 +899,6 @@ ifdh::retry_system(const char *cmd_str, int error_expected, cpn_lock &locker, in
             _debug && cerr << "trying rotation: " << rot_list[i] << "\n";
 
             regexp door_re(door_regex);
-
 
 	    if (0 != door_re(cmd_str_string)) {
 	       get_another_dcache_door(cmd_str_string, door_regex, door_url, door_proto, def_doors );   
@@ -1046,10 +1066,12 @@ ifdh::do_cp(CpPair &cpp, bool intermed_file_flag, bool recursive, cpn_lock &cpn)
         // command looks like:
         // cp_cmd=dd bs=512k %(extra)s if=%(src)s of=%(dst)s
 	extra_env = _config.get(lookup, "extra_env");
-        extra_env_val = getenv(extra_env.c_str());
-        if (extra_env_val && strlen(extra_env_val) == 0 ) {
-	    extra_env = _config.get(lookup, "extra_env_2");
+        if (extra_env.size()) {
             extra_env_val = getenv(extra_env.c_str());
+            if (extra_env_val && strlen(extra_env_val) == 0 ) {
+                extra_env = _config.get(lookup, "extra_env_2");
+                extra_env_val = getenv(extra_env.c_str());
+            }
         }
         if (_config.getint(lookup, "need_proxy") ) {
 	    get_grid_credentials_if_needed();
@@ -1502,6 +1524,10 @@ ifdh::pick_proto_path(std::string loc, std::string force, std::string &proto, st
        proto = src.proto;
     } else {
         protos = _config.get("location "+src.location,"protocols");
+        if (protos.size() == 0) {
+            std::cerr << "no 'protocols' in [location " + src.location + "] stanza in ifdh.cfg\n";
+            protos = "file: gsiftp:";  /* guess -- but most common */
+        }
         ifdh::_debug && std::cerr << "location " <<  src.location << " protocols: " << protos << "\n";
         std::vector<std::string> plist = split(protos, ' ');
         // don't use file: if its not visible..
@@ -1534,6 +1560,11 @@ ifdh::ll( std::string loc, int recursion_depth, std::string force) {
     std::string cmd    = _config.get(lookup_proto, "ll_cmd");
     std::string r, recursive;
     std::stringstream rdbuf;
+
+    if (command.size() == 0) {
+        std::cerr << "no 'll_cmd' in [" << lookup_proto << "] stanza of ifdh.cfg\n";
+        return 1;
+    }
 
     // handle default param
     if (recursion_depth == -1) {
@@ -1605,6 +1636,11 @@ ifdh::lss( std::string loc, int recursion_depth, std::string force) {
 
     std::string lss_cmd     = _config.get(lookup_proto, "lss_cmd");
     std::string lss_re1_str = _config.get(lookup_proto, "lss_re1");
+
+    if (lss_cmd.size() == 0 || lss_re1_str.size() == 0) {
+        std::err << "Missing lss_cmd or lss_re1 in [" << lookup_proto << "] stanza in ifdh.cfg\n";
+        return res;
+    }
     std::string lss_re2_str = _config.get(lookup_proto, "lss_re2");
     _debug && std::cerr << "re1: " << lss_re1_str << "\n";
     _debug && std::cerr << "re2: " << lss_re2_str << "\n";
@@ -1872,6 +1908,11 @@ ifdh::mkdir(string loc, string force ) {
    
     std::string cmd     = _config.get(lookup_proto, "mkdir_cmd");
 
+    if (cmd.size() == 0) {
+        std::cerr << "missing mkdir_cmd in [" << lookup_proto << "] in ifdh.cfg\n";
+        return 1;
+    }
+
     cmd.replace(cmd.find("%(src)s"), 7, fullurl);
 
     _debug && std::cerr << "running: " << cmd << endl;
@@ -1900,6 +1941,10 @@ ifdh::rm(string loc, string force) {
     pick_proto_path(loc, force, proto, fullurl, lookup_proto);
    
     std::string cmd     = _config.get(lookup_proto, "rm_cmd");
+    if (cmd.size() == 0) {
+        std::cerr << "missing rm_cmd in [" << lookup_proto << "] in ifdh.cfg\n";
+        return 1;
+    }
 
     cmd.replace(cmd.find("%(src)s"), 7, fullurl);
 
@@ -1918,6 +1963,10 @@ ifdh::rmdir(string loc, string force) {
     pick_proto_path(loc, force, proto, fullurl, lookup_proto);
    
     std::string cmd     = _config.get(lookup_proto, "rmdir_cmd");
+    if (cmd.size() == 0) {
+        std::cerr << "missing rmdir_cmd in [" << lookup_proto << "] in ifdh.cfg\n";
+        return 1;
+    }
 
     cmd.replace(cmd.find("%(src)s"), 7, fullurl);
 
@@ -2032,6 +2081,10 @@ ifdh::rename(string loc, string loc2, string force) {
     }
    
     std::string cmd     = _config.get(lookup_proto, "mv_cmd");
+    if (cmd.size() == 0) {
+        std::cerr << "missing mv_cmd in [" << lookup_proto << "] in ifdh.cfg\n";
+        return 1;
+    }
 
     cmd.replace(cmd.find("%(src)s"), 7, fullurl);
     cmd.replace(cmd.find("%(dst)s"), 7, fullurl2);

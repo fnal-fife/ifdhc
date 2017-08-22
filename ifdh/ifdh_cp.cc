@@ -225,136 +225,126 @@ extern std::string datadir();
 
 // file io
 
-class cpn_lock {
+int
+cpn_lock::locked() { return _locked; }
 
-private:
+void
+cpn_lock::lock() {
+    char buf[512];
+    FILE *pf;
+    int onsite = 0;
+    int parent_pid;
+    int status;
+    struct ifaddrs *ifap, *ifscan;
 
-    int _heartbeat_pid;
-    int _locked;
-
-public:
-
-    int
-    locked() { return _locked; }
-
-    void
-    lock() {
-	char buf[512];
-	FILE *pf;
-        int onsite = 0;
-        int parent_pid;
-        int status;
-        struct ifaddrs *ifap, *ifscan;
-
-        if (_locked) {
-            std::cerr << "ifdh bug: lock() called when already locked\n";
-            return;
-        }
-
-        // check if we're onsite -- don't get locks if not 
-        // Just check for 131.225.* or 2620:6a:0:*
-        
-        if (0 == getifaddrs(&ifap)) {
-           ifdh::_debug && cerr << "Got addrs...\n";
-           for( ifscan = ifap; ifscan ; ifscan = ifscan->ifa_next) {
-               if( ifscan->ifa_addr->sa_family == AF_INET && ifscan->ifa_addr->sa_data[2] == (char)131  && ifscan->ifa_addr->sa_data[3] == (char)225) {
-                   ifdh::_debug && cerr << "Saw ipv4 for Fermilab: onsite\n";
-                   onsite = 1;
-               }
-               if( ifscan->ifa_addr->sa_family == AF_INET6 && ifscan->ifa_addr->sa_data[6] == 0x26  && ifscan->ifa_addr->sa_data[7] == 0x20 && ifscan->ifa_addr->sa_data[8] == 0x0 && ifscan->ifa_addr->sa_data[9] == 0x6a && ifscan->ifa_addr->sa_data[10] == 0x0 && ifscan->ifa_addr->sa_data[11] == 0x0 ) {
-                   ifdh::_debug && cerr << "Saw ipv6 for Fermilab: onsite\n";
-                   onsite = 1;
-               }
-           }
-           freeifaddrs(ifap);
-           if (!onsite) {
-              return;
-           }
-        }
-
-        if (!getenv("CPN_DIR") || 0 != access(getenv("CPN_DIR"),R_OK)) {
-            return;
-        }
-
-	// call lock, skip to last line 
-	pf = popen("exec $CPN_DIR/bin/lock","r");
-	while (!feof(pf) && !ferror(pf)) {
-            if (fgets(buf, 512, pf)) {
-                fputs(buf,stderr);
-                fflush(stderr);
-            }
-	}
-        if (ferror(pf)) {
-	    pclose(pf);
-	    throw( std::logic_error("Could not get CPN lock: error reading lock output"));
-        }
-	status = pclose(pf);
-        if (WIFSIGNALED(status)) throw( std::logic_error("signalled while  getting lock"));
-
-	// pick lockfile name out of last line
-	std::string lockfilename(buf);
-	size_t pos = lockfilename.rfind(' ');
-	lockfilename = lockfilename.substr(pos+1);
-
-        // trim newline
-	lockfilename = lockfilename.substr(0,lockfilename.length()-1);
-
-	// kick off a backround thread to update the
-	// lock file every minute that we're still running
-
-	if ( lockfilename[0] != '/' || 0 != access(lockfilename.c_str(),W_OK)) {
-	    throw( std::logic_error("Could not get CPN lock."));
-	}
-     
-        _locked = 1;
-	_heartbeat_pid = fork();
-	if (_heartbeat_pid == 0) {
-	    parent_pid = getppid();
-	    while( 0 == kill(parent_pid, 0) ) {
-                // touch our lockfile
-		if ( 0 != utimes(lockfilename.c_str(), NULL)) {
-                    perror("Lockfile touch failed");
-                    exit(1);
-                }
-		sleep(60);
-	    }
-	    exit(0);
-	}
+    if (_locked) {
+        std::cerr << "ifdh bug: lock() called when already locked\n";
+        return;
     }
 
-    void
-    free() {
-        int res, res2;
-        if (!getenv("CPN_DIR") || 0 != access(getenv("CPN_DIR"),R_OK)) {
-            return;
-        }
-        if (_heartbeat_pid < 0) {
-            return;
-        }
-        kill(_heartbeat_pid, 9);
-        waitpid(_heartbeat_pid, &res, 0);
-        res2 = system("exec $CPN_DIR/bin/lock free >&2");
-        _heartbeat_pid = -1;
-        _locked = 0;
-        if (!((WIFSIGNALED(res) && 9 == WTERMSIG(res)) || (WIFEXITED(res) &&WEXITSTATUS(res)==0))) {
-            stringstream basemessage;
-            basemessage <<"lock touch process exited code " << res << " signalled: " << WIFSIGNALED(res) << " signal: " << WTERMSIG(res);
-            throw( std::logic_error(basemessage.str()));
-        }
-        if (WIFSIGNALED(res2)) {
-            throw( std::logic_error("signalled while doing srmping"));
-        }
-    }
-
-    cpn_lock() : _heartbeat_pid(-1), _locked(0) { ; }
- 
-    ~cpn_lock()  {
-
-       if (_heartbeat_pid != -1) {
-           free();
+    // check if we're onsite -- don't get locks if not 
+    // Just check for 131.225.* or 2620:6a:0:*
+    
+    if (0 == getifaddrs(&ifap)) {
+       ifdh::_debug && cerr << "Got addrs...\n";
+       for( ifscan = ifap; ifscan ; ifscan = ifscan->ifa_next) {
+           if( ifscan->ifa_addr->sa_family == AF_INET && ifscan->ifa_addr->sa_data[2] == (char)131  && ifscan->ifa_addr->sa_data[3] == (char)225) {
+               ifdh::_debug && cerr << "Saw ipv4 for Fermilab: onsite\n";
+               onsite = 1;
+           }
+           if( ifscan->ifa_addr->sa_family == AF_INET6 && ifscan->ifa_addr->sa_data[6] == 0x26  && ifscan->ifa_addr->sa_data[7] == 0x20 && ifscan->ifa_addr->sa_data[8] == 0x0 && ifscan->ifa_addr->sa_data[9] == 0x6a && ifscan->ifa_addr->sa_data[10] == 0x0 && ifscan->ifa_addr->sa_data[11] == 0x0 ) {
+               ifdh::_debug && cerr << "Saw ipv6 for Fermilab: onsite\n";
+               onsite = 1;
+           }
+       }
+       freeifaddrs(ifap);
+       if (!onsite) {
+          return;
        }
     }
-};
+
+    if (!getenv("CPN_DIR") || 0 != access(getenv("CPN_DIR"),R_OK)) {
+        return;
+    }
+
+    // call lock, skip to last line 
+    pf = popen("exec $CPN_DIR/bin/lock","r");
+    while (!feof(pf) && !ferror(pf)) {
+        if (fgets(buf, 512, pf)) {
+            fputs(buf,stderr);
+            fflush(stderr);
+        }
+    }
+    if (ferror(pf)) {
+        pclose(pf);
+        throw( std::logic_error("Could not get CPN lock: error reading lock output"));
+    }
+    status = pclose(pf);
+    if (WIFSIGNALED(status)) throw( std::logic_error("signalled while  getting lock"));
+
+    // pick lockfile name out of last line
+    std::string lockfilename(buf);
+    size_t pos = lockfilename.rfind(' ');
+    lockfilename = lockfilename.substr(pos+1);
+
+    // trim newline
+    lockfilename = lockfilename.substr(0,lockfilename.length()-1);
+
+    // kick off a backround thread to update the
+    // lock file every minute that we're still running
+
+    if ( lockfilename[0] != '/' || 0 != access(lockfilename.c_str(),W_OK)) {
+        throw( std::logic_error("Could not get CPN lock."));
+    }
+ 
+    _locked = 1;
+    _heartbeat_pid = fork();
+    if (_heartbeat_pid == 0) {
+        parent_pid = getppid();
+        while( 0 == kill(parent_pid, 0) ) {
+            // touch our lockfile
+            if ( 0 != utimes(lockfilename.c_str(), NULL)) {
+                perror("Lockfile touch failed");
+                exit(1);
+            }
+            sleep(60);
+        }
+        exit(0);
+    }
+}
+
+void
+cpn_lock::free() {
+    int res, res2;
+    if (!getenv("CPN_DIR") || 0 != access(getenv("CPN_DIR"),R_OK)) {
+        return;
+    }
+    if (_heartbeat_pid < 0) {
+        return;
+    }
+    kill(_heartbeat_pid, 9);
+    waitpid(_heartbeat_pid, &res, 0);
+    res2 = system("exec $CPN_DIR/bin/lock free >&2");
+    _heartbeat_pid = -1;
+    _locked = 0;
+    if (!((WIFSIGNALED(res) && 9 == WTERMSIG(res)) || (WIFEXITED(res) &&WEXITSTATUS(res)==0))) {
+        stringstream basemessage;
+        basemessage <<"lock touch process exited code " << res << " signalled: " << WIFSIGNALED(res) << " signal: " << WTERMSIG(res);
+        throw( std::logic_error(basemessage.str()));
+    }
+    if (WIFSIGNALED(res2)) {
+        throw( std::logic_error("signalled while doing srmping"));
+    }
+}
+
+cpn_lock::cpn_lock() : _heartbeat_pid(-1), _locked(0) { ; }
+
+cpn_lock::~cpn_lock()  {
+
+   if (_heartbeat_pid != -1) {
+       free();
+   }
+}
 
 std::vector<std::string> expandfile( std::string fname, std::vector<std::string> oldargs, unsigned int oldcount, unsigned int oldcount2) {
   std::vector<std::string> res;
@@ -1578,7 +1568,8 @@ ifdh::ll( std::string loc, int recursion_depth, std::string force) {
 
     _debug && std::cerr << "ifdh ll: running: " << cmd << endl;
 
-    int status = system(cmd.c_str());
+    cpn_lock locker;
+    int status = retry_system(cmd.c_str(), 0, locker,1);
 
     if (WIFSIGNALED(status)) throw( std::logic_error("signalled while doing ll"));
     return WEXITSTATUS(status);
@@ -1914,7 +1905,8 @@ ifdh::rm(string loc, string force) {
 
     _debug && std::cerr << "running: " << cmd << endl;
 
-    int status = system(cmd.c_str());
+    cpn_lock locker;
+    int status = retry_system(cmd.c_str(), 0, locker,1);
     if (WIFSIGNALED(status)) throw( std::logic_error("signalled while doing rm"));
     if (WIFEXITED(status) && WEXITSTATUS(status) != 0) throw( std::logic_error("rm failed"));
     return 0;
@@ -1931,7 +1923,8 @@ ifdh::rmdir(string loc, string force) {
 
     _debug && std::cerr << "running: " << cmd << endl;
 
-    int status = system(cmd.c_str());
+    cpn_lock locker;
+    int status = retry_system(cmd.c_str(), 0, locker,1);
     if (WIFSIGNALED(status)) throw( std::logic_error("signalled while doing rm"));
     if (WIFEXITED(status) && WEXITSTATUS(status) != 0) throw( std::logic_error("rm failed"));
     return 0;
@@ -1996,7 +1989,8 @@ ifdh::chmod(string mode, string loc, string force) {
 
     _debug && std::cerr << "running: " << cmd << endl;
 
-    int status = system(cmd.c_str());
+    cpn_lock locker;
+    int status = retry_system(cmd.c_str(), 0, locker,1);
 
     if (WIFSIGNALED(status)) throw( std::logic_error("signalled while doing chmod"));
     // if (WIFEXITED(status) && WEXITSTATUS(status) != 0) throw( std::logic_error("chmod failed"));
@@ -2018,7 +2012,8 @@ ifdh::pin(string loc, long int secs) {
 
     _debug && std::cerr << "running: " << cmd << endl;
 
-    int status = system(cmd.c_str());
+    cpn_lock locker;
+    int status = retry_system(cmd.c_str(), 0, locker,1);
 
     if (WIFSIGNALED(status)) throw( std::logic_error("signalled while doing pin"));
     // if (WIFEXITED(status) && WEXITSTATUS(status) != 0) throw( std::logic_error("rmdir failed"));
@@ -2043,7 +2038,9 @@ ifdh::rename(string loc, string loc2, string force) {
 
     _debug && cerr << "running: " << cmd << endl;
 
-    int status = system(cmd.c_str());
+    cpn_lock locker;
+    int status = retry_system(cmd.c_str(), 0, locker,1);
+
     if (WIFSIGNALED(status)) throw( logic_error("signalled while doing rename"));
     //if (WIFEXITED(status) && WEXITSTATUS(status) != 0) throw( logic_error("rename failed"));
     return WEXITSTATUS(status);

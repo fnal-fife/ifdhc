@@ -23,9 +23,22 @@ fixargs() {
 }
 
 else=""
+sawclass=false
 while read type func args 
 do
     fixargs $args
+
+    if [ "$type" = 'class' -a "$func" = "ifdh" ]
+    then
+        sawclass=true
+    fi
+
+    if $sawclass
+    then
+        :
+    else
+        continue
+    fi
 
     docall=false
     echo "DEBUG: line " $type "||" $func "||" $args >&2

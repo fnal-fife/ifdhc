@@ -288,12 +288,12 @@ WebAPI::WebAPI(std::string url, int postflag, std::string postdata) throw(WebAPI
          std::string user;
          struct passwd *ppasswd = getpwuid(getuid());
 
-         if(ppasswd) 
-            user = ppasswd->pw_name;
-         else if (getenv("GRID_USER"))
+         if (getenv("GRID_USER"))
             user = getenv("GRID_USER");
          else if (getenv("USER"))
             user = getenv("USER");
+         else if(ppasswd) 
+            user = ppasswd->pw_name;
          else
             user = "unknown";
 

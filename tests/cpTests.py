@@ -709,9 +709,9 @@ class ifdh_cp_cases(unittest.TestCase):
         print "CPN_DIR is " , os.environ['CPN_DIR']
         print "dest is", self.blue_data_dir
         self.ifdh_handle.mkdir_p(self.blue_data_dir)
-        os.system("CPN_LOCK_GROUP=gpcf ifdh cp -D %s %s >out 2>&1" % ( ' '.join(args), self.blue_data_dir))
-        os.system("echo '==========';cat out;echo '============='")
-        f = open("out","r")
+        os.system("CPN_LOCK_GROUP=gpcf ifdh cp -D %s %s >out 2>err" % ( ' '.join(args), self.blue_data_dir))
+        os.system("echo '==== out ======';cat out;echo '============='")
+        f = open("err","r")
         locks = 0
         frees = 0
         for line in f:

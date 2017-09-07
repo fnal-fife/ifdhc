@@ -919,7 +919,7 @@ ifdh::retry_system(const char *cmd_str, int error_expected, cpn_lock &locker, in
         while( !errfile.eof() && !errfile.fail()) {
            getline(errfile, line);
            _errortxt = _errortxt + line;
-           std::cerr << line;
+           // std::cerr << line;
         }
         errfile.close();
         if (res != 0 && error_expected) {

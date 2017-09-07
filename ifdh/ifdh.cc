@@ -519,7 +519,6 @@ ifdh::do_url_int(int postflag, ...) {
        res = wap->getStatus() - 200;
     } catch( exception &e )  {
        _errortxt = e.what();
-       std::cerr << "Exception: " << _errortxt;
        res = 300;
     }
     if (ifdh::_debug) std::cerr << "got back int result: " << res << "\n";
@@ -546,7 +545,6 @@ ifdh::do_url_str(int postflag,...) {
 	}
     } catch( exception &e )  {
        _errortxt = e.what();
-       std::cerr << "Exception: " << _errortxt;
        return "";
     }
     if (ifdh::_debug) std::cerr << "got back string result: " << res << "\n";
@@ -571,7 +569,6 @@ ifdh::do_url_lst(int postflag,...) {
 	}
     } catch( exception &e )  {
        _errortxt = e.what();
-       std::cerr << "Exception: " << _errortxt;
        return empty;
     }
     return res;

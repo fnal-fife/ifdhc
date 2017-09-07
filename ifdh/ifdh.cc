@@ -545,6 +545,9 @@ ifdh::do_url_str(int postflag,...) {
 	}
     } catch( exception &e )  {
        _errortxt = e.what();
+       if (!getenv("IFDH_SILENT") || !atoi(getenv("IFDH_SILENT"))) {
+           std::cerr << "Exception: " << _errortxt;
+       }
        return "";
     }
     if (ifdh::_debug) std::cerr << "got back string result: " << res << "\n";

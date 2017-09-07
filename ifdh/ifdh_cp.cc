@@ -919,7 +919,9 @@ ifdh::retry_system(const char *cmd_str, int error_expected, cpn_lock &locker, in
         while( !errfile.eof() && !errfile.fail()) {
            getline(errfile, line);
            _errortxt = _errortxt + line;
-           std::cerr << line;
+           if (!getenv("IFDH_SILENT") || !atoi(getenv("IFDH_SILENT"))) {
+              std::cerr << line;
+           }
         }
         errfile.close();
         if (res != 0 && error_expected) {
@@ -2017,6 +2019,10 @@ ifdh::chmod(string mode, string loc, string force) {
     pick_proto_path(loc, force, proto, fullurl, lookup_proto);
    
     std::string cmd     = _config.get(lookup_proto, "chmod_cmd");
+    if (cmd.size() == 0) {
+        std::cerr << "missing chmod_cmd in [" << lookup_proto << "] in ifdh.cfg\n";
+        return 1;
+    }
 
 
     cmd.replace(cmd.find("%(src)s"), 7, fullurl);
@@ -2054,6 +2060,10 @@ ifdh::pin(string loc, long int secs) {
     pick_proto_path(loc, "srm:", proto, fullurl, lookup_proto);
    
     std::string cmd     = _config.get(lookup_proto, "pin_cmd");
+    if (cmd.size() == 0) {
+        std::cerr << "missing pin_cmd in [" << lookup_proto << "] in ifdh.cfg\n";
+        return 1;
+    }
 
     cmd.replace(cmd.find("%(src)s"), 7, fullurl);
     secsbuf << secs;

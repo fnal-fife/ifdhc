@@ -108,7 +108,15 @@ ifdh::lookup_loc(std::string url) {
         regmatch m(pre(url));
         if (m) {
             std::string lookup = "prefix " + s;
+            if (!_config.has_section(lookup)) {
+                ifdh::_debug && cerr << "Note: missing [" << lookup << "] stanza in ifdh.cfg\n";
+                continue;
+            }
             std::string location = _config.get(lookup, "location");
+            if (!location.size()) {
+                ifdh::_debug && cerr << "Note: missing 'location' in  [" << lookup << "] in ifdh.cfg\n";
+                continue;
+            }
             int slashstrip = _config.getint(lookup, "slashstrip");
             res.location = location;
             res.path = url;
@@ -225,136 +233,126 @@ extern std::string datadir();
 
 // file io
 
-class cpn_lock {
+int
+cpn_lock::locked() { return _locked; }
 
-private:
+void
+cpn_lock::lock() {
+    char buf[512];
+    FILE *pf;
+    int onsite = 0;
+    int parent_pid;
+    int status;
+    struct ifaddrs *ifap, *ifscan;
 
-    int _heartbeat_pid;
-    int _locked;
-
-public:
-
-    int
-    locked() { return _locked; }
-
-    void
-    lock() {
-	char buf[512];
-	FILE *pf;
-        int onsite = 0;
-        int parent_pid;
-        int status;
-        struct ifaddrs *ifap, *ifscan;
-
-        if (_locked) {
-            std::cerr << "ifdh bug: lock() called when already locked\n";
-            return;
-        }
-
-        // check if we're onsite -- don't get locks if not 
-        // Just check for 131.225.* or 2620:6a:0:*
-        
-        if (0 == getifaddrs(&ifap)) {
-           ifdh::_debug && cerr << "Got addrs...\n";
-           for( ifscan = ifap; ifscan ; ifscan = ifscan->ifa_next) {
-               if( ifscan->ifa_addr->sa_family == AF_INET && ifscan->ifa_addr->sa_data[2] == (char)131  && ifscan->ifa_addr->sa_data[3] == (char)225) {
-                   ifdh::_debug && cerr << "Saw ipv4 for Fermilab: onsite\n";
-                   onsite = 1;
-               }
-               if( ifscan->ifa_addr->sa_family == AF_INET6 && ifscan->ifa_addr->sa_data[6] == 0x26  && ifscan->ifa_addr->sa_data[7] == 0x20 && ifscan->ifa_addr->sa_data[8] == 0x0 && ifscan->ifa_addr->sa_data[9] == 0x6a && ifscan->ifa_addr->sa_data[10] == 0x0 && ifscan->ifa_addr->sa_data[11] == 0x0 ) {
-                   ifdh::_debug && cerr << "Saw ipv6 for Fermilab: onsite\n";
-                   onsite = 1;
-               }
-           }
-           freeifaddrs(ifap);
-           if (!onsite) {
-              return;
-           }
-        }
-
-        if (!getenv("CPN_DIR") || 0 != access(getenv("CPN_DIR"),R_OK)) {
-            return;
-        }
-
-	// call lock, skip to last line 
-	pf = popen("exec $CPN_DIR/bin/lock","r");
-	while (!feof(pf) && !ferror(pf)) {
-            if (fgets(buf, 512, pf)) {
-                fputs(buf,stderr);
-                fflush(stderr);
-            }
-	}
-        if (ferror(pf)) {
-	    pclose(pf);
-	    throw( std::logic_error("Could not get CPN lock: error reading lock output"));
-        }
-	status = pclose(pf);
-        if (WIFSIGNALED(status)) throw( std::logic_error("signalled while  getting lock"));
-
-	// pick lockfile name out of last line
-	std::string lockfilename(buf);
-	size_t pos = lockfilename.rfind(' ');
-	lockfilename = lockfilename.substr(pos+1);
-
-        // trim newline
-	lockfilename = lockfilename.substr(0,lockfilename.length()-1);
-
-	// kick off a backround thread to update the
-	// lock file every minute that we're still running
-
-	if ( lockfilename[0] != '/' || 0 != access(lockfilename.c_str(),W_OK)) {
-	    throw( std::logic_error("Could not get CPN lock."));
-	}
-     
-        _locked = 1;
-	_heartbeat_pid = fork();
-	if (_heartbeat_pid == 0) {
-	    parent_pid = getppid();
-	    while( 0 == kill(parent_pid, 0) ) {
-                // touch our lockfile
-		if ( 0 != utimes(lockfilename.c_str(), NULL)) {
-                    perror("Lockfile touch failed");
-                    exit(1);
-                }
-		sleep(60);
-	    }
-	    exit(0);
-	}
+    if (_locked) {
+        std::cerr << "ifdh bug: lock() called when already locked\n";
+        return;
     }
 
-    void
-    free() {
-        int res, res2;
-        if (!getenv("CPN_DIR") || 0 != access(getenv("CPN_DIR"),R_OK)) {
-            return;
-        }
-        if (_heartbeat_pid < 0) {
-            return;
-        }
-        kill(_heartbeat_pid, 9);
-        waitpid(_heartbeat_pid, &res, 0);
-        res2 = system("exec $CPN_DIR/bin/lock free >&2");
-        _heartbeat_pid = -1;
-        _locked = 0;
-        if (!((WIFSIGNALED(res) && 9 == WTERMSIG(res)) || (WIFEXITED(res) &&WEXITSTATUS(res)==0))) {
-            stringstream basemessage;
-            basemessage <<"lock touch process exited code " << res << " signalled: " << WIFSIGNALED(res) << " signal: " << WTERMSIG(res);
-            throw( std::logic_error(basemessage.str()));
-        }
-        if (WIFSIGNALED(res2)) {
-            throw( std::logic_error("signalled while doing srmping"));
-        }
-    }
-
-    cpn_lock() : _heartbeat_pid(-1), _locked(0) { ; }
- 
-    ~cpn_lock()  {
-
-       if (_heartbeat_pid != -1) {
-           free();
+    // check if we're onsite -- don't get locks if not 
+    // Just check for 131.225.* or 2620:6a:0:*
+    
+    if (0 == getifaddrs(&ifap)) {
+       ifdh::_debug && cerr << "Got addrs...\n";
+       for( ifscan = ifap; ifscan ; ifscan = ifscan->ifa_next) {
+           if( ifscan->ifa_addr->sa_family == AF_INET && ifscan->ifa_addr->sa_data[2] == (char)131  && ifscan->ifa_addr->sa_data[3] == (char)225) {
+               ifdh::_debug && cerr << "Saw ipv4 for Fermilab: onsite\n";
+               onsite = 1;
+           }
+           if( ifscan->ifa_addr->sa_family == AF_INET6 && ifscan->ifa_addr->sa_data[6] == 0x26  && ifscan->ifa_addr->sa_data[7] == 0x20 && ifscan->ifa_addr->sa_data[8] == 0x0 && ifscan->ifa_addr->sa_data[9] == 0x6a && ifscan->ifa_addr->sa_data[10] == 0x0 && ifscan->ifa_addr->sa_data[11] == 0x0 ) {
+               ifdh::_debug && cerr << "Saw ipv6 for Fermilab: onsite\n";
+               onsite = 1;
+           }
+       }
+       freeifaddrs(ifap);
+       if (!onsite) {
+          return;
        }
     }
-};
+
+    if (!getenv("CPN_DIR") || 0 != access(getenv("CPN_DIR"),R_OK)) {
+        return;
+    }
+
+    // call lock, skip to last line 
+    pf = popen("exec $CPN_DIR/bin/lock","r");
+    while (!feof(pf) && !ferror(pf)) {
+        if (fgets(buf, 512, pf)) {
+            fputs(buf,stderr);
+            fflush(stderr);
+        }
+    }
+    if (ferror(pf)) {
+        pclose(pf);
+        throw( std::logic_error("Could not get CPN lock: error reading lock output"));
+    }
+    status = pclose(pf);
+    if (WIFSIGNALED(status)) throw( std::logic_error("signalled while  getting lock"));
+
+    // pick lockfile name out of last line
+    std::string lockfilename(buf);
+    size_t pos = lockfilename.rfind(' ');
+    lockfilename = lockfilename.substr(pos+1);
+
+    // trim newline
+    lockfilename = lockfilename.substr(0,lockfilename.length()-1);
+
+    // kick off a backround thread to update the
+    // lock file every minute that we're still running
+
+    if ( lockfilename[0] != '/' || 0 != access(lockfilename.c_str(),W_OK)) {
+        throw( std::logic_error("Could not get CPN lock."));
+    }
+ 
+    _locked = 1;
+    _heartbeat_pid = fork();
+    if (_heartbeat_pid == 0) {
+        parent_pid = getppid();
+        while( 0 == kill(parent_pid, 0) ) {
+            // touch our lockfile
+            if ( 0 != utimes(lockfilename.c_str(), NULL)) {
+                perror("Lockfile touch failed");
+                exit(1);
+            }
+            sleep(60);
+        }
+        exit(0);
+    }
+}
+
+void
+cpn_lock::free() {
+    int res, res2;
+    if (!getenv("CPN_DIR") || 0 != access(getenv("CPN_DIR"),R_OK)) {
+        return;
+    }
+    if (_heartbeat_pid < 0) {
+        return;
+    }
+    kill(_heartbeat_pid, 9);
+    waitpid(_heartbeat_pid, &res, 0);
+    res2 = system("exec $CPN_DIR/bin/lock free >&2");
+    _heartbeat_pid = -1;
+    _locked = 0;
+    if (!((WIFSIGNALED(res) && 9 == WTERMSIG(res)) || (WIFEXITED(res) &&WEXITSTATUS(res)==0))) {
+        stringstream basemessage;
+        basemessage <<"lock touch process exited code " << res << " signalled: " << WIFSIGNALED(res) << " signal: " << WTERMSIG(res);
+        throw( std::logic_error(basemessage.str()));
+    }
+    if (WIFSIGNALED(res2)) {
+        throw( std::logic_error("signalled while doing srmping"));
+    }
+}
+
+cpn_lock::cpn_lock() : _heartbeat_pid(-1), _locked(0) { ; }
+
+cpn_lock::~cpn_lock()  {
+
+   if (_heartbeat_pid != -1) {
+       free();
+   }
+}
 
 std::vector<std::string> expandfile( std::string fname, std::vector<std::string> oldargs, unsigned int oldcount, unsigned int oldcount2) {
   std::vector<std::string> res;
@@ -639,6 +637,9 @@ get_grid_credentials_if_needed() {
             stringstream numbuf;
             numbuf << i;
             std::string match(ifdh::_config.get("experiment_vo", "match"+numbuf.str()));
+            if (match.size() == 0) {
+                continue;
+            }
             regexp exre(match);
             std::string repl(ifdh::_config.get("experiment_vo","repl"+numbuf.str()));
             regmatch m1(exre(experiment));
@@ -853,6 +854,7 @@ ifdh::retry_system(const char *cmd_str, int error_expected, cpn_lock &locker, in
     int delay;
     int dolock = locker.locked();
     std::string cmd_str_string;
+    std::string line;
     if (maxtries == -1) {
         if (0 != getenv("IFDH_CP_MAXRETRIES")) {
             maxtries = atoi(getenv("IFDH_CP_MAXRETRIES")) + 1;
@@ -861,12 +863,35 @@ ifdh::retry_system(const char *cmd_str, int error_expected, cpn_lock &locker, in
         }
     }
 
+    //
+    // we need to collect the error string, so some redirection silliness...
+    //
+    cmd_str_string = cmd_str;
+    std::stringstream pidbuf;
+    pidbuf << localPath("errtxt");
+    cmd_str_string = cmd_str_string + " 2>%(pidfile)s";
+    cmd_str_string.replace(cmd_str_string.find("%(pidfile)s"), 11, pidbuf.str());
+    cmd_str = cmd_str_string.c_str();
+
+    ifdh::_debug && std::cerr << "here: after err redirect: "  << cmd_str << "\n";
+
+    _errortxt.clear();
 
     while( res != 0 && tries < maxtries ) {
         std::vector<std::string> rot_list = _config.getlist("general","rotations");
         for (size_t i = 0; i < rot_list.size(); i++ ) {
             std::string section = std::string("rotation ")+rot_list[i];
+            if (! _config.has_section(section)) {
+                
+                ifdh::_debug && cerr << "Note: missing [" << section << "] stanza in ifdh.cfg\n";
+                continue;
+            }
             std::string door_regex = _config.get(section, "door_repl_re");
+            if (! door_regex.size()) {
+                
+                ifdh::_debug && cerr << "Note: 'door_repl_re' missing from  [" << section << "] stanza in ifdh.cfg\n";
+                continue;
+            }
             std::string door_url =   _config.get(section, "lookup_door_uri");
             std::string door_proto = _config.get(section, "door_proto");
             std::vector<std::string> def_doors = _config.getlist(section, "default_doors");
@@ -874,8 +899,6 @@ ifdh::retry_system(const char *cmd_str, int error_expected, cpn_lock &locker, in
             _debug && cerr << "trying rotation: " << rot_list[i] << "\n";
 
             regexp door_re(door_regex);
-
-	    cmd_str_string = cmd_str;
 
 	    if (0 != door_re(cmd_str_string)) {
 	       get_another_dcache_door(cmd_str_string, door_regex, door_url, door_proto, def_doors );   
@@ -890,6 +913,17 @@ ifdh::retry_system(const char *cmd_str, int error_expected, cpn_lock &locker, in
             std::cerr << "program: " << cmd_str<< " died from signal " << WTERMSIG(res) << "-- exiting.\n";
             exit(-1);
         }
+
+        std::ifstream errfile(pidbuf.str().c_str());
+
+        while( !errfile.eof() && !errfile.fail()) {
+           getline(errfile, line);
+           _errortxt = _errortxt + line;
+           if (!getenv("IFDH_SILENT") || !atoi(getenv("IFDH_SILENT"))) {
+              std::cerr << line;
+           }
+        }
+        errfile.close();
         if (res != 0 && error_expected) {
            return res;
         }
@@ -1034,10 +1068,12 @@ ifdh::do_cp(CpPair &cpp, bool intermed_file_flag, bool recursive, cpn_lock &cpn)
         // command looks like:
         // cp_cmd=dd bs=512k %(extra)s if=%(src)s of=%(dst)s
 	extra_env = _config.get(lookup, "extra_env");
-        extra_env_val = getenv(extra_env.c_str());
-        if (extra_env_val && strlen(extra_env_val) == 0 ) {
-	    extra_env = _config.get(lookup, "extra_env_2");
+        if (extra_env.size()) {
             extra_env_val = getenv(extra_env.c_str());
+            if (extra_env_val && strlen(extra_env_val) == 0 ) {
+                extra_env = _config.get(lookup, "extra_env_2");
+                extra_env_val = getenv(extra_env.c_str());
+            }
         }
         if (_config.getint(lookup, "need_proxy") ) {
 	    get_grid_credentials_if_needed();
@@ -1490,6 +1526,10 @@ ifdh::pick_proto_path(std::string loc, std::string force, std::string &proto, st
        proto = src.proto;
     } else {
         protos = _config.get("location "+src.location,"protocols");
+        if (protos.size() == 0) {
+            std::cerr << "no 'protocols' in [location " + src.location + "] stanza in ifdh.cfg\n";
+            protos = "file: gsiftp:";  /* guess -- but most common */
+        }
         ifdh::_debug && std::cerr << "location " <<  src.location << " protocols: " << protos << "\n";
         std::vector<std::string> plist = split(protos, ' ');
         // don't use file: if its not visible..
@@ -1522,6 +1562,11 @@ ifdh::ll( std::string loc, int recursion_depth, std::string force) {
     std::string cmd    = _config.get(lookup_proto, "ll_cmd");
     std::string r, recursive;
     std::stringstream rdbuf;
+
+    if (cmd.size() == 0) {
+        std::cerr << "no 'll_cmd' in [" << lookup_proto << "] stanza of ifdh.cfg\n";
+        return 1;
+    }
 
     // handle default param
     if (recursion_depth == -1) {
@@ -1556,7 +1601,8 @@ ifdh::ll( std::string loc, int recursion_depth, std::string force) {
 
     _debug && std::cerr << "ifdh ll: running: " << cmd << endl;
 
-    int status = system(cmd.c_str());
+    cpn_lock locker;
+    int status = retry_system(cmd.c_str(), 0, locker,1);
 
     if (WIFSIGNALED(status)) throw( std::logic_error("signalled while doing ll"));
     return WEXITSTATUS(status);
@@ -1592,6 +1638,11 @@ ifdh::lss( std::string loc, int recursion_depth, std::string force) {
 
     std::string lss_cmd     = _config.get(lookup_proto, "lss_cmd");
     std::string lss_re1_str = _config.get(lookup_proto, "lss_re1");
+
+    if (lss_cmd.size() == 0 || lss_re1_str.size() == 0) {
+        std::cerr << "Missing lss_cmd or lss_re1 in [" << lookup_proto << "] stanza in ifdh.cfg\n";
+        return res;
+    }
     std::string lss_re2_str = _config.get(lookup_proto, "lss_re2");
     _debug && std::cerr << "re1: " << lss_re1_str << "\n";
     _debug && std::cerr << "re2: " << lss_re2_str << "\n";
@@ -1806,22 +1857,40 @@ int count_slashes(std::string loc) {
 
 int
 ifdh::mkdir_p(string loc, string force, int depth) {
+   int m;
    _debug && cerr << "mkdir_p(" << loc << "," << force << "," << "," << depth << ")\n";
    if (depth == -1) {
       // we weren't given a depth, assume first 3 dirs
       // from root must exist -- i.e /nova/app/users or
       // /pnfs/experiment/scratch...
       depth = count_slashes(loc) - 3;
+      // special case for /tmp, we can mkdir right at /tmp
+      if (loc.find("/tmp") <= 5) {
+         depth = depth + 2;
+      }
       _debug && cerr << "mkdir_l: depth is " << depth << "\n";
    }
+
    if (depth == 0) {
       return 0;
    }
 
-   std::vector<std::string> res = ls(loc, 0, force);
-   if (res.size() == 0) {
-      int m;
-      // parent does not exist
+   try {
+      m = mkdir(loc, force);
+   } catch (exception e) {
+      m = -1;
+   }
+
+   //
+   // if we succeeded, or we failed with a File exists error, we're done!
+   //
+   _debug && std::cerr << "checking error text: " << _errortxt << "\n";
+
+   if (m == 0 || string::npos != _errortxt.find("File exists")) {
+      return 0;
+
+   } else {
+      // try to make the parent directory first, and retry.
       mkdir_p(parent_dir(loc), force, depth - 1 );
       try {
          m = mkdir(loc, force);
@@ -1829,18 +1898,22 @@ ifdh::mkdir_p(string loc, string force, int depth) {
          m = -1;
       }
       return m;
-   } else {
-      return 0;
    }
 }
 
+
 int
-ifdh::mkdir(string loc, string force) {
+ifdh::mkdir(string loc, string force ) {
     std::string fullurl, proto, lookup_proto;
     pick_proto_path(loc, force, proto, fullurl, lookup_proto);
     int retries;
    
     std::string cmd     = _config.get(lookup_proto, "mkdir_cmd");
+
+    if (cmd.size() == 0) {
+        std::cerr << "missing mkdir_cmd in [" << lookup_proto << "] in ifdh.cfg\n";
+        return 1;
+    }
 
     cmd.replace(cmd.find("%(src)s"), 7, fullurl);
 
@@ -1854,6 +1927,8 @@ ifdh::mkdir(string loc, string force) {
     }
     cpn_lock locker;
     int status = retry_system(cmd.c_str(), 0, locker,retries+1);
+
+
     if (WIFSIGNALED(status)) {
       // throw( std::logic_error("signalled while doing mkdir"));
       return -1;
@@ -1868,12 +1943,17 @@ ifdh::rm(string loc, string force) {
     pick_proto_path(loc, force, proto, fullurl, lookup_proto);
    
     std::string cmd     = _config.get(lookup_proto, "rm_cmd");
+    if (cmd.size() == 0) {
+        std::cerr << "missing rm_cmd in [" << lookup_proto << "] in ifdh.cfg\n";
+        return 1;
+    }
 
     cmd.replace(cmd.find("%(src)s"), 7, fullurl);
 
     _debug && std::cerr << "running: " << cmd << endl;
 
-    int status = system(cmd.c_str());
+    cpn_lock locker;
+    int status = retry_system(cmd.c_str(), 0, locker,1);
     if (WIFSIGNALED(status)) throw( std::logic_error("signalled while doing rm"));
     if (WIFEXITED(status) && WEXITSTATUS(status) != 0) throw( std::logic_error("rm failed"));
     return 0;
@@ -1885,12 +1965,17 @@ ifdh::rmdir(string loc, string force) {
     pick_proto_path(loc, force, proto, fullurl, lookup_proto);
    
     std::string cmd     = _config.get(lookup_proto, "rmdir_cmd");
+    if (cmd.size() == 0) {
+        std::cerr << "missing rmdir_cmd in [" << lookup_proto << "] in ifdh.cfg\n";
+        return 1;
+    }
 
     cmd.replace(cmd.find("%(src)s"), 7, fullurl);
 
     _debug && std::cerr << "running: " << cmd << endl;
 
-    int status = system(cmd.c_str());
+    cpn_lock locker;
+    int status = retry_system(cmd.c_str(), 0, locker,1);
     if (WIFSIGNALED(status)) throw( std::logic_error("signalled while doing rm"));
     if (WIFEXITED(status) && WEXITSTATUS(status) != 0) throw( std::logic_error("rm failed"));
     return 0;
@@ -1934,6 +2019,10 @@ ifdh::chmod(string mode, string loc, string force) {
     pick_proto_path(loc, force, proto, fullurl, lookup_proto);
    
     std::string cmd     = _config.get(lookup_proto, "chmod_cmd");
+    if (cmd.size() == 0) {
+        std::cerr << "missing chmod_cmd in [" << lookup_proto << "] in ifdh.cfg\n";
+        return 1;
+    }
 
 
     cmd.replace(cmd.find("%(src)s"), 7, fullurl);
@@ -1955,7 +2044,8 @@ ifdh::chmod(string mode, string loc, string force) {
 
     _debug && std::cerr << "running: " << cmd << endl;
 
-    int status = system(cmd.c_str());
+    cpn_lock locker;
+    int status = retry_system(cmd.c_str(), 0, locker,1);
 
     if (WIFSIGNALED(status)) throw( std::logic_error("signalled while doing chmod"));
     // if (WIFEXITED(status) && WEXITSTATUS(status) != 0) throw( std::logic_error("chmod failed"));
@@ -1970,6 +2060,10 @@ ifdh::pin(string loc, long int secs) {
     pick_proto_path(loc, "srm:", proto, fullurl, lookup_proto);
    
     std::string cmd     = _config.get(lookup_proto, "pin_cmd");
+    if (cmd.size() == 0) {
+        std::cerr << "missing pin_cmd in [" << lookup_proto << "] in ifdh.cfg\n";
+        return 1;
+    }
 
     cmd.replace(cmd.find("%(src)s"), 7, fullurl);
     secsbuf << secs;
@@ -1977,7 +2071,8 @@ ifdh::pin(string loc, long int secs) {
 
     _debug && std::cerr << "running: " << cmd << endl;
 
-    int status = system(cmd.c_str());
+    cpn_lock locker;
+    int status = retry_system(cmd.c_str(), 0, locker,1);
 
     if (WIFSIGNALED(status)) throw( std::logic_error("signalled while doing pin"));
     // if (WIFEXITED(status) && WEXITSTATUS(status) != 0) throw( std::logic_error("rmdir failed"));
@@ -1996,13 +2091,19 @@ ifdh::rename(string loc, string loc2, string force) {
     }
    
     std::string cmd     = _config.get(lookup_proto, "mv_cmd");
+    if (cmd.size() == 0) {
+        std::cerr << "missing mv_cmd in [" << lookup_proto << "] in ifdh.cfg\n";
+        return 1;
+    }
 
     cmd.replace(cmd.find("%(src)s"), 7, fullurl);
     cmd.replace(cmd.find("%(dst)s"), 7, fullurl2);
 
     _debug && cerr << "running: " << cmd << endl;
 
-    int status = system(cmd.c_str());
+    cpn_lock locker;
+    int status = retry_system(cmd.c_str(), 0, locker,1);
+
     if (WIFSIGNALED(status)) throw( logic_error("signalled while doing rename"));
     //if (WIFEXITED(status) && WEXITSTATUS(status) != 0) throw( logic_error("rename failed"));
     return WEXITSTATUS(status);

@@ -285,7 +285,18 @@ WebAPI::WebAPI(std::string url, int postflag, std::string postdata) throw(WebAPI
             throw(WebAPIException(url,"BadURL: only http: and https: supported"));
          }
 
+         std::string user;
          struct passwd *ppasswd = getpwuid(getuid());
+
+         if (getenv("GRID_USER"))
+            user = getenv("GRID_USER");
+         else if (getenv("USER"))
+            user = getenv("USER");
+         else if(ppasswd) 
+            user = ppasswd->pw_name;
+         else
+            user = "unknown";
+
          char hostbuf[512];
          gethostname(hostbuf, 512);
 
@@ -294,7 +305,7 @@ WebAPI::WebAPI(std::string url, int postflag, std::string postdata) throw(WebAPI
 	 _debug && std::cerr << "sending: "<< method << pu.path << " HTTP/1.0\r\n";
 	 _tosite << "Host: " << pu.host << ":" << pu.port <<"\r\n";
 	 _debug && std::cerr << "sending header: " << "Host: " << pu.host << "\r\n";
-	 _tosite << "From: " << ppasswd->pw_name << "@" << hostbuf  <<"\r\n";
+	 _tosite << "From: " << user << "@" << hostbuf  <<"\r\n";
 	 _debug && std::cerr << "sending header: " << "From: " << ppasswd->pw_name << "@" << hostbuf << "\r\n";
 	 _tosite << "User-Agent: " << "WebAPI/" << IFDH_VERSION << "/Experiment/" << getexperiment() << "\r\n";
 	 _debug && std::cerr << "sending header: " << "User-Agent: " << "WebAPI/" << IFDH_VERSION << "/Experiment/" << getexperiment() << "\r\n";
@@ -453,7 +464,7 @@ test_WebAPI_fetchurl() {
 
 
    try {
-      WebAPI ds3("https://plone4.fnal.gov/P1/Main/");
+      WebAPI ds3("https://computing.fnal.gov/");
       while(!ds3.data().eof()) {
 	    getline(ds3.data(), line);
 

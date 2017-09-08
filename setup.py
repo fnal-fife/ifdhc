@@ -22,7 +22,7 @@ class ifdhBuild(build):
             'make',
             'all',
             'install',
-            'DESTDIR=%s' % build_path
+            'DESTDIR=%s/' % build_path
         ]
 
         def compile():
@@ -40,9 +40,9 @@ class ifdhBuild(build):
 
         if not self.dry_run:
             for target in target_files:
-                self.copy_file(target, self.build_lib)
+                self.copy_file('%s/%s' %(build_path, target), self.build_lib)
             for target in bin_target_files:
-                self.copy_file(target, bindir)
+                self.copy_file('%s/%s' %(build_path, target), bindir)
 
 
 class ifdhInstall(install):
@@ -55,14 +55,19 @@ class ifdhInstall(install):
         self.set_undefined_options('build', ('build_scripts', 'build_scripts'))
 
     def run(self):
-        # run original install code
-        install.run(self)
 
         # install ifdh executables
         self.copy_tree(self.build_lib, self.install_lib)
         print( "install/run self has: ", self.__dict__.keys())
 
         self.copy_tree(self.build_lib + '/../bin', self.install_base + '/bin')
+
+        # move where headers go for virtualenvs
+
+        self.install_headers = self.install_base + '/localinclude'
+
+        # run original install code
+        install.run(self)
 
 
 def read(fname):

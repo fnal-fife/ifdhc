@@ -7,9 +7,19 @@ import time
 import glob
 import sys
 from tempfile import NamedTemporaryFile
-
+try:
+   import configparser as ConfigParser
+except:
+   import ConfigParser
 
 base_uri_fmt = "http://samweb.fnal.gov:8480/sam/%s/api"
+
+# get our dcache host from the config file so we can test
+# alternate dcache instances...
+cp = ConfigParser.ConfigParser()
+cp.read(os.environ["IFDHC_CONFIG_DIR"]+"/ifdh.cfg")
+dcache_host = cp.get('location dcache_stken', 'prefix_gsiftp').replace("gsiftp://","").replace("/pnfs/fnal.gov/usr/","")
+
 
 class Skipped(EnvironmentError):
     pass
@@ -288,7 +298,7 @@ class ifdh_cp_cases(unittest.TestCase):
     def test_explicit_gsiftp__out(self):
         self.log(self._testMethodName)
         self.make_local_test_txt()
-        res = self.ifdh_handle.cp([ "%s/test.txt"%self.work, "gsiftp://fndca1.fnal.gov/%s/test.txt" % self.data_dir])
+        res = self.ifdh_handle.cp([ "%s/test.txt"%self.work, "gsiftp://%s/%s/test.txt" % (dcache_host, self.data_dir)])
         self.check_writable( "%s/test.txt" % self.data_dir)
         # shouldn't need this one, but we seem to?
         #list1 = self.ifdh_handle.ls(self.data_dir,1,"")
@@ -299,7 +309,7 @@ class ifdh_cp_cases(unittest.TestCase):
         self.log(self._testMethodName)
         self.make_remote_test_txt()
         self.list_remote_dir()
-        res = self.ifdh_handle.cp([ "gsiftp://fndca1.fnal.gov%s/test.txt" % self.data_dir, "%s/test.txt"%self.work])
+        res = self.ifdh_handle.cp([ "gsiftp://%s%s/test.txt" % (dcache_host,self.data_dir), "%s/test.txt"%(self.work)])
         self.assertEqual(res==0 and self.check_test_txt(), True, self._testMethodName)
 
     def test_expftp__out(self):
@@ -345,7 +355,7 @@ class ifdh_cp_cases(unittest.TestCase):
         self.log(self._testMethodName)
         self.make_local_test_txt()
         trim_dir =  self.data_dir.replace("/pnfs","")
-        dest = "srm://fndca1.fnal.gov:8443/srm/managerv2?SFN=/pnfs/fnal.gov/usr%s/test.txt" % trim_dir
+        dest = "srm://%s:8443/srm/managerv2?SFN=/pnfs/fnal.gov/usr%s/test.txt" % (dcache_host,trim_dir)
         self.ifdh_handle.cp([ "%s/test.txt"%self.work, dest])
         self.check_writable( "%s/test.txt" % self.data_dir)
         # shouldn't need this one, but we seem to?
@@ -355,7 +365,7 @@ class ifdh_cp_cases(unittest.TestCase):
         print "got list: " , list
         # some utilities give the directory *and* the file, so
         # prune the first item if it's a directory
-        if list[0][-1] == '/' and len(list) > 1:
+        if len(list) > 0 and list[0][-1] == '/' and len(list) > 1:
             list = list[1:]
         self.assertEqual(len(list),1, self._testMethodName) 
 
@@ -364,7 +374,7 @@ class ifdh_cp_cases(unittest.TestCase):
         self.list_remote_dir()
         self.make_remote_test_txt()
         trim_dir =  self.data_dir.replace("/pnfs","")
-        src = "srm://fndca1.fnal.gov:8443/srm/managerv2?SFN=/pnfs/fnal.gov/usr%s/test.txt" % trim_dir
+        src = "srm://%s:8443/srm/managerv2?SFN=/pnfs/fnal.gov/usr%s/test.txt" % (dcache_host, trim_dir)
         self.ifdh_handle.cp([ src, "%s/test.txt"%self.work])
         self.assertEqual(self.check_test_txt(), True, self._testMethodName)
 
@@ -512,7 +522,7 @@ class ifdh_cp_cases(unittest.TestCase):
         self.clean_dest()
         expsave = os.environ.get('EXPERIMENT','')
         os.environ['EXPERIMENT'] = "nova"
-        os.environ['IFDH_STAGE_VIA'] = "srm://fndca1.fnal.gov:8443/srm/managerv2?SFN=/pnfs/fnal.gov/usr/nova/scratch/ifdh_stage/test_multi"
+        os.environ['IFDH_STAGE_VIA'] = "srm://%s:8443/srm/managerv2?SFN=/pnfs/fnal.gov/usr/nova/scratch/ifdh_stage/test_multi" % dcache_host
         self.ifdh_handle.addOutputFile('%s/a/f1' % self.work)
         self.ifdh_handle.addOutputFile('%s/a/f2' % self.work)
         self.ifdh_handle.copyBackOutput(self.data_dir)
@@ -526,7 +536,7 @@ class ifdh_cp_cases(unittest.TestCase):
         self.clean_dest()
         expsave = os.environ.get('EXPERIMENT','')
         os.environ['EXPERIMENT'] = "nova"
-        os.environ['IFDH_STAGE_VIA'] = "gsiftp://fndca1.fnal.gov/pnfs/fnal.gov/usr/nova/scratch/ifdh_stage/test_multi"
+        os.environ['IFDH_STAGE_VIA'] = "gsiftp://%s/pnfs/fnal.gov/usr/nova/scratch/ifdh_stage/test_multi" % dcache_host
         self.ifdh_handle.addOutputFile('%s/a/f1' % self.work)
         self.ifdh_handle.addOutputFile('%s/a/f2' % self.work)
         self.ifdh_handle.copyBackOutput(self.data_dir)
@@ -709,8 +719,9 @@ class ifdh_cp_cases(unittest.TestCase):
         print "CPN_DIR is " , os.environ['CPN_DIR']
         print "dest is", self.blue_data_dir
         self.ifdh_handle.mkdir_p(self.blue_data_dir)
-        os.system("CPN_LOCK_GROUP=gpcf ifdh cp -D %s %s >out 2>&1" % ( ' '.join(args), self.blue_data_dir))
-        f = open("out","r")
+        os.system("CPN_LOCK_GROUP=gpcf ifdh cp -D %s %s >out 2>err" % ( ' '.join(args), self.blue_data_dir))
+        os.system("echo '==== out ======';cat out;echo '============='")
+        f = open("err","r")
         locks = 0
         frees = 0
         for line in f:
@@ -718,9 +729,9 @@ class ifdh_cp_cases(unittest.TestCase):
             print line
             print fields
             if fields[0] == 'LOCK':
-                if fields[9] == 'lock':
+                if fields[8] == 'lock':
                     locks = locks + 1
-                if fields[9] == 'freed':
+                if fields[8] == 'freed':
                     frees = frees + 1
         f.close()
         print "counts: locks ", locks, " frees ", frees

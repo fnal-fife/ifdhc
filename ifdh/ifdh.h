@@ -12,15 +12,27 @@
 
 namespace ifdh_ns {
 
-class  cpn_lock;
 struct IFile;
 struct CpPair;
+
+class cpn_lock {
+private:
+    int _heartbeat_pid;
+    int _locked;
+public:
+    int locked();
+    void lock();
+    void free();
+    cpn_lock();
+    ~cpn_lock();
+};
 
 class ifdh {
         std::string _baseuri;
         std::string _lastinput;
         std::string unique_string();
         std::vector<std::string> build_stage_list( std::vector<std::string>, int, char *stage_via);
+        std::string _errortxt;
    public:
         static WimpyConfigParser _config;
         static int _debug;
@@ -151,6 +163,7 @@ class ifdh {
         // (recursively), matching a pattern
         int apply(std::vector<std::string> args);
         std::string getUrl(std::string loc, std::string force);
+        std::string getErrorText();
     private:
         IFile lookup_loc(std::string url) ;
         std::string locpath(IFile loc, std::string proto) ;
@@ -163,8 +176,12 @@ class ifdh {
         std::vector<CpPair> handle_args( std::vector<std::string> args, std::vector<std::string>::size_type curarg, bool dest_is_dir,  size_t &lock_low, size_t &lock_hi, std::string &force);
         bool have_stage_subdirs(std::string uri);
         void pick_proto_path(std::string loc, std::string force, std::string &proto, std::string &fullurl, std::string &lookup_proto );
+        int do_url_int(int postflag, ...);
+        std::string do_url_str(int postflag,...);
+        std::vector<std::string> do_url_lst(int postflag,...);
 };
 }
+
 
 using namespace ifdh_ns;
 #endif // IFDH_H

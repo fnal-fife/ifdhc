@@ -41,10 +41,11 @@ ifdh::_debug = 0;
 WimpyConfigParser
 ifdh::_config;
 
+
 void
 path_prepend( string s1, string s2) {
     stringstream setenvbuf;
-    string curpath(getenv("PATH"));
+    string curpath(getenv("PATH")?getenv("PATH"):"");
 
     setenvbuf << s1 << s2 << ":" << curpath;
     setenv("PATH", setenvbuf.str().c_str(), 1);
@@ -101,7 +102,7 @@ check_env() {
             setenv("CPN_LOCK_GROUP", ep, 0);
         }
               
-        string path(getenv("PATH"));
+        string path(getenv("PATH")?getenv("PATH"):"");
         char *p;
 
         if (0 != (p = getenv("VDT_LOCATION"))) {
@@ -192,6 +193,11 @@ string datadir() {
 }
 
 
+std::string 
+ifdh::getErrorText() {
+   return _errortxt;
+}
+
 int
 ifdh::cleanup() {
     int res;
@@ -210,6 +216,7 @@ ifdh::localPath( string src_uri ) {
     int baseloc = src_uri.rfind("/") + 1;
     return datadir() + "/" + src_uri.substr(baseloc);
 }
+
 
 
 string 
@@ -232,7 +239,8 @@ ifdh::fetchInput( string src_uri ) {
              cmd += src_uri + " ";
              cmd += path + " ";
              _debug && std::cerr << "running: " << cmd << std::endl;
-             int status = system(cmd.c_str());
+             cpn_lock locker;
+             int status = retry_system(cmd.c_str(), 0, locker,1);
              if (WIFEXITED(status) && WEXITSTATUS(status) == 0)
                  return path;
              else
@@ -500,7 +508,7 @@ public:
 };
 
 int
-do_url_int(int postflag, ...) {
+ifdh::do_url_int(int postflag, ...) {
     va_list ap;
     int res;
 
@@ -510,7 +518,7 @@ do_url_int(int postflag, ...) {
        unique_ptr<WebAPI> wap(do_url_2(postflag, ap));
        res = wap->getStatus() - 200;
     } catch( exception &e )  {
-       std::cerr << "Exception: " << e.what();
+       _errortxt = e.what();
        res = 300;
     }
     if (ifdh::_debug) std::cerr << "got back int result: " << res << "\n";
@@ -519,7 +527,7 @@ do_url_int(int postflag, ...) {
 
 
 string
-do_url_str(int postflag,...) {
+ifdh::do_url_str(int postflag,...) {
     va_list ap;
     string res("");
     string line;
@@ -536,7 +544,10 @@ do_url_str(int postflag,...) {
 	    }
 	}
     } catch( exception &e )  {
-       std::cerr << "Exception: " << e.what();
+       _errortxt = e.what();
+       if (!getenv("IFDH_SILENT") || !atoi(getenv("IFDH_SILENT"))) {
+           std::cerr << "Exception: " << _errortxt;
+       }
        return "";
     }
     if (ifdh::_debug) std::cerr << "got back string result: " << res << "\n";
@@ -544,7 +555,7 @@ do_url_str(int postflag,...) {
 }
 
 vector<string>
-do_url_lst(int postflag,...) {
+ifdh::do_url_lst(int postflag,...) {
     va_list ap;
     string line;
     vector<string> empty;
@@ -560,7 +571,7 @@ do_url_lst(int postflag,...) {
 	    }
 	}
     } catch( exception &e )  {
-       std::cerr << "Exception: " << e.what();
+       _errortxt = e.what();
        return empty;
     }
     return res;
@@ -721,8 +732,8 @@ ifdh::ifdh(std::string baseuri) {
     check_env();
     char *debug = getenv("IFDH_DEBUG");
     if (0 != debug ) { 
-        std::cerr << "IFDH_DEBUG=" << debug << " => " << atoi(debug) << "\n";
 	_debug = atoi(debug);
+        _debug && std::cerr << "IFDH_DEBUG=" << debug << " => " << atoi(debug) << "\n";
     }
     if ( baseuri == "" ) {
         _baseuri = getenv("IFDH_BASE_URI")?getenv("IFDH_BASE_URI"):(getenv("EXPERIMENT")?_default_base_uri+getenv("EXPERIMENT")+"/api":"") ;
@@ -868,7 +879,8 @@ ifdh::renameOutput(std::string how) {
 
         _debug && std::cerr << "running: " << perlcmd.str() << "\n";
 
-        return system(perlcmd.str().c_str());
+        cpn_lock locker;
+        return retry_system(perlcmd.str().c_str(), 0, locker,1);
     
     } else if (how[0] == 'e') {
 
@@ -877,7 +889,8 @@ ifdh::renameOutput(std::string how) {
 
         _debug && std::cerr << "running: " << cmd << "\n";
 
-        return system(cmd.c_str());
+        cpn_lock locker;
+        return retry_system(cmd.c_str(), 0, locker,1);
 
     } else if (how[0] == 'u') {
 

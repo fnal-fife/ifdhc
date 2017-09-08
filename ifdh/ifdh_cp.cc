@@ -1062,7 +1062,7 @@ ifdh::do_cp(CpPair &cpp, bool intermed_file_flag, bool recursive, cpn_lock &cpn)
     } else {
         std::string lookup("protocol " + cpp.proto);
         std::string extra_env;
-        const char *extra_env_val;
+        const char *extra_env_val = 0;
         std::string cp_cmd;
         
         // command looks like:

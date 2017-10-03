@@ -910,7 +910,10 @@ ifdh::retry_system(const char *cmd_str, int error_expected, cpn_lock &locker, in
         if (WIFEXITED(res)) {
             res = WEXITSTATUS(res);
         } else {
-            std::cerr << "program: " << cmd_str<< " died from signal " << WTERMSIG(res) << "-- exiting.\n";
+            stringstream logmsg;
+            logmsg << "program: " << cmd_str<< " died from signal " << WTERMSIG(res) << "-- exiting.\n";
+            log(logmsg.str());
+            std::cerr << logmsg.str();
             exit(-1);
         }
 
@@ -932,14 +935,19 @@ ifdh::retry_system(const char *cmd_str, int error_expected, cpn_lock &locker, in
             if (dolock)
                 locker.free();
             std::cerr << "program: " << cmd_str << "exited status " << res << "\n";
+            log(_errortxt);
             if (unlink_on_error != "" ) {
                 rm(unlink_on_error);
                 unlink_on_error = "";
             } else {
-                delay =random() % (55 << tries);
-                std::cerr << "delaying " << delay << " ...\n";
+                delay = random() % (55 << tries);
+                stringstream logmsg;
+                logmsg << "delaying " << delay << " ...\n";
+                log(logmsg.str());
+                std::cerr << logmsg.str();
                 sleep(delay);
             }
+            log("retrying...");
             std::cerr << "retrying...\n";
             if (dolock)
                 locker.lock();

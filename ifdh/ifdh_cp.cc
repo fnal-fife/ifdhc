@@ -692,21 +692,6 @@ ifdh::getProxy() {
 }
  
 
-int 
-host_matches(std::string hostglob) {
-   // match trivial globs for now: *.foo.bar
-   static char namebuf[512];
-   if ( 0 == namebuf[0])
-       gethostname(namebuf, 512);
-   std::string hostname(namebuf);
-   size_t ps = hostglob.find("*");
-   hostglob = hostglob.substr(ps+1);
-   if ( std::string::npos != hostname.find(hostglob)) {
-       return 1;
-   } else {
-       return 0;
-   }
-}
 
 char *
 parse_ifdh_stage_via() {

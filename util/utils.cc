@@ -6,6 +6,7 @@
 #include <unistd.h>
 #include <grp.h>
 #include <dirent.h>
+#include "WimpyConfigParser.h"
 
 namespace ifdh_util_ns {
 //
@@ -15,6 +16,22 @@ namespace ifdh_util_ns {
 
 bool has(std::string s1, std::string s2) {
    return s1.find(s2) != std::string::npos;
+}
+
+int 
+host_matches(std::string hostglob) {
+   // match trivial globs for now: *.foo.bar
+   static char namebuf[512];
+   if ( 0 == namebuf[0])
+       gethostname(namebuf, 512);
+   std::string hostname(namebuf);
+   size_t ps = hostglob.find("*");
+   hostglob = hostglob.substr(ps+1);
+   if ( std::string::npos != hostname.find(hostglob)) {
+       return 1;
+   } else {
+       return 0;
+   }
 }
 
 std::string parent_dir(std::string path) {
@@ -43,12 +60,15 @@ flushdir(const char *dir){
 #define MAXEXPBUF 64
 const
 char *getexperiment() {
+       
     static char expbuf[MAXEXPBUF];
     char *p1;
     char *penv = getenv("EXPERIMENT");
     char *senv = getenv("SAM_EXPERIMENT");
     gid_t gid = getgid();
  
+    std::cerr << "Entering getexperiment\n";
+
     if (penv) {
         return penv;
     }
@@ -56,6 +76,10 @@ char *getexperiment() {
         return senv;
     }
   
+    // if we already looked it up, return it
+    if (expbuf[0] != 0) {
+       return expbuf;
+    }
   
     penv = getenv("CONDOR_TMP");
     if (penv) {
@@ -70,6 +94,26 @@ char *getexperiment() {
              }
          }
     }
+    // Lookup gid mappings in config file...
+    // we get our own copy to not break layering... sigh.
+    
+    WimpyConfigParser cf;
+    cf.getdefault( getenv("IFDHC_CONFIG_DIR"), getenv("IFDHC_DIR"), getenv("IFDHC_FQ_DIR"));
+
+    std::vector<std::string> explist = cf.getlist("gid_exp","gidexplist");
+    std::string gids("gids_");
+    for( std::vector<std::string>::iterator vsiexp = explist.begin(); vsiexp != explist.end(); vsiexp++) {
+        std::cerr << "Trying group:" << *vsiexp << "list:" << gids+*vsiexp << "\n";
+        std::vector<std::string> gidlist = cf.getlist("gid_exp",gids+*vsiexp);
+        for( std::vector<std::string>::iterator vsigid = gidlist.begin(); vsigid != gidlist.end(); vsigid++) {
+            std::cerr << "Trying gid:" << *vsigid << "\n";
+            if (gid == (unsigned)atoi(vsigid->c_str())) {
+                strncpy(expbuf, vsiexp->c_str(), MAXEXPBUF);
+                return expbuf;
+            }
+        }
+    }
+    // also have fallback
     switch((int)gid){
     case 9257:
     case 9258:
@@ -120,6 +164,9 @@ char *getexperiment() {
         return "next";
     case 9985:
         return "darkside";
+    case 6269:
+    case 8975:
+        return "seaquest";
     default:
        struct group *pg;
        pg = getgrgid(gid);
@@ -247,6 +294,7 @@ main() {
     std::vector<std::string> res;
 
     printf("\nexperiment: %s\n", getexperiment());
+    printf("\nexperiment (again): %s\n", getexperiment());
 
     std::cout << "test data1 no quotes\n";
     res = split(data1,',',0,0);

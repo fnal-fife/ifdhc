@@ -726,7 +726,6 @@ int ifdh::endProject(string projecturi) {
   return do_url_int(1,projecturi.c_str(),"endProject","","","");
 }
 
-extern int host_matches(std::string glob);
 
 ifdh::ifdh(std::string baseuri) {
     check_env();
@@ -746,86 +745,10 @@ ifdh::ifdh(std::string baseuri) {
     // parse and initialize config file
     //  
     if (_config.size() == 0) {
-    const char *ccffile = getenv("IFDHC_CONFIG_DIR");
-    const char *ccffile1 = getenv("IFDHC_DIR");
-    const char *ccffile2 = getenv("IFDHC_FQ_DIR");
-    std::string cffile;
-    if (ccffile) {
-        cffile = std::string(ccffile); 
-    } else if ( (ccffile1) && (std::ifstream((std::string(ccffile1) + "/ifdh.cfg").c_str())) ) {
-        cffile = std::string(ccffile1); 
-        _debug && std::cerr << "ifdh: getting config file from IFDHC_DIR --  no IFDHC_CONFIG_DIR?!?\n";
-    } else if ( (ccffile2) && (std::ifstream((std::string(ccffile2) + "/ifdh.cfg").c_str())) ) {
-        cffile = std::string(ccffile2); 
-        _debug && std::cerr << "ifdh: getting config file from IFDHC_FQ_DIR --  no IFDHC_CONFIG_DIR?!?\n";
-    } else {
-	throw( std::logic_error("no ifdhc config file environment variables found"));
-    }
-    _debug && std::cerr << "ifdh: using config file: "<< ccffile << "/ifdh.cfg\n";
-
-    _config.read(cffile + "/ifdh.cfg");
-    std::vector<std::string> clist = _config.getlist("general","conditionals");
-    _debug && std::cerr << "checking conditionals:\n";
-    for( size_t i = 0; i < clist.size(); i++ ) { 
-	_debug && std::cerr << "conditional" << i << ": " << clist[i] << "\n";
-        if (clist[i] == "") {
-           continue;
-        }
-        std::string rtype;
-        std::string tststr = _config.get("conditional " + clist[i], "test");
-        std::vector<std::string> renamevec = _config.getlist("conditional " + clist[i], "rename_proto");
-        _debug && std::cerr <<"Renamevec.size() is " << renamevec.size() <<  " \n";
-        if (renamevec.size() > 1) {
-           rtype = "protocol ";
-        } else {
-            _debug && std::cerr <<  " trying rename_loc\n";
-           renamevec = _config.getlist("conditional " + clist[i], "rename_loc");
-           if (renamevec.size() > 1) {
-               rtype = "location ";
-           } else {
-                _debug && std::cerr <<  " trying rename_rot\n";
-               renamevec = _config.getlist("conditional " + clist[i], "rename_rot");
-               if (renamevec.size() > 1) {
-                   rtype = "rotation ";
-               }
-           }
-        }
-        _debug && std::cerr <<  " renamevec: " << renamevec[0] << ", " << renamevec[1] << "\n";
-        _debug && std::cerr <<  " rtype: " << rtype << "\n";
-        if (tststr[0] == '-' && tststr[1] == 'x') {
-            if (0 == access(tststr.substr(3).c_str(), X_OK)) {
-                _debug && std::cerr << "test: " << tststr << " renaming: " << renamevec[0] << " <= " << renamevec[1] << "\n";
-		_config.rename_section(rtype + renamevec[0], rtype + renamevec[1]);
-            }
-            continue;
-        }
-        if (tststr[0] == '-' && tststr[1] == 'r') {
-            if (0 == access(tststr.substr(3).c_str(), R_OK)) {
-                _debug && std::cerr << "test: " << tststr << " renaming: " << renamevec[0] << " <= " << renamevec[1] << "\n";
-		_config.rename_section(rtype + renamevec[0], rtype + renamevec[1]);
-            }
-            continue;
-        }
-        if (tststr[0] == '-' && tststr[1] == 'H') {
-           if (host_matches(tststr.substr(3))) {
-                _debug && std::cerr << "test: " << tststr << " renaming: " << renamevec[0] << " <= " << renamevec[1] << "\n";
-		_config.rename_section(rtype + renamevec[0], rtype + renamevec[1]);
-           }
-           continue;
-        }
-    }
-    // handle protocol aliases
-    std::vector<std::string> plist = _config.getlist("general","protocols");
-    std::string av;
-    for( size_t i = 0; i < plist.size(); i++ ) { 
-        av =  _config.get("protocol " + plist[i], "alias");
-        if (av != "" ) {
-             _config.copy_section("protocol " + av, "protocol " + plist[i]);
-        }
-    }
-    // -------------------------------------------------------
+       _config.getdefault( getenv("IFDHC_CONFIG_DIR"), getenv("IFDHC_DIR"), getenv("IFDHC_FQ_DIR"));
     }
 }
+
 
 void
 ifdh::set_base_uri(std::string baseuri) { 

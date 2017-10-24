@@ -743,7 +743,7 @@ get_pnfs_uri(std::string door_url,  std::string door_proto, std::vector<std::str
         nodes.clear();
         ifdh::_debug && cerr << "finding " << door_proto << " dcache doors...[ "; 
         try {
-        WebAPI wa(door_url);
+        WebAPI wa(door_url, 0, "", 1);  // pass in maxretries of 1
 	while (!wa.data().eof() && !wa.data().fail()) {
 	    getline(wa.data(), line);
             // ifdh::_debug && cerr << "got: " << line << "\n";

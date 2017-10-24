@@ -109,7 +109,7 @@ WebAPI::parseurl(std::string url) throw(WebAPIException) {
 // the network connection, rather than saving he data
 // in a file and returning that.
 
-WebAPI::WebAPI(std::string url, int postflag, std::string postdata) throw(WebAPIException) {
+WebAPI::WebAPI(std::string url, int postflag, std::string postdata, int maxretries) throw(WebAPIException) {
      int s = -1;		// unix socket file descriptor
      WebAPI::parsed_url pu;     // parsed url.
      // struct sockaddr_storage server; // connection address struct
@@ -144,7 +144,7 @@ WebAPI::WebAPI(std::string url, int postflag, std::string postdata) throw(WebAPI
          retries++;
 
          // note that this retry limit includes 303 redirects, 503 errors, DNS fails, and connect errors...
-	 if (retries > 10) {
+	 if (retries > maxretries+1) {
 	     throw(WebAPIException(url,"FetchError: Retry count exceeded"));
 	 }
 

@@ -24,7 +24,7 @@ class WebAPI {
     long int _pid;
 public:
     static int _debug;
-    WebAPI(std::string url, int postflag = 0, std::string postdata = "") throw(WebAPIException);
+    WebAPI(std::string url, int postflag = 0, std::string postdata = "", int maxretries = 10) throw(WebAPIException);
     ~WebAPI();
     int getStatus();
     std::fstream &data() { return _fromsite; }

@@ -67,7 +67,7 @@ char *getexperiment() {
     char *senv = getenv("SAM_EXPERIMENT");
     gid_t gid = getgid();
  
-    std::cerr << "Entering getexperiment\n";
+    //std::cerr << "Entering getexperiment\n";
 
     if (penv) {
         return penv;
@@ -103,10 +103,10 @@ char *getexperiment() {
     std::vector<std::string> explist = cf.getlist("gid_exp","gidexplist");
     std::string gids("gids_");
     for( std::vector<std::string>::iterator vsiexp = explist.begin(); vsiexp != explist.end(); vsiexp++) {
-        std::cerr << "Trying group:" << *vsiexp << "list:" << gids+*vsiexp << "\n";
+        // std::cerr << "Trying group:" << *vsiexp << "list:" << gids+*vsiexp << "\n";
         std::vector<std::string> gidlist = cf.getlist("gid_exp",gids+*vsiexp);
         for( std::vector<std::string>::iterator vsigid = gidlist.begin(); vsigid != gidlist.end(); vsigid++) {
-            std::cerr << "Trying gid:" << *vsigid << "\n";
+            // std::cerr << "Trying gid:" << *vsigid << "\n";
             if (gid == (unsigned)atoi(vsigid->c_str())) {
                 strncpy(expbuf, vsiexp->c_str(), MAXEXPBUF);
                 return expbuf;

@@ -831,6 +831,37 @@ get_another_dcache_door( std::string &cmd, std::string door_regex, std::string d
     ifdh::_debug && cerr << "finally, cmd is: "  << cmd << "\n";
 }
 
+void
+rotate_door(WimpyConfigParser &_config, const char *&cmd_str, std::string &cmd_str_string) {
+
+        std::vector<std::string> rot_list = _config.getlist("general","rotations");
+        for (size_t i = 0; i < rot_list.size(); i++ ) {
+            std::string section = std::string("rotation ")+rot_list[i];
+            if (! _config.has_section(section)) {
+                
+                ifdh::_debug && cerr << "Note: missing [" << section << "] stanza in ifdh.cfg\n";
+                continue;
+            }
+            std::string door_regex = _config.get(section, "door_repl_re");
+            if (! door_regex.size()) {
+                
+                ifdh::_debug && cerr << "Note: 'door_repl_re' missing from  [" << section << "] stanza in ifdh.cfg\n";
+                continue;
+            }
+            std::string door_url =   _config.get(section, "lookup_door_uri");
+            std::string door_proto = _config.get(section, "door_proto");
+            std::vector<std::string> def_doors = _config.getlist(section, "default_doors");
+
+            ifdh::_debug && cerr << "trying rotation: " << rot_list[i] << "\n";
+
+            regexp door_re(door_regex);
+
+	    if (0 != door_re(cmd_str_string)) {
+	       get_another_dcache_door(cmd_str_string, door_regex, door_url, door_proto, def_doors );   
+               cmd_str = cmd_str_string.c_str();
+	    }
+        }
+}
 
 int
 ifdh::retry_system(const char *cmd_str, int error_expected, cpn_lock &locker, int maxtries, std::string unlink_on_error) {
@@ -863,33 +894,7 @@ ifdh::retry_system(const char *cmd_str, int error_expected, cpn_lock &locker, in
     _errortxt.clear();
 
     while( res != 0 && tries < maxtries ) {
-        std::vector<std::string> rot_list = _config.getlist("general","rotations");
-        for (size_t i = 0; i < rot_list.size(); i++ ) {
-            std::string section = std::string("rotation ")+rot_list[i];
-            if (! _config.has_section(section)) {
-                
-                ifdh::_debug && cerr << "Note: missing [" << section << "] stanza in ifdh.cfg\n";
-                continue;
-            }
-            std::string door_regex = _config.get(section, "door_repl_re");
-            if (! door_regex.size()) {
-                
-                ifdh::_debug && cerr << "Note: 'door_repl_re' missing from  [" << section << "] stanza in ifdh.cfg\n";
-                continue;
-            }
-            std::string door_url =   _config.get(section, "lookup_door_uri");
-            std::string door_proto = _config.get(section, "door_proto");
-            std::vector<std::string> def_doors = _config.getlist(section, "default_doors");
-
-            _debug && cerr << "trying rotation: " << rot_list[i] << "\n";
-
-            regexp door_re(door_regex);
-
-	    if (0 != door_re(cmd_str_string)) {
-	       get_another_dcache_door(cmd_str_string, door_regex, door_url, door_proto, def_doors );   
-               cmd_str = cmd_str_string.c_str();
-	    }
-        }
+        rotate_door(_config, cmd_str, cmd_str_string);
               
         res = system(cmd_str);
         if (WIFEXITED(res)) {
@@ -1664,6 +1669,8 @@ ifdh::lss( std::string loc, int recursion_depth, std::string force) {
     if (fake_popen) {
        tmpfile = localPath("lss_tmp");
        status = system((lss_cmd + " > " + tmpfile).c_str());
+       cpn_lock locker;
+       status = retry_system((lss_cmd + " > " + tmpfile).c_str(), 0, locker,1);
        pf = fopen(tmpfile.c_str(), "r");
     } else {
        pf = popen(lss_cmd.c_str(),"r");

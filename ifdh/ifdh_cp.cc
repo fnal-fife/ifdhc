@@ -741,7 +741,7 @@ get_pnfs_uri(std::string door_url,  std::string door_proto, std::vector<std::str
 
     if (0 == nodes.size() || cached_node_proto != door_proto || cached_door_url != door_url) {
         nodes.clear();
-        ifdh::_debug && cerr << "looking for dcache " << door_proto << " doors..\n";
+        ifdh::_debug && cerr << "finding " << door_proto << " dcache doors...[ "; 
         try {
         WebAPI wa(door_url);
 	while (!wa.data().eof() && !wa.data().fail()) {
@@ -770,12 +770,13 @@ get_pnfs_uri(std::string door_url,  std::string door_proto, std::vector<std::str
                if (node == "fndca4a.fnal.gov") 
                    continue;
 	       nodes.push_back(node);
-               ifdh::_debug && cerr << "found dcache door: " << node << "\n";
+               ifdh::_debug && cerr << node << ", ";
 	    }
 	}
         }  catch( exception e ) {
         ;
         }
+        ifdh::_debug && cerr << "]\n";
     }
     cached_node_proto = door_proto;
     cached_door_url = door_url;
@@ -1656,10 +1657,14 @@ ifdh::lss( std::string loc, int recursion_depth, std::string force) {
 
     lss_cmd.replace(lss_cmd.find("%(src)s"), 7, fullurl);
 
+
     stringstream rdbuf;
     rdbuf << recursion_depth;
 
     _debug && std::cerr << "running: " << lss_cmd << "\n";
+
+    const char *pc_lss_cmd = lss_cmd.c_str();
+    rotate_door(_config, pc_lss_cmd, lss_cmd);
 
     // no c++ popen, so doing it C-style..
     int fake_popen = _config.getint(lookup_proto,"lss_fake_popen");
@@ -1669,8 +1674,6 @@ ifdh::lss( std::string loc, int recursion_depth, std::string force) {
     if (fake_popen) {
        tmpfile = localPath("lss_tmp");
        status = system((lss_cmd + " > " + tmpfile).c_str());
-       cpn_lock locker;
-       status = retry_system((lss_cmd + " > " + tmpfile).c_str(), 0, locker,1);
        pf = fopen(tmpfile.c_str(), "r");
     } else {
        pf = popen(lss_cmd.c_str(),"r");

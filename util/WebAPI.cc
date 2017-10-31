@@ -295,7 +295,7 @@ WebAPI::WebAPI(std::string url, int postflag, std::string postdata, int maxretri
          else if(ppasswd) 
             user = ppasswd->pw_name;
          else
-            user = "unknown";
+            user = "unknown_user";
 
          char hostbuf[512];
          gethostname(hostbuf, 512);

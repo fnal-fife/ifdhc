@@ -45,7 +45,7 @@ ifdh::_config;
 void
 path_prepend( string s1, string s2) {
     stringstream setenvbuf;
-    string curpath(getenv("PATH")?getenv("PATH"):"");
+    string curpath(getenv("PATH")?getenv("PATH"):"/bin:/usr/bin");
 
     setenvbuf << s1 << s2 << ":" << curpath;
     setenv("PATH", setenvbuf.str().c_str(), 1);

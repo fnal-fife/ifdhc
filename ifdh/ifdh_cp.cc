@@ -442,7 +442,7 @@ ifdh::build_stage_list(std::vector<std::string> args, int curarg, char *stage_vi
    std::string base_uri(stage_via);
    if (base_uri[0] == '$') {
        base_uri = base_uri.substr(1);
-       base_uri = getenv(base_uri.c_str());
+       base_uri = getenv(base_uri.c_str()) ? getenv(base_uri.c_str() : "";
    }
    base_uri = (base_uri + "/" + getexperiment());
    stagefile += "/stage";
@@ -578,11 +578,11 @@ get_grid_credentials_if_needed() {
 
     ifdh::_debug && std::cerr << "Checking for proxy cert..."<< endl;
 
-    if( getenv("IFDH_NO_PROXY"))
+    if( getenv("IFDH_NO_PROXY") && 0 == atoi(getenv("IFDH_NO_PROXY")))
         return;
    
     string role;
-    string user(getenv("GRID_USER")?getenv("GRID_USER"):getenv("USER"));
+    string user(getenv("GRID_USER")?getenv("GRID_USER"):(getenv("USER")?getenv("USER"):"unknown_user") );
     string prouser(getexperiment());
     prouser = prouser + "pro";
     if (user == prouser ) {
@@ -687,7 +687,7 @@ get_grid_credentials_if_needed() {
 std::string
 ifdh::getProxy() {
    get_grid_credentials_if_needed();
-   std::string res( getenv("X509_USER_PROXY"));
+   std::string res( getenv("X509_USER_PROXY")?getenv("X509_USER_PROXY"):"");
    return res;
 }
  
@@ -696,7 +696,7 @@ ifdh::getProxy() {
 char *
 parse_ifdh_stage_via() {
    static char resultbuf[1024];
-   char *fullvia = getenv("IFDH_STAGE_VIA");
+   char *fullvia = getenv("IFDH_STAGE_VIA"?getenv("IFDH_STAGE_VIA"):"");
    size_t start, loc1, loc2;
 
    if (!fullvia)

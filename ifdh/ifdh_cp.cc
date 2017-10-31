@@ -442,7 +442,7 @@ ifdh::build_stage_list(std::vector<std::string> args, int curarg, char *stage_vi
    std::string base_uri(stage_via);
    if (base_uri[0] == '$') {
        base_uri = base_uri.substr(1);
-       base_uri = getenv(base_uri.c_str()) ? getenv(base_uri.c_str() : "";
+       base_uri = (getenv(base_uri.c_str()) ? getenv(base_uri.c_str()) : "");
    }
    base_uri = (base_uri + "/" + getexperiment());
    stagefile += "/stage";

@@ -621,7 +621,7 @@ get_grid_credentials_if_needed() {
 	ifdh::_debug && std::cerr << "running: " << cmd << endl;
         system(cmd.c_str()); 
 
-        cmd = "voms-proxy-init -dont-verify-ac -rfc -noregen -debug -cert " ;
+        cmd = "voms-proxy-init -dont-verify-ac -valid 168:00 -rfc -noregen -debug -cert " ;
         cmd += plainproxyfile.str() ;
         cmd += " -key " ;
         cmd +=  plainproxyfile.str() ;

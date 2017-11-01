@@ -202,11 +202,17 @@ make_canonical( std::string &arg ) {
    }
    // clean out doubled slashes...uless its the one in the ://
    // set a fence position after the :// if any...
+   // -- but allow one set just after the host:port component for CERN stuff
    size_t fpos = arg.find("://");
+   size_t fpos2;
    if (fpos == string::npos || fpos > 10) {
        fpos = 0;
    } else {
        fpos += 3;
+       fpos2 = arg.find("/", fpos);
+       if (fpos2 != string::npos) {
+          fpos = fpos2 + 1;
+       }
    }
    size_t dspos = arg.rfind("//");
    while (dspos != string::npos && dspos >= fpos) {
@@ -621,7 +627,7 @@ get_grid_credentials_if_needed() {
 	ifdh::_debug && std::cerr << "running: " << cmd << endl;
         system(cmd.c_str()); 
 
-        cmd = "voms-proxy-init -dont-verify-ac -valid 168:00 -rfc -noregen -debug -cert " ;
+        cmd = "voms-proxy-init -dont-verify-ac -valid 120:00 -rfc -noregen -debug -cert " ;
         cmd += plainproxyfile.str() ;
         cmd += " -key " ;
         cmd +=  plainproxyfile.str() ;
@@ -674,11 +680,15 @@ get_grid_credentials_if_needed() {
 	ifdh::_debug && std::cerr << "running: " << cmd << endl;
 	res = system(cmd.c_str());
         // try a second time if it failed...
-        if (!WIFEXITED(res) || 0 != WEXITSTATUS(res)) {
+        // when you request a long timeout and it truncates it, it exits 256
+        // even though things are fine...
+        if ((!WIFEXITED(res) || 0 != WEXITSTATUS(res)) && res != 256) {
            sleep(1);
 	   res = system(cmd.c_str());
         }
-        if (!WIFEXITED(res) ||  0 != WEXITSTATUS(res)) {
+        // when you request a long timeout and it truncates it, it exits 256
+        // even though things are fine...
+        if ((!WIFEXITED(res) ||  0 != WEXITSTATUS(res)) && res != 256) {
             std::cerr << "Error: exit code " << res << " from voms-proxy-init... later things may fail\n";
         }
     }

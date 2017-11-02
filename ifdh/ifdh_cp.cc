@@ -541,7 +541,9 @@ check_grid_credentials() {
              ifdh::_debug && std::cerr << "found: " << buf << endl;
 	 }
 	 // if it is expired, its like we don't have it...
-	 if ( 0 == s.find("timeleft  : 0:00:00")) { 
+	 // only check for 0:0 of 0:00:00 or 0:03:00, if it only
+	 // has a few minutes left, we should renew it...
+	 if ( 0 == s.find("timeleft  : 0:0")) { 
 	     found = false;
              ifdh::_debug && std::cerr << "..but its expired\n " ;
 	 }

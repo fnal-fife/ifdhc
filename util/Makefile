@@ -26,7 +26,7 @@ utils-test: utils.cc WimpyConfigParser.o
 	g++ -o $@ $(TESTDEFS) $(CXXFLAGS) $< WimpyConfigParser.o
 
 %-test: %.cc WimpyConfigParser.o
-	g++ -o $@ $(TESTDEFS) $(CXXFLAGS) $< utils.o
+	g++ -o $@ $(TESTDEFS) $(CXXFLAGS) $< utils.o WimpyConfigParser.o
 
 
 %.o: %.cc

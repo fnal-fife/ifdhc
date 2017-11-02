@@ -9,6 +9,7 @@
 #include <stdlib.h>
 #include <ext/stdio_filebuf.h>
 #include <sys/types.h>
+#include <poll.h>
 #include <unistd.h>
 #include "utils.h"
 #include <pwd.h>
@@ -109,7 +110,7 @@ WebAPI::parseurl(std::string url) throw(WebAPIException) {
 // the network connection, rather than saving he data
 // in a file and returning that.
 
-WebAPI::WebAPI(std::string url, int postflag, std::string postdata, int maxretries) throw(WebAPIException) {
+WebAPI::WebAPI(std::string url, int postflag, std::string postdata, int maxretries, int timeout) throw(WebAPIException) {
      int s = -1;		// unix socket file descriptor
      WebAPI::parsed_url pu;     // parsed url.
      // struct sockaddr_storage server; // connection address struct
@@ -124,7 +125,7 @@ WebAPI::WebAPI(std::string url, int postflag, std::string postdata, int maxretri
      int hcount;
      int connected;
      int totaltime = 0;
-     int timeoutafter = -1;
+     int _timeout = timeout;
 
      _pid = 0;
      __gnu_cxx::stdio_filebuf<char> *buf_out = 0;
@@ -134,8 +135,8 @@ WebAPI::WebAPI(std::string url, int postflag, std::string postdata, int maxretri
      _debug && std::cerr.flush();
      retries = 0;
 
-     if (getenv("IFDH_WEB_TIMEOUT")) { 
-          timeoutafter = atoi(getenv("IFDH_WEB_TIMEOUT"));
+     if (_timeout == -1 && getenv("IFDH_WEB_TIMEOUT")) { 
+          _timeout = atoi(getenv("IFDH_WEB_TIMEOUT")) * 1000; 
      }
 
      while( redirect_or_retry_flag ) {
@@ -199,19 +200,22 @@ WebAPI::WebAPI(std::string url, int postflag, std::string postdata, int maxretri
 		 _debug && std::cerr << " all connects failed , waiting ...";
                  _debug && std::cerr.flush();
 		 sleep(5 << retries);
+                 totaltime += 5 << retries;
 		 _debug && std::cerr << "retrying ...\n";
                 continue;
 	     }
 
 	     // start of black magic -- use stdio_filebuf class to 
 	     // attach to socket...
+	     _fromsitefd = dup(s);
 	     _buf_in = new  __gnu_cxx::stdio_filebuf<char> (dup(s), std::fstream::in|std::fstream::binary); 
 	     if (!_buf_in) {
 		throw(WebAPIException(url,"MemoryError: new failed"));
 	     }
 	     _fromsite.std::ios::rdbuf(_buf_in);
 
-	     buf_out = new  __gnu_cxx::stdio_filebuf<char>(dup(s), std::fstream::out|std::fstream::binary); 
+             _tositefd = dup(s);
+	     buf_out = new  __gnu_cxx::stdio_filebuf<char>(_tositefd, std::fstream::out|std::fstream::binary); 
 	     if (!buf_out) {
 		throw(WebAPIException(url,"MemoryError: new failed"));
 	     }
@@ -269,13 +273,15 @@ WebAPI::WebAPI(std::string url, int postflag, std::string postdata, int maxretri
                 _pid = pid;
                 close(inp[0]);  
                 close(outp[1]);  
-	        _buf_in = new  __gnu_cxx::stdio_filebuf<char> (outp[0], std::fstream::in|std::fstream::binary); 
+                _fromsitefd = outp[0];
+	        _buf_in = new  __gnu_cxx::stdio_filebuf<char> (_fromsitefd, std::fstream::in|std::fstream::binary); 
 		 if (!_buf_in) {
 		    throw(WebAPIException(url,"MemoryError: new failed"));
 		 }
 	         _fromsite.std::ios::rdbuf(_buf_in);
 
-                 buf_out = new  __gnu_cxx::stdio_filebuf<char>(inp[1], std::fstream::out|std::fstream::binary);
+                _tositefd = inp[1];
+                 buf_out = new  __gnu_cxx::stdio_filebuf<char>(_tositefd, std::fstream::out|std::fstream::binary);
 		 if (!buf_out) {
 		    throw(WebAPIException(url,"MemoryError: new failed"));
 		 }
@@ -299,6 +305,22 @@ WebAPI::WebAPI(std::string url, int postflag, std::string postdata, int maxretri
 
          char hostbuf[512];
          gethostname(hostbuf, 512);
+
+         //XXX here we need a poll with timeout before writing
+         if ( _timeout > 0 && totaltime > (_timeout / 1000) ) {
+            throw(WebAPIException(url, ": Timeout exceeded"));
+         }
+         if (_timeout > 0)  {
+             time_t t1, t2;
+             struct pollfd pf = { _tositefd, POLLIN, 0 };
+             t1 = time(0);
+             res = poll(&pf, 1, _timeout - totaltime * 1000);
+             t2 = time(0);
+             if (0 == res) {
+                throw(WebAPIException(url, ": Timeout exceeded"));
+             }
+             totaltime = totaltime + (t2 - t1);
+         }
 
 	 // now some basic http protocol
 	 _tosite << method << pu.path << " HTTP/1.0\r\n";
@@ -334,6 +356,23 @@ WebAPI::WebAPI(std::string url, int postflag, std::string postdata, int maxretri
          _debug && std::cerr << "sent request\n";
 
 	 do {
+
+            //XXX here we need a poll with timeout before reading...
+             if ( _timeout > 0 && totaltime > (_timeout / 1000) ) {
+                throw(WebAPIException(url, ": Timeout exceeded"));
+             }
+             if (_timeout > 0)  {
+                 time_t t1, t2;
+                 struct pollfd pf = { _fromsitefd, POLLOUT, 0 };
+                 t1 = time(0);
+                 res = poll(&pf, 1, _timeout - totaltime * 1000);
+                 t2 = time(0);
+                 if (0 == res) {
+                    throw(WebAPIException(url, ": Timeout exceeded"));
+                 }
+                 totaltime = totaltime + (t2 - t1);
+             }
+           
 	    _fromsite.getline(buf, 512);
             hcount++;
 
@@ -393,7 +432,7 @@ WebAPI::WebAPI(std::string url, int postflag, std::string postdata, int maxretri
              delete _buf_in;
          }
 
-         if ( timeoutafter > 0 && totaltime > timeoutafter ) {
+         if ( _timeout > 0 && totaltime > (_timeout / 1000) ) {
             throw(WebAPIException(url, ": Timeout exceeded"));
          }
      }
@@ -430,7 +469,7 @@ test_WebAPI_fetchurl() {
    std::string line;
 
 
-   WebAPI ds("http://www-oss.fnal.gov/~mengel/Ascii_Chart.html");
+   WebAPI ds("http://home.fnal.gov/~mengel/Ascii_Chart.html");
 
     std::cout << "ds.data().eof() is " << ds.data().eof() << std::endl;
     while(!ds.data().eof()) {
@@ -486,6 +525,12 @@ test_WebAPI_fetchurl() {
    }
    try {
       WebAPI ds6("http://www.fnal.gov/nosuchdir/nosuchfile.html");
+   } catch (WebAPIException &we) {
+      std::cout << "WebAPIException: " << we.what() << std::endl;
+   }
+   try {
+      // try a webpage that takes 10 seconds with a 5 second timeout..
+      WebAPI ds7("http://deelay.me/10000/http://home.fnal.gov/~mengel/AsciiChart.html", 0, "", 10, 5);
    } catch (WebAPIException &we) {
       std::cout << "WebAPIException: " << we.what() << std::endl;
    }

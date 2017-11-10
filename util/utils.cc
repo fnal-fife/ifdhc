@@ -98,7 +98,7 @@ char *getexperiment() {
     // we get our own copy to not break layering... sigh.
     
     WimpyConfigParser cf;
-    cf.getdefault( getenv("IFDHC_CONFIG_DIR"), getenv("IFDHC_DIR"), getenv("IFDHC_FQ_DIR"));
+    cf.getdefault( getenv("IFDHC_CONFIG_DIR"), getenv("IFDHC_DIR"), getenv("IFDHC_FQ_DIR"),0);
 
     std::vector<std::string> explist = cf.getlist("gid_exp","gidexplist");
     std::string gids("gids_");

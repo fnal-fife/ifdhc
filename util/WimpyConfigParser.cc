@@ -11,10 +11,12 @@ WimpyConfigParser::WimpyConfigParser(int debug) : _debug(debug) { ; }
 
 void
 WimpyConfigParser::
-getdefault( const char *ccffile, const char *ccffile1, const char *ccffile2) {
+getdefault( const char *ccffile, const char *ccffile1, const char *ccffile2, int debug) {
+    _debug = debug;
     std::string cffile;
     if (ccffile) {
         cffile = std::string(ccffile); 
+        _debug && std::cerr << "ifdh: getting config file from IFDHC_CONFIG_DIR\n";
     } else if ( (ccffile1) && (std::ifstream((std::string(ccffile1) + "/ifdh.cfg").c_str())) ) {
         cffile = std::string(ccffile1); 
         _debug && std::cerr << "ifdh: getting config file from IFDHC_DIR --  no IFDHC_CONFIG_DIR?!?\n";
@@ -26,6 +28,7 @@ getdefault( const char *ccffile, const char *ccffile1, const char *ccffile2) {
     }
     _debug && std::cerr << "ifdh: using config file: "<< ccffile << "/ifdh.cfg\n";
 
+    //_debug && std::cerr << "ifdh: getting config file " << cffile << "/ifdh.cfg\n";
     read(cffile + "/ifdh.cfg");
     std::vector<std::string> clist = getlist("general","conditionals");
     _debug && std::cerr << "checking conditionals:\n";

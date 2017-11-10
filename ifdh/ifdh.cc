@@ -532,7 +532,7 @@ ifdh::do_url_str(int postflag,...) {
     string res("");
     string line;
     try {
-        class timeoutobj to;
+        //class timeoutobj to;
 	va_start(ap, postflag);
 	unique_ptr<WebAPI> wap(do_url_2(postflag, ap));
 	while (!wap->data().eof() && !wap->data().fail()) {
@@ -561,7 +561,7 @@ ifdh::do_url_lst(int postflag,...) {
     vector<string> empty;
     vector<string> res;
     try {
-        class timeoutobj to;
+        //class timeoutobj to;
 	va_start(ap, postflag);
 	unique_ptr<WebAPI> wap(do_url_2(postflag, ap));
 	while (!wap->data().eof() && !wap->data().fail()) {
@@ -745,7 +745,8 @@ ifdh::ifdh(std::string baseuri) {
     // parse and initialize config file
     //  
     if (_config.size() == 0) {
-       _config.getdefault( getenv("IFDHC_CONFIG_DIR"), getenv("IFDHC_DIR"), getenv("IFDHC_FQ_DIR"));
+       _debug && std::cerr << "checking configs: \n";
+       _config.getdefault( getenv("IFDHC_CONFIG_DIR"), getenv("IFDHC_DIR"), getenv("IFDHC_FQ_DIR"),_debug);
     }
 }
 

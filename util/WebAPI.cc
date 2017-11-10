@@ -125,7 +125,9 @@ WebAPI::WebAPI(std::string url, int postflag, std::string postdata, int maxretri
      int hcount;
      int connected;
      int totaltime = 0;
-     int _timeout = timeout;
+     _timeout = timeout;
+
+     _timeout != -1 && _debug && std::cerr << "timeout: " << _timeout << "\n";
 
      _pid = 0;
      __gnu_cxx::stdio_filebuf<char> *buf_out = 0;
@@ -308,16 +310,16 @@ WebAPI::WebAPI(std::string url, int postflag, std::string postdata, int maxretri
 
          //XXX here we need a poll with timeout before writing
          if ( _timeout > 0 && totaltime > (_timeout / 1000) ) {
-            throw(WebAPIException(url, ": Timeout exceeded"));
+            throw(WebAPIException(url, ": Timeout exceeded (1)"));
          }
          if (_timeout > 0)  {
              time_t t1, t2;
-             struct pollfd pf = { _tositefd, POLLIN, 0 };
+             struct pollfd pf = { _tositefd, POLLOUT, 0 };
              t1 = time(0);
              res = poll(&pf, 1, _timeout - totaltime * 1000);
              t2 = time(0);
              if (0 == res) {
-                throw(WebAPIException(url, ": Timeout exceeded"));
+                throw(WebAPIException(url, ": Timeout exceeded (2)"));
              }
              totaltime = totaltime + (t2 - t1);
          }
@@ -359,16 +361,16 @@ WebAPI::WebAPI(std::string url, int postflag, std::string postdata, int maxretri
 
             //XXX here we need a poll with timeout before reading...
              if ( _timeout > 0 && totaltime > (_timeout / 1000) ) {
-                throw(WebAPIException(url, ": Timeout exceeded"));
+                throw(WebAPIException(url, ": Timeout exceeded (3)"));
              }
              if (_timeout > 0)  {
                  time_t t1, t2;
-                 struct pollfd pf = { _fromsitefd, POLLOUT, 0 };
+                 struct pollfd pf = { _fromsitefd, POLLIN, 0 };
                  t1 = time(0);
                  res = poll(&pf, 1, _timeout - totaltime * 1000);
                  t2 = time(0);
                  if (0 == res) {
-                    throw(WebAPIException(url, ": Timeout exceeded"));
+                    throw(WebAPIException(url, ": Timeout exceeded (4)"));
                  }
                  totaltime = totaltime + (t2 - t1);
              }

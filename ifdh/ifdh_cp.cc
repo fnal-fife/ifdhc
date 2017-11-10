@@ -514,6 +514,7 @@ ifdh::build_stage_list(std::vector<std::string> args, int curarg, char *stage_vi
 
 bool 
 check_grid_credentials() {
+    int res;
     static char buf[512];
     FILE *pf = popen("voms-proxy-info -all 2>/dev/null", "r");
     bool found = false;
@@ -528,27 +529,21 @@ check_grid_credentials() {
     while(fgets(buf,512,pf)) {
 	 std::string s(buf);
 
-         if ( 0 == s.find("path ")) {
-             path = s.substr(s.find(':') + 2);
-             path = path.substr(0,path.size()-1);
-             ifdh::_debug && std::cerr << "saw path" << path << "\n";
-         }
-	 if ( 0 == s.find("attribute ") && std::string::npos != s.find("Role=") && std::string::npos == s.find("Role=NULL")) { 
+	 if (std::string::npos != s.find("Role=") && std::string::npos == s.find("Role=NULL")) { 
 	     found = true;
              if (std::string::npos ==  s.find(experiment)) {
                  std::cerr << "Notice: Expected a certificate for " << experiment << " but found " << s << endl;
              }
              ifdh::_debug && std::cerr << "found: " << buf << endl;
 	 }
-	 // if it is expired, its like we don't have it...
-	 // only check for 0:0 of 0:00:00 or 0:03:00, if it only
-	 // has a few minutes left, we should renew it...
-	 if ( 0 == s.find("timeleft  : 0:0")) { 
-	     found = false;
-             ifdh::_debug && std::cerr << "..but its expired\n " ;
-	 }
     }
-    fclose(pf);
+    res = pclose(pf);
+    if (!WIFEXITED(res) || 0 != WEXITSTATUS(res)) {
+         found = false;
+         ifdh::_debug && std::cerr << "..but its expired\n " ;
+    } else {
+         ifdh::_debug && std::cerr << "... and passes voms-proxy-info -valid check\n " ;
+    }
 
     if (found and 0 == getenv("X509_USER_PROXY")) {
         ifdh::_debug && std::cerr << "setting X509_USER_PROXY to " << path << "\n";
@@ -755,7 +750,7 @@ get_pnfs_uri(std::string door_url,  std::string door_proto, std::vector<std::str
         nodes.clear();
         ifdh::_debug && cerr << "finding " << door_proto << " dcache doors...[ "; 
         try {
-        WebAPI wa(door_url, 0, "", 1);  // pass in maxretries of 1
+        WebAPI wa(door_url, 0, "", 1, 5000);  // pass in maxretries of 1, web timeout of 5000ms == 5 sec
 	while (!wa.data().eof() && !wa.data().fail()) {
 	    getline(wa.data(), line);
             // ifdh::_debug && cerr << "got: " << line << "\n";
@@ -793,6 +788,7 @@ get_pnfs_uri(std::string door_url,  std::string door_proto, std::vector<std::str
     cached_node_proto = door_proto;
     cached_door_url = door_url;
     if ( nodes.size() == 0) {
+       ifdh::_debug && std::cerr << "Failed looking up door list, reverting to default list\n";
        nodes = def_doors;   
     }
     int32_t rn;

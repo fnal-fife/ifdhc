@@ -17,6 +17,8 @@ from exitCodes import exitcodecases
 
 from XProto import xproto_cases
 
+from timeoutTests import TimeoutCases
+
 def suite():
     os.environ['IFDH_CP_MAXRETRIES'] = '0'
     basesuite = unittest.TestLoader().loadTestsFromTestCase(SAMCases)
@@ -26,6 +28,7 @@ def suite():
     basesuite5 = unittest.TestLoader().loadTestsFromTestCase(aux_file_cases)
     basesuite6 = unittest.TestLoader().loadTestsFromTestCase(exitcodecases)
     basesuite7 = unittest.TestLoader().loadTestsFromTestCase(xproto_cases)
+    basesuite8 = unittest.TestLoader().loadTestsFromTestCase(TimeoutCases)
     thissuite = unittest.TestSuite( [basesuite,basesuite2,basesuite3,basesuite4,basesuite5,basesuite6,basesuite7] )
     return thissuite
 

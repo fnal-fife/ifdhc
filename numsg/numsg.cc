@@ -15,7 +15,7 @@ numsg *numsg::_singleton = 0;
 
 numsg::numsg(const char *jobname, char *host, int port, int parentflag) : 
 	_sa(host, port, parentflag), 
-	_jobname(jobname?jobname:getenv("NU_LOG_TAG")),
+	_jobname(jobname?jobname:(getenv("NU_LOG_TAG")?getenv("NU_LOG_TAG"):"ifdh_log")),
 	_cur_state("boot"), 
 	_old_states(), 
         _facility(17),

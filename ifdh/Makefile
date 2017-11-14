@@ -17,8 +17,10 @@ genOBJ=ifdh_main.o ifdh_wrap.o python/_ifdh.$(SHLIB)
 genSRC=ifdh_wrap.cxx ifdh_main.cc
 PYMOD_OBJS=$(ALL_OBJS) ifdh_wrap.o
 LDLIBS=-lz
+DIRS=python
+ALL=ifdh python/_ifdh.$(SHLIB) libifdh.$(SHLIB) libifdh.a
 
-all: ifdh python python/_ifdh.$(SHLIB) libifdh.$(SHLIB) libifdh.a
+all: $(DIRS) $(ALL) 
 
 install:
 	test -d ../lib/python || mkdir -p ../lib/python
@@ -31,7 +33,7 @@ install:
 	cp www_cp.sh xrdwrap.sh ../bin
 
 clean: 
-	rm -f $(OBJ) $(genOBJ) $(genSRC) $(LIB) libifdh.a
+	rm -f $(OBJ) $(genOBJ) $(genSRC) $(LIB) $(ALL)
 
 python:
 	mkdir python

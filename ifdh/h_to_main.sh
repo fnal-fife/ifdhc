@@ -64,7 +64,7 @@ do
         printf "static void usage();\n"
         printf "static int has_args_thru(char **argv, int i) { for(int j = 0; j <= i; j++) if (!argv[j]) return 0; return 1;}\n"
         printf "static int di(int i)\t\t{ exit(i);  return 1; }\n"
-        printf "static int ds(string s)\t\t{ cout << s << \"\\\\n\"; return 1; }\n"
+        printf "static int ds(string s)\t\t{ cout << s << \"\\\\n\"; return s.size() == 0; }\n"
         printf "static int dv(vector<string> v)\t\t{ for(size_t i = 0; i < v.size(); i++) { cout << v[i] << \"\\\\n\"; } exit(v.size() == 0); }\n"
         printf "static int dvpsl(vector<pair<string, long int> > v)\t{ for(size_t i = 0; i < v.size(); i++) { cout << v[i].first << "'"\\t"'" << v[i].second << \"\\\\n\"; } exit(v.size() == 0);}\n"
         printf "static int dvmsvs(map<string,vector<string> > m)\t{for( map<string,vector<string> >:: iterator i  = m.begin(); i != m.end(); ++i) { cout << i->first << "'":\\n"'"; for (size_t j = 0; j < i->second.size(); ++j) { cout << "'"\\t"'" <<  i->second[j] << "'"\\n"'";}  } exit(m.empty()); }\n"

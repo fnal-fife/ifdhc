@@ -2,11 +2,95 @@
 #include <fstream>
 #include <iostream>
 #include <stdlib.h>
+#include <stdexcept>
+#include <unistd.h>
 #include "utils.h"
  
 namespace ifdh_util_ns {
 
-WimpyConfigParser::WimpyConfigParser() { ; }
+WimpyConfigParser::WimpyConfigParser(int debug) : _debug(debug) { ; }
+
+void
+WimpyConfigParser::
+getdefault( const char *ccffile, const char *ccffile1, const char *ccffile2, int debug) {
+    _debug = debug;
+    std::string cffile;
+    if (ccffile) {
+        cffile = std::string(ccffile); 
+        _debug && std::cerr << "ifdh: getting config file from IFDHC_CONFIG_DIR\n";
+    } else if ( (ccffile1) && (std::ifstream((std::string(ccffile1) + "/ifdh.cfg").c_str())) ) {
+        cffile = std::string(ccffile1); 
+        _debug && std::cerr << "ifdh: getting config file from IFDHC_DIR --  no IFDHC_CONFIG_DIR?!?\n";
+    } else if ( (ccffile2) && (std::ifstream((std::string(ccffile2) + "/ifdh.cfg").c_str())) ) {
+        cffile = std::string(ccffile2); 
+        _debug && std::cerr << "ifdh: getting config file from IFDHC_FQ_DIR --  no IFDHC_CONFIG_DIR?!?\n";
+    } else {
+	throw( std::logic_error("no ifdhc config file environment variables found"));
+    }
+    _debug && std::cerr << "ifdh: using config file: "<< ccffile << "/ifdh.cfg\n";
+
+    //_debug && std::cerr << "ifdh: getting config file " << cffile << "/ifdh.cfg\n";
+    read(cffile + "/ifdh.cfg");
+    std::vector<std::string> clist = getlist("general","conditionals");
+    _debug && std::cerr << "checking conditionals:\n";
+    for( size_t i = 0; i < clist.size(); i++ ) { 
+	_debug && std::cerr << "conditional" << i << ": " << clist[i] << "\n";
+        if (clist[i] == "") {
+           continue;
+        }
+        std::string rtype;
+        std::string tststr = get("conditional " + clist[i], "test");
+        std::vector<std::string> renamevec = getlist("conditional " + clist[i], "rename_proto");
+        _debug && std::cerr <<"Renamevec.size() is " << renamevec.size() <<  " \n";
+        if (renamevec.size() > 1) {
+           rtype = "protocol ";
+        } else {
+            _debug && std::cerr <<  " trying rename_loc\n";
+           renamevec = getlist("conditional " + clist[i], "rename_loc");
+           if (renamevec.size() > 1) {
+               rtype = "location ";
+           } else {
+                _debug && std::cerr <<  " trying rename_rot\n";
+               renamevec = getlist("conditional " + clist[i], "rename_rot");
+               if (renamevec.size() > 1) {
+                   rtype = "rotation ";
+               }
+           }
+        }
+        _debug && std::cerr <<  " renamevec: " << renamevec[0] << ", " << renamevec[1] << "\n";
+        _debug && std::cerr <<  " rtype: " << rtype << "\n";
+        if (tststr[0] == '-' && tststr[1] == 'x') {
+            if (0 == access(tststr.substr(3).c_str(), X_OK)) {
+                _debug && std::cerr << "test: " << tststr << " renaming: " << renamevec[0] << " <= " << renamevec[1] << "\n";
+		rename_section(rtype + renamevec[0], rtype + renamevec[1]);
+            }
+            continue;
+        }
+        if (tststr[0] == '-' && tststr[1] == 'r') {
+            if (0 == access(tststr.substr(3).c_str(), R_OK)) {
+                _debug && std::cerr << "test: " << tststr << " renaming: " << renamevec[0] << " <= " << renamevec[1] << "\n";
+		rename_section(rtype + renamevec[0], rtype + renamevec[1]);
+            }
+            continue;
+        }
+        if (tststr[0] == '-' && tststr[1] == 'H') {
+           if (host_matches(tststr.substr(3))) {
+                _debug && std::cerr << "test: " << tststr << " renaming: " << renamevec[0] << " <= " << renamevec[1] << "\n";
+		rename_section(rtype + renamevec[0], rtype + renamevec[1]);
+           }
+           continue;
+        }
+    }
+    // handle protocol aliases
+    std::vector<std::string> plist = getlist("general","protocols");
+    std::string av;
+    for( size_t i = 0; i < plist.size(); i++ ) { 
+        av =  get("protocol " + plist[i], "alias");
+        if (av != "" ) {
+             copy_section("protocol " + av, "protocol " + plist[i]);
+        }
+    }
+}
 
 void
 WimpyConfigParser::read(std::string filename) {

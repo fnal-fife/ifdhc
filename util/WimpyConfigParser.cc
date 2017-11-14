@@ -3,6 +3,7 @@
 #include <iostream>
 #include <stdlib.h>
 #include <stdexcept>
+#include <unistd.h>
 #include "utils.h"
  
 namespace ifdh_util_ns {

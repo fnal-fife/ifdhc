@@ -461,52 +461,6 @@ do_url_2(int postflag, va_list ap) {
 }
 
 
-void
-handle_timeout(int what) {
-    what = what;
-    std::cerr << "Timeout in ifdh web call\n";
-    throw std::runtime_error("Timeout in ifdh web call");
-}
-
-
-// make a timeout class so we never forget to 
-// clean up our siglarm, even if we catch an exception
-//
-class timeoutobj {
-    struct sigaction oldaction;
-    int oldalarm;
-
-    void
-    set_timeout() {
-	int timeoutafter;
-	struct sigaction action;
-	memset(&action, 0, sizeof(struct sigaction));
-	sigset_t empty;
-	sigemptyset(&empty);
-	action.sa_handler = handle_timeout;
-	action.sa_mask = empty;
-       
-	if (getenv("IFDH_WEB_TIMEOUT")) { 
-	    timeoutafter = atoi(getenv("IFDH_WEB_TIMEOUT"));
-	} else { 
-	    timeoutafter = 3*60*60;
-	}
-        ifdh::_debug && std::cerr << "set_timeout: setting alarm to " << timeoutafter << "\n";
-	sigaction(SIGALRM, &action, &oldaction);
-	oldalarm = alarm(timeoutafter);
-    }
-
-    void
-    clear_timeout() {
-        ifdh::_debug && std::cerr << "set_timeout: setting alarm to " << oldalarm  << "\n";
-	alarm(oldalarm);
-	sigaction(SIGALRM, &oldaction, (struct sigaction*)0);
-    }
-public:
-    timeoutobj() { set_timeout(); };
-    ~timeoutobj() { clear_timeout(); };
-};
-
 int
 ifdh::do_url_int(int postflag, ...) {
     va_list ap;
@@ -514,7 +468,6 @@ ifdh::do_url_int(int postflag, ...) {
 
     va_start(ap, postflag);
     try {
-       class timeoutobj to;
        unique_ptr<WebAPI> wap(do_url_2(postflag, ap));
        res = wap->getStatus() - 200;
     } catch( exception &e )  {
@@ -532,7 +485,6 @@ ifdh::do_url_str(int postflag,...) {
     string res("");
     string line;
     try {
-        //class timeoutobj to;
 	va_start(ap, postflag);
 	unique_ptr<WebAPI> wap(do_url_2(postflag, ap));
 	while (!wap->data().eof() && !wap->data().fail()) {
@@ -561,7 +513,6 @@ ifdh::do_url_lst(int postflag,...) {
     vector<string> empty;
     vector<string> res;
     try {
-        //class timeoutobj to;
 	va_start(ap, postflag);
 	unique_ptr<WebAPI> wap(do_url_2(postflag, ap));
 	while (!wap->data().eof() && !wap->data().fail()) {
@@ -600,6 +551,11 @@ ifdh::createDefinition( string name, string dims, string user, string group) {
 int 
 ifdh::deleteDefinition( string name) {
   return  do_url_int(1,_baseuri.c_str(),"definitions","name", name.c_str(),"delete","","");
+}
+
+string 
+ifdh::takeSnapshot( string name ) {
+  return do_url_str(0,_baseuri.c_str(),"definitions", "name", name.c_str(), "snapshot",  "","");
 }
 
 string 

@@ -434,7 +434,7 @@ std::string dest_file( std::string src_file, std::string dest_dir) {
 }
 
 std::vector<std::string> 
-ifdh::build_stage_list(std::vector<std::string> args, int curarg, char *stage_via) {
+ifdh::build_stage_list(std::vector<std::string> args, int curarg, const char *stage_via) {
    std::vector<std::string>  res;
    std::string stagefile(datadir());
    std::string ustring;
@@ -700,10 +700,10 @@ ifdh::getProxy() {
  
 
 
-char *
+const char *
 parse_ifdh_stage_via() {
    static char resultbuf[1024];
-   char *fullvia = getenv("IFDH_STAGE_VIA"?getenv("IFDH_STAGE_VIA"):"");
+   const char *fullvia = (getenv("IFDH_STAGE_VIA")?getenv("IFDH_STAGE_VIA"):"");
    size_t start, loc1, loc2;
 
    if (!fullvia)
@@ -1333,7 +1333,7 @@ ifdh::cp( std::vector<std::string> args ) {
     log(logmsg.c_str());
     _debug && std::cerr << logmsg;
 
-    char *stage_via = parse_ifdh_stage_via();
+    const char *stage_via = parse_ifdh_stage_via();
     if (stage_via && !getenv("EXPERIMENT")) {
        _debug && cerr << "ignoring $IFDH_STAGE_VIA: $EXPERIMENT not set\n";
        log("ignoring $IFDH_STAGE_VIA-- $EXPERIMENT not set  ");
@@ -1349,7 +1349,7 @@ ifdh::cp( std::vector<std::string> args ) {
 
     curarg = parse_opts(args, dest_is_dir, recursive, force, no_zero_length, intermed_file_flag);
 
-    if (stage_via) {
+    if (stage_via && *stage_via ) {
          args = build_stage_list(args, curarg, stage_via);
          cleanup_stage = true;
          need_copyback = true;

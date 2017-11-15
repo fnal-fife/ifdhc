@@ -31,7 +31,7 @@ class ifdh {
         std::string _baseuri;
         std::string _lastinput;
         std::string unique_string();
-        std::vector<std::string> build_stage_list( std::vector<std::string>, int, char *stage_via);
+        std::vector<std::string> build_stage_list( std::vector<std::string>, int, const char *stage_via);
         std::string _errortxt;
    public:
         static WimpyConfigParser _config;

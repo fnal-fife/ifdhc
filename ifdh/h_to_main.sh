@@ -155,9 +155,9 @@ do
         printf "\t\tusage();exit(0);\n"
         printf "\t}\n";
         get_getopt_long_list
-        printf "char *argv1 = argv[1]; argv++; argc--;\n"
+        printf "char *argv1 = argv[1];\n"
         print_env_getopt_loop
-        printf "argv += optind - 1; argc -= optind - 1;  argv[0] = (char *)\"ifdh\"; argv[1] = argv1;\n"
+        printf "argv += (optind - 1); argc -= (optind - 1);  argv[0] = (char *)\"ifdh\"; argv[1] = argv1;\n"
         printf "\ttry {\n"
 	xlate=true;
 	;;

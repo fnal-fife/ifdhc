@@ -258,6 +258,7 @@ ifdh::fetchInput( string src_uri ) {
     else
        args.push_back(src_uri);
     args.push_back(path);
+    _debug && std::cerr << "args: " << args[0] << ", " << args[1] << "\n";
     try {
        if ( 0 == cp( args ) && flushdir(datadir().c_str()) && 0 == access(path.c_str(),R_OK)) {
           _lastinput = path;

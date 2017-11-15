@@ -37,7 +37,7 @@ class TimeoutCases(unittest.TestCase):
 
     def assertEqual(self,a,b,test=None):
         try:
-            super(SAMCases,self).assertEqual(a,b)
+            super(TimeoutCases,self).assertEqual(a,b)
             self.log("PASS %s assertEqual(%s,%s)"%(test,a,b))
         except Exception as e:
             self.log("FAIL %s  assertEqual(%s,%s)"%(test,a,b))
@@ -45,7 +45,7 @@ class TimeoutCases(unittest.TestCase):
 
     def assertNotEqual(self,a,b,test=None):
         try:
-            super(SAMCases,self).assertNotEqual(a,b)
+            super(TimeoutCases,self).assertNotEqual(a,b)
             self.log("PASS %s assertNotEqual(%s,%s)"%(test,a,b))
         except:
             self.log("FAIL %s  assertNotEqual(%s,%s)"%(test,a,b))

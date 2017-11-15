@@ -83,8 +83,6 @@ class ifdh {
 	int deleteDefinition( std::string name);
         // describe a named dataset definition
 	std::string describeDefinition( std::string name);
-        // generate snapshot of a named dataset definition
-	std::string takeSnapshot( std::string name);
         // give file list for dimension string
 	std::vector<std::string> translateConstraints( std::string dims);
 
@@ -166,6 +164,8 @@ class ifdh {
         int apply(std::vector<std::string> args);
         std::string getUrl(std::string loc, std::string force);
         std::string getErrorText();
+        // generate snapshot of a named dataset definition
+	std::string takeSnapshot( std::string name);
     private:
         IFile lookup_loc(std::string url) ;
         std::string locpath(IFile loc, std::string proto) ;

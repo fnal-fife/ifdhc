@@ -155,7 +155,6 @@ do
         printf "\n"
 
         printf "int\nmain(int argc, char **argv) { \n"
-        printf "\tifdh i;\n"
         printf "\tif (! argv[1] || 0 == strcmp(argv[1],\"--help\")) { \n"
         printf "\t\tusage();exit(0);\n"
         printf "\t}\n";
@@ -166,6 +165,7 @@ do
         printf "char *argv1 = argv[1];\n"
         print_env_getopt_loop
         printf "argv += (optind - 1); argc -= (optind - 1);  argv[0] = (char *)\"ifdh\"; argv[1] = argv1;\n"
+        printf "\tifdh i;\n"
         printf "\ttry {\n"
 	xlate=true;
 	;;

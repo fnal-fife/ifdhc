@@ -19,12 +19,14 @@ public:
 
 class WebAPI {
     std::fstream _tosite, _fromsite;
+    int _tositefd, _fromsitefd;
     __gnu_cxx::stdio_filebuf<char> *_buf_in;
     int _status;
     long int _pid;
+    int _timeout; // timeout for web actions as per poll()
 public:
     static int _debug;
-    WebAPI(std::string url, int postflag = 0, std::string postdata = "") throw(WebAPIException);
+    WebAPI(std::string url, int postflag = 0, std::string postdata = "", int maxretries = 10, int timeout = -1) throw(WebAPIException);
     ~WebAPI();
     int getStatus();
     std::fstream &data() { return _fromsite; }

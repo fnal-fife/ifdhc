@@ -7,6 +7,84 @@ xlate=false
 # ignore parens and commas
 IFS="(),$IFS"
 
+get_env_names() {
+    (
+      # get env entries from ifdh.cfg
+      grep env ../ifdh.cfg | sed -e 's/.*=//'
+      # get getenv calls from ifdh code
+      grep getenv *.cc ../util/*.cc | sed -e 's/.*getenv("\([A-Z_]*\)").*/\1/' | grep -v ':' 
+    ) | sort -u | grep -v '^$'
+}
+
+get_ifdh_env_names() {
+   get_env_names | grep '^IFDH_'
+}
+get_other_env_names() {
+   get_env_names | grep -v '^IFDH_' | grep -v '^$'
+}
+
+get_getopt_long_list() {
+   printf "struct option envopts[] =  {\n";
+   get_ifdh_env_names | 
+       sed -e 's/^IFDH_//' |
+       tr '[A-Z]' '[a-z]' | 
+       while read name
+       do
+           printf "{\"%s\", 1, 0, 'i'},\n" $name
+       done
+
+   get_other_env_names | 
+       tr '[A-Z]' '[a-z]' | 
+       while read name
+       do
+           printf "{\"%s\", 1, 0, 'o'},\n" $name
+       done
+   printf "{0,0,0,0},\n"
+   printf "};\n";
+}
+
+print_env_getopt_loop() {
+    printf "int argflag = 1, argind;\n"
+    printf "std::string ifdh_str(\"IFDH_\"), es;\n"
+    printf "while(argflag) switch(getopt_long(argc, argv, \"i:o:\",envopts, &argind)) { \n"
+    printf "case 'i': es = ifdh_str + stoupper(envopts[argind].name) + \"=\" + optarg; sputenv(es);break;\n";
+    printf "case 'o': es = stoupper(envopts[argind].name) + \"=\" + optarg; sputenv(es);break;\n";
+    printf "default: argflag = 0; break;\n"
+    printf "}\n";
+}
+
+define_stoupper() {
+cat <<EOF
+std::string
+stoupper(std::string s) {
+  for(std::string::iterator pc = s.begin(); pc != s.end(); pc++ ) {
+     *pc = toupper(*pc);
+  }
+  return s;
+}
+void
+sputenv(std::string s) {
+   putenv(strdup(s.c_str()));
+}
+EOF
+}
+
+print_env_help_list() {
+   printf "cout << \"Global args for all commands:\\\\n\\\\n\";\n"
+   get_env_names | 
+         while read name
+         do
+            topt=`echo $name | sed -e 's/^IFDH_//' | tr '[A-Z]' '[a-z]'`
+            if [ `echo $topt | wc -c` -lt 13 ]
+            then 
+                printf "cout << \"    --%s=value\t\tset %s env. variable to value\\\\n\";\n" "$topt" "$name"
+            else
+                printf "cout << \"    --%s=value\tset %s env. variable to value\\\\n\";\n" "$topt" "$name"
+            fi
+         done
+}
+
+
 #  some funcs have a template type that confuses things, fix it
 fixargs() {
    echo "in fixargs..." >&2
@@ -58,13 +136,15 @@ do
 	printf "#include <utility>\n"
 	printf "#include <vector>\n"
 	printf "#include <stdexcept>\n"
+        printf "#include <getopt.h>\n"
         printf "using namespace std;\n"
         printf "using namespace ifdh_util_ns;\n"
         # printf "extern \"C\" { void exit(int); }\n"
-        printf "static void usage();\n"
+        printf "static void usage(const char *what=0);\n"
+        define_stoupper
         printf "static int has_args_thru(char **argv, int i) { for(int j = 0; j <= i; j++) if (!argv[j]) return 0; return 1;}\n"
         printf "static int di(int i)\t\t{ exit(i);  return 1; }\n"
-        printf "static int ds(string s)\t\t{ cout << s << \"\\\\n\"; return 1; }\n"
+        printf "static int ds(string s)\t\t{ cout << s << \"\\\\n\"; return s.size() == 0; }\n"
         printf "static int dv(vector<string> v)\t\t{ for(size_t i = 0; i < v.size(); i++) { cout << v[i] << \"\\\\n\"; } exit(v.size() == 0); }\n"
         printf "static int dvpsl(vector<pair<string, long int> > v)\t{ for(size_t i = 0; i < v.size(); i++) { cout << v[i].first << "'"\\t"'" << v[i].second << \"\\\\n\"; } exit(v.size() == 0);}\n"
         printf "static int dvmsvs(map<string,vector<string> > m)\t{for( map<string,vector<string> >:: iterator i  = m.begin(); i != m.end(); ++i) { cout << i->first << "'":\\n"'"; for (size_t j = 0; j < i->second.size(); ++j) { cout << "'"\\t"'" <<  i->second[j] << "'"\\n"'";}  } exit(m.empty()); }\n"
@@ -76,9 +156,16 @@ do
 
         printf "int\nmain(int argc, char **argv) { \n"
         printf "\tifdh i;\n"
-        printf "\tif (! argv[1] || 0 == strcmp(argv[1],\"--help\") || (argv[2] && 0 == strcmp(argv[2],\"--help\"))) { \n"
+        printf "\tif (! argv[1] || 0 == strcmp(argv[1],\"--help\")) { \n"
         printf "\t\tusage();exit(0);\n"
         printf "\t}\n";
+        printf "\tif (argv[2] && 0 == strcmp(argv[2],\"--help\")) { \n"
+        printf "\t\tusage(argv[1]);exit(0);\n"
+        printf "\t}\n";
+        get_getopt_long_list
+        printf "char *argv1 = argv[1];\n"
+        print_env_getopt_loop
+        printf "argv += (optind - 1); argc -= (optind - 1);  argv[0] = (char *)\"ifdh\"; argv[1] = argv1;\n"
         printf "\ttry {\n"
 	xlate=true;
 	;;
@@ -93,8 +180,10 @@ do
         printf "      exit(1);\n"
         printf "   }\n"
 	printf "}\n"
-	printf "void usage(){\n"
+	printf "void usage( const char *what){\n"
+        printf "   std::cout << \"Usage:\\\\n\\\\n\";\n"
         printf "$help\n"
+        print_env_help_list
 	printf "}\n"
 	xlate=false;
         ;;
@@ -152,7 +241,7 @@ do
         esac
         echo "cargs are now: $cargs" >&2
         help="$help
-                cout << \"\\\\t\033[1mifdh $func $args\033[0m\\\\n\\\\t  $lastcomment\\\n\\\n\";"
+               (what == 0 || 0==strcmp(what,\"$func\")) && cout << \"\\\\t\033[1mifdh [global-args] $func $args\033[0m\\\\n\\\\t  $lastcomment\\\n\\\n\";"
 	printf "\t${else}if (argc > 1 && 0 == strcmp(argv[1],\"$func\")) $pfunc(i.$func("
         else="else "
         i=2

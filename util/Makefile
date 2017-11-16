@@ -22,11 +22,11 @@ ifdh_version.h: FORCE
 
 FORCE:
 
-utils-test: utils.cc
-	g++ -o $@ $(TESTDEFS) $(CXXFLAGS) $<
+utils-test: utils.cc WimpyConfigParser.o
+	g++ -o $@ $(TESTDEFS) $(CXXFLAGS) $< WimpyConfigParser.o
 
-%-test: %.cc
-	g++ -o $@ $(TESTDEFS) $(CXXFLAGS) $< utils.o
+%-test: %.cc WimpyConfigParser.o
+	g++ -o $@ $(TESTDEFS) $(CXXFLAGS) $< utils.o WimpyConfigParser.o
 
 
 %.o: %.cc

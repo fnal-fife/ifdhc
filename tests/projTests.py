@@ -153,7 +153,9 @@ class SAMCases(unittest.TestCase):
         time.sleep(1)
         cpurl = self.ifdh_handle.findProject(SAMCases.curproject,'')
         uri = self.ifdh_handle.getNextFile(cpurl, SAMCases.curconsumer)
+        print "got uri:" , uri
         path = self.ifdh_handle.fetchInput(uri)
+        print "got path:" , path
         res = os.access(path,os.R_OK)
         self.ifdh_handle.updateFileStatus(cpurl, SAMCases.curconsumer, uri, 'transferred')
         time.sleep(1)

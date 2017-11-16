@@ -202,11 +202,17 @@ make_canonical( std::string &arg ) {
    }
    // clean out doubled slashes...uless its the one in the ://
    // set a fence position after the :// if any...
+   // -- but allow one set just after the host:port component for CERN stuff
    size_t fpos = arg.find("://");
+   size_t fpos2;
    if (fpos == string::npos || fpos > 10) {
        fpos = 0;
    } else {
        fpos += 3;
+       fpos2 = arg.find("/", fpos);
+       if (fpos2 != string::npos) {
+          fpos = fpos2 + 1;
+       }
    }
    size_t dspos = arg.rfind("//");
    while (dspos != string::npos && dspos >= fpos) {
@@ -428,7 +434,7 @@ std::string dest_file( std::string src_file, std::string dest_dir) {
 }
 
 std::vector<std::string> 
-ifdh::build_stage_list(std::vector<std::string> args, int curarg, char *stage_via) {
+ifdh::build_stage_list(std::vector<std::string> args, int curarg, const char *stage_via) {
    std::vector<std::string>  res;
    std::string stagefile(datadir());
    std::string ustring;
@@ -442,7 +448,7 @@ ifdh::build_stage_list(std::vector<std::string> args, int curarg, char *stage_vi
    std::string base_uri(stage_via);
    if (base_uri[0] == '$') {
        base_uri = base_uri.substr(1);
-       base_uri = getenv(base_uri.c_str());
+       base_uri = (getenv(base_uri.c_str()) ? getenv(base_uri.c_str()) : "");
    }
    base_uri = (base_uri + "/" + getexperiment());
    stagefile += "/stage";
@@ -508,6 +514,7 @@ ifdh::build_stage_list(std::vector<std::string> args, int curarg, char *stage_vi
 
 bool 
 check_grid_credentials() {
+    int res;
     static char buf[512];
     FILE *pf = popen("voms-proxy-info -all 2>/dev/null", "r");
     bool found = false;
@@ -522,25 +529,21 @@ check_grid_credentials() {
     while(fgets(buf,512,pf)) {
 	 std::string s(buf);
 
-         if ( 0 == s.find("path ")) {
-             path = s.substr(s.find(':') + 2);
-             path = path.substr(0,path.size()-1);
-             ifdh::_debug && std::cerr << "saw path" << path << "\n";
-         }
-	 if ( 0 == s.find("attribute ") && std::string::npos != s.find("Role=") && std::string::npos == s.find("Role=NULL")) { 
+	 if (std::string::npos != s.find("Role=") && std::string::npos == s.find("Role=NULL")) { 
 	     found = true;
              if (std::string::npos ==  s.find(experiment)) {
                  std::cerr << "Notice: Expected a certificate for " << experiment << " but found " << s << endl;
              }
              ifdh::_debug && std::cerr << "found: " << buf << endl;
 	 }
-	 // if it is expired, its like we don't have it...
-	 if ( 0 == s.find("timeleft  : 0:00:00")) { 
-	     found = false;
-             ifdh::_debug && std::cerr << "..but its expired\n " ;
-	 }
     }
-    fclose(pf);
+    res = pclose(pf);
+    if (!WIFEXITED(res) || 0 != WEXITSTATUS(res)) {
+         found = false;
+         ifdh::_debug && std::cerr << "..but its expired\n " ;
+    } else {
+         ifdh::_debug && std::cerr << "... and passes voms-proxy-info -valid check\n " ;
+    }
 
     if (found and 0 == getenv("X509_USER_PROXY")) {
         ifdh::_debug && std::cerr << "setting X509_USER_PROXY to " << path << "\n";
@@ -578,11 +581,11 @@ get_grid_credentials_if_needed() {
 
     ifdh::_debug && std::cerr << "Checking for proxy cert..."<< endl;
 
-    if( getenv("IFDH_NO_PROXY"))
+    if( getenv("IFDH_NO_PROXY") && 0 == atoi(getenv("IFDH_NO_PROXY")))
         return;
    
     string role;
-    string user(getenv("GRID_USER")?getenv("GRID_USER"):getenv("USER"));
+    string user(getenv("GRID_USER")?getenv("GRID_USER"):(getenv("USER")?getenv("USER"):"unknown_user") );
     string prouser(getexperiment());
     prouser = prouser + "pro";
     if (user == prouser ) {
@@ -621,7 +624,7 @@ get_grid_credentials_if_needed() {
 	ifdh::_debug && std::cerr << "running: " << cmd << endl;
         system(cmd.c_str()); 
 
-        cmd = "voms-proxy-init -dont-verify-ac -rfc -noregen -debug -cert " ;
+        cmd = "voms-proxy-init -dont-verify-ac -valid 120:00 -rfc -noregen -debug -cert " ;
         cmd += plainproxyfile.str() ;
         cmd += " -key " ;
         cmd +=  plainproxyfile.str() ;
@@ -674,11 +677,15 @@ get_grid_credentials_if_needed() {
 	ifdh::_debug && std::cerr << "running: " << cmd << endl;
 	res = system(cmd.c_str());
         // try a second time if it failed...
-        if (!WIFEXITED(res) || 0 != WEXITSTATUS(res)) {
+        // when you request a long timeout and it truncates it, it exits 256
+        // even though things are fine...
+        if ((!WIFEXITED(res) || 0 != WEXITSTATUS(res)) && res != 256) {
            sleep(1);
 	   res = system(cmd.c_str());
         }
-        if (!WIFEXITED(res) ||  0 != WEXITSTATUS(res)) {
+        // when you request a long timeout and it truncates it, it exits 256
+        // even though things are fine...
+        if ((!WIFEXITED(res) ||  0 != WEXITSTATUS(res)) && res != 256) {
             std::cerr << "Error: exit code " << res << " from voms-proxy-init... later things may fail\n";
         }
     }
@@ -687,31 +694,16 @@ get_grid_credentials_if_needed() {
 std::string
 ifdh::getProxy() {
    get_grid_credentials_if_needed();
-   std::string res( getenv("X509_USER_PROXY"));
+   std::string res( getenv("X509_USER_PROXY")?getenv("X509_USER_PROXY"):"");
    return res;
 }
  
 
-int 
-host_matches(std::string hostglob) {
-   // match trivial globs for now: *.foo.bar
-   static char namebuf[512];
-   if ( 0 == namebuf[0])
-       gethostname(namebuf, 512);
-   std::string hostname(namebuf);
-   size_t ps = hostglob.find("*");
-   hostglob = hostglob.substr(ps+1);
-   if ( std::string::npos != hostname.find(hostglob)) {
-       return 1;
-   } else {
-       return 0;
-   }
-}
 
-char *
+const char *
 parse_ifdh_stage_via() {
    static char resultbuf[1024];
-   char *fullvia = getenv("IFDH_STAGE_VIA");
+   const char *fullvia = (getenv("IFDH_STAGE_VIA")?getenv("IFDH_STAGE_VIA"):"");
    size_t start, loc1, loc2;
 
    if (!fullvia)
@@ -756,9 +748,9 @@ get_pnfs_uri(std::string door_url,  std::string door_proto, std::vector<std::str
 
     if (0 == nodes.size() || cached_node_proto != door_proto || cached_door_url != door_url) {
         nodes.clear();
-        ifdh::_debug && cerr << "looking for dcache " << door_proto << " doors..\n";
+        ifdh::_debug && cerr << "finding " << door_proto << " dcache doors...[ "; 
         try {
-        WebAPI wa(door_url);
+        WebAPI wa(door_url, 0, "", 1, 5000);  // pass in maxretries of 1, web timeout of 5000ms == 5 sec
 	while (!wa.data().eof() && !wa.data().fail()) {
 	    getline(wa.data(), line);
             // ifdh::_debug && cerr << "got: " << line << "\n";
@@ -785,16 +777,18 @@ get_pnfs_uri(std::string door_url,  std::string door_proto, std::vector<std::str
                if (node == "fndca4a.fnal.gov") 
                    continue;
 	       nodes.push_back(node);
-               ifdh::_debug && cerr << "found dcache door: " << node << "\n";
+               ifdh::_debug && cerr << node << ", ";
 	    }
 	}
         }  catch( exception e ) {
         ;
         }
+        ifdh::_debug && cerr << "]\n";
     }
     cached_node_proto = door_proto;
     cached_door_url = door_url;
     if ( nodes.size() == 0) {
+       ifdh::_debug && std::cerr << "Failed looking up door list, reverting to default list\n";
        nodes = def_doors;   
     }
     int32_t rn;
@@ -846,6 +840,37 @@ get_another_dcache_door( std::string &cmd, std::string door_regex, std::string d
     ifdh::_debug && cerr << "finally, cmd is: "  << cmd << "\n";
 }
 
+void
+rotate_door(WimpyConfigParser &_config, const char *&cmd_str, std::string &cmd_str_string) {
+
+        std::vector<std::string> rot_list = _config.getlist("general","rotations");
+        for (size_t i = 0; i < rot_list.size(); i++ ) {
+            std::string section = std::string("rotation ")+rot_list[i];
+            if (! _config.has_section(section)) {
+                
+                ifdh::_debug && cerr << "Note: missing [" << section << "] stanza in ifdh.cfg\n";
+                continue;
+            }
+            std::string door_regex = _config.get(section, "door_repl_re");
+            if (! door_regex.size()) {
+                
+                ifdh::_debug && cerr << "Note: 'door_repl_re' missing from  [" << section << "] stanza in ifdh.cfg\n";
+                continue;
+            }
+            std::string door_url =   _config.get(section, "lookup_door_uri");
+            std::string door_proto = _config.get(section, "door_proto");
+            std::vector<std::string> def_doors = _config.getlist(section, "default_doors");
+
+            ifdh::_debug && cerr << "trying rotation: " << rot_list[i] << "\n";
+
+            regexp door_re(door_regex);
+
+	    if (0 != door_re(cmd_str_string)) {
+	       get_another_dcache_door(cmd_str_string, door_regex, door_url, door_proto, def_doors );   
+               cmd_str = cmd_str_string.c_str();
+	    }
+        }
+}
 
 int
 ifdh::retry_system(const char *cmd_str, int error_expected, cpn_lock &locker, int maxtries, std::string unlink_on_error) {
@@ -878,39 +903,16 @@ ifdh::retry_system(const char *cmd_str, int error_expected, cpn_lock &locker, in
     _errortxt.clear();
 
     while( res != 0 && tries < maxtries ) {
-        std::vector<std::string> rot_list = _config.getlist("general","rotations");
-        for (size_t i = 0; i < rot_list.size(); i++ ) {
-            std::string section = std::string("rotation ")+rot_list[i];
-            if (! _config.has_section(section)) {
-                
-                ifdh::_debug && cerr << "Note: missing [" << section << "] stanza in ifdh.cfg\n";
-                continue;
-            }
-            std::string door_regex = _config.get(section, "door_repl_re");
-            if (! door_regex.size()) {
-                
-                ifdh::_debug && cerr << "Note: 'door_repl_re' missing from  [" << section << "] stanza in ifdh.cfg\n";
-                continue;
-            }
-            std::string door_url =   _config.get(section, "lookup_door_uri");
-            std::string door_proto = _config.get(section, "door_proto");
-            std::vector<std::string> def_doors = _config.getlist(section, "default_doors");
-
-            _debug && cerr << "trying rotation: " << rot_list[i] << "\n";
-
-            regexp door_re(door_regex);
-
-	    if (0 != door_re(cmd_str_string)) {
-	       get_another_dcache_door(cmd_str_string, door_regex, door_url, door_proto, def_doors );   
-               cmd_str = cmd_str_string.c_str();
-	    }
-        }
+        rotate_door(_config, cmd_str, cmd_str_string);
               
         res = system(cmd_str);
         if (WIFEXITED(res)) {
             res = WEXITSTATUS(res);
         } else {
-            std::cerr << "program: " << cmd_str<< " died from signal " << WTERMSIG(res) << "-- exiting.\n";
+            stringstream logmsg;
+            logmsg << "program: " << cmd_str<< " died from signal " << WTERMSIG(res) << "-- exiting.\n";
+            log(logmsg.str());
+            std::cerr << logmsg.str();
             exit(-1);
         }
 
@@ -932,14 +934,19 @@ ifdh::retry_system(const char *cmd_str, int error_expected, cpn_lock &locker, in
             if (dolock)
                 locker.free();
             std::cerr << "program: " << cmd_str << "exited status " << res << "\n";
+            log(_errortxt);
             if (unlink_on_error != "" ) {
                 rm(unlink_on_error);
                 unlink_on_error = "";
             } else {
-                delay =random() % (55 << tries);
-                std::cerr << "delaying " << delay << " ...\n";
+                delay = random() % (55 << tries);
+                stringstream logmsg;
+                logmsg << "delaying " << delay << " ...\n";
+                log(logmsg.str());
+                std::cerr << logmsg.str();
                 sleep(delay);
             }
+            log("retrying...");
             std::cerr << "retrying...\n";
             if (dolock)
                 locker.lock();
@@ -1326,7 +1333,7 @@ ifdh::cp( std::vector<std::string> args ) {
     log(logmsg.c_str());
     _debug && std::cerr << logmsg;
 
-    char *stage_via = parse_ifdh_stage_via();
+    const char *stage_via = parse_ifdh_stage_via();
     if (stage_via && !getenv("EXPERIMENT")) {
        _debug && cerr << "ignoring $IFDH_STAGE_VIA: $EXPERIMENT not set\n";
        log("ignoring $IFDH_STAGE_VIA-- $EXPERIMENT not set  ");
@@ -1342,7 +1349,7 @@ ifdh::cp( std::vector<std::string> args ) {
 
     curarg = parse_opts(args, dest_is_dir, recursive, force, no_zero_length, intermed_file_flag);
 
-    if (stage_via) {
+    if (stage_via && *stage_via ) {
          args = build_stage_list(args, curarg, stage_via);
          cleanup_stage = true;
          need_copyback = true;
@@ -1658,10 +1665,14 @@ ifdh::lss( std::string loc, int recursion_depth, std::string force) {
 
     lss_cmd.replace(lss_cmd.find("%(src)s"), 7, fullurl);
 
+
     stringstream rdbuf;
     rdbuf << recursion_depth;
 
     _debug && std::cerr << "running: " << lss_cmd << "\n";
+
+    const char *pc_lss_cmd = lss_cmd.c_str();
+    rotate_door(_config, pc_lss_cmd, lss_cmd);
 
     // no c++ popen, so doing it C-style..
     int fake_popen = _config.getint(lookup_proto,"lss_fake_popen");

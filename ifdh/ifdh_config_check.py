@@ -17,10 +17,16 @@ except:
             except:
                 return default
 
+import traceback
 
 class IFDHConfigError(Exception):
     """Base class for exceptions in IFDH."""
     type = "IFDHConditionalError"
+    def __init__(self, msg):
+        self.msg = msg
+
+    def __str__(self):
+        return self.msg
 
 
 class IFDHConditionalError(IFDHConfigError):
@@ -89,7 +95,7 @@ def verify(x, name, section,  *args):
         elif error_type == "expansion":
             raise IFDHExpansionError('expansion %s needs definition' % name)
         else:
-            raise IFDHConfigError
+            raise IFDHConfigError("Error: %s in [%s] %s \n" % (name, section, ' '.join(args)))
 
 def check_conditionals(cp):
     print "\tChecking conditionals..."
@@ -205,6 +211,22 @@ def check_protocols(cp):
            p = s[9:]
            verify(p in plist, 'protocol not in general.protocols list', s)
 
+def check_gid_exp(cp):
+    print "\tChecking gid_exp..."
+    verify(cp.get3('gid_exp', 'gidexplist', None), 'Not in [gid_exp] ', 'gidexplist')
+    glist = cp.get3('gid_exp','gidexplist').split(' ')
+    for g in glist:
+        if g == '':
+            continue
+        t = 'gids_%s' % g
+        verify(cp.get3('gid_exp', t, None), 'Not in [gid_exp] ', t)
+        if(cp.get3('gid_exp', t, None)):
+            pl = cp.get3('gid_exp', t).split(' ')
+            for p in pl:
+                if p == '':
+                     continue
+                verify(int(p) > 0, 'bogus pid ', p)
+
 def do_check(filename):
     cp = mycf()
     f = open(filename,"r")
@@ -219,6 +241,7 @@ def do_check(filename):
     loclist = check_prefixes(cp)
     check_locations(cp, loclist) # handles several items
     check_protocols(cp) # several items
+    check_gid_exp(cp)
 
 if __name__ == '__main__':
     print "Checking the configuration file...."
@@ -226,6 +249,7 @@ if __name__ == '__main__':
         do_check(os.environ['IFDHC_CONFIG_DIR']+'/ifdh.cfg')
     except (IFDHConfigError, IFDHConditionalError, IFDHRotationError, IFDHVOError, IFDHPrefixError, IFDHLocationError, IFDHProtocolError, IFDHExpansionError) as ex:
         print "Exception has been raised: ", ex.type
-        print ex.msg
+        print str(ex)
+        #traceback.print_exc()
         sys.exit(2)
     print "Configuration is acceptable"

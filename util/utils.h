@@ -18,6 +18,7 @@ std::vector<std::string> vector_cdr(std::vector<std::string> &vec);
 const char *getexperiment();
 int flushdir(const char *dir);
 std::string parent_dir(std::string path);
+extern int host_matches(std::string glob);
 
 }
 using namespace ifdh_util_ns;

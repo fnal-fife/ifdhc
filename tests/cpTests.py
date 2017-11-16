@@ -18,7 +18,7 @@ base_uri_fmt = "http://samweb.fnal.gov:8480/sam/%s/api"
 # alternate dcache instances...
 cp = ConfigParser.ConfigParser()
 cp.read(os.environ["IFDHC_CONFIG_DIR"]+"/ifdh.cfg")
-dcache_host = cp.get('location dcache_stken', 'prefix_gsiftp').replace("gsiftp://","").replace("/pnfs/fnal.gov/usr/","")
+dcache_host = cp.get('location dcache_stken', 'prefix_srm').replace("srm://","").replace("/pnfs/fnal.gov/usr/","")
 
 
 class Skipped(EnvironmentError):
@@ -135,9 +135,9 @@ class ifdh_cp_cases(unittest.TestCase):
 	self.blue_data_dir="%s/%s" % (self.blue_data_dir_root, os.getpid())
         for d in [self.data_dir_root, self.data_dir, '%s/started'% (self.data_dir), '/pnfs/nova/scratch/ifdh_stage/test', self.blue_data_dir]:
 	    try:
-                print "trying to mkdir: ", d, "... ",
+                # print "trying to mkdir: ", d, "... ",
 		self.ifdh_handle.mkdir(d,'')
-                print "made it."
+                #print "made it."
 	    except:
                 print "exception."
 		pass

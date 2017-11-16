@@ -45,7 +45,7 @@ ifdh::_config;
 void
 path_prepend( string s1, string s2) {
     stringstream setenvbuf;
-    string curpath(getenv("PATH")?getenv("PATH"):"");
+    string curpath(getenv("PATH")?getenv("PATH"):"/bin:/usr/bin");
 
     setenvbuf << s1 << s2 << ":" << curpath;
     setenv("PATH", setenvbuf.str().c_str(), 1);
@@ -258,6 +258,7 @@ ifdh::fetchInput( string src_uri ) {
     else
        args.push_back(src_uri);
     args.push_back(path);
+    _debug && std::cerr << "args: " << args[0] << ", " << args[1] << "\n";
     try {
        if ( 0 == cp( args ) && flushdir(datadir().c_str()) && 0 == access(path.c_str(),R_OK)) {
           _lastinput = path;
@@ -461,52 +462,6 @@ do_url_2(int postflag, va_list ap) {
 }
 
 
-void
-handle_timeout(int what) {
-    what = what;
-    std::cerr << "Timeout in ifdh web call\n";
-    throw std::runtime_error("Timeout in ifdh web call");
-}
-
-
-// make a timeout class so we never forget to 
-// clean up our siglarm, even if we catch an exception
-//
-class timeoutobj {
-    struct sigaction oldaction;
-    int oldalarm;
-
-    void
-    set_timeout() {
-	int timeoutafter;
-	struct sigaction action;
-	memset(&action, 0, sizeof(struct sigaction));
-	sigset_t empty;
-	sigemptyset(&empty);
-	action.sa_handler = handle_timeout;
-	action.sa_mask = empty;
-       
-	if (getenv("IFDH_WEB_TIMEOUT")) { 
-	    timeoutafter = atoi(getenv("IFDH_WEB_TIMEOUT"));
-	} else { 
-	    timeoutafter = 3*60*60;
-	}
-        ifdh::_debug && std::cerr << "set_timeout: setting alarm to " << timeoutafter << "\n";
-	sigaction(SIGALRM, &action, &oldaction);
-	oldalarm = alarm(timeoutafter);
-    }
-
-    void
-    clear_timeout() {
-        ifdh::_debug && std::cerr << "set_timeout: setting alarm to " << oldalarm  << "\n";
-	alarm(oldalarm);
-	sigaction(SIGALRM, &oldaction, (struct sigaction*)0);
-    }
-public:
-    timeoutobj() { set_timeout(); };
-    ~timeoutobj() { clear_timeout(); };
-};
-
 int
 ifdh::do_url_int(int postflag, ...) {
     va_list ap;
@@ -514,7 +469,6 @@ ifdh::do_url_int(int postflag, ...) {
 
     va_start(ap, postflag);
     try {
-       class timeoutobj to;
        unique_ptr<WebAPI> wap(do_url_2(postflag, ap));
        res = wap->getStatus() - 200;
     } catch( exception &e )  {
@@ -532,7 +486,6 @@ ifdh::do_url_str(int postflag,...) {
     string res("");
     string line;
     try {
-        class timeoutobj to;
 	va_start(ap, postflag);
 	unique_ptr<WebAPI> wap(do_url_2(postflag, ap));
 	while (!wap->data().eof() && !wap->data().fail()) {
@@ -561,7 +514,6 @@ ifdh::do_url_lst(int postflag,...) {
     vector<string> empty;
     vector<string> res;
     try {
-        class timeoutobj to;
 	va_start(ap, postflag);
 	unique_ptr<WebAPI> wap(do_url_2(postflag, ap));
 	while (!wap->data().eof() && !wap->data().fail()) {
@@ -600,6 +552,11 @@ ifdh::createDefinition( string name, string dims, string user, string group) {
 int 
 ifdh::deleteDefinition( string name) {
   return  do_url_int(1,_baseuri.c_str(),"definitions","name", name.c_str(),"delete","","");
+}
+
+string 
+ifdh::takeSnapshot( string name ) {
+  return do_url_str(0,_baseuri.c_str(),"definitions", "name", name.c_str(), "snapshot",  "","");
 }
 
 string 
@@ -726,7 +683,6 @@ int ifdh::endProject(string projecturi) {
   return do_url_int(1,projecturi.c_str(),"endProject","","","");
 }
 
-extern int host_matches(std::string glob);
 
 ifdh::ifdh(std::string baseuri) {
     check_env();
@@ -746,86 +702,11 @@ ifdh::ifdh(std::string baseuri) {
     // parse and initialize config file
     //  
     if (_config.size() == 0) {
-    const char *ccffile = getenv("IFDHC_CONFIG_DIR");
-    const char *ccffile1 = getenv("IFDHC_DIR");
-    const char *ccffile2 = getenv("IFDHC_FQ_DIR");
-    std::string cffile;
-    if (ccffile) {
-        cffile = std::string(ccffile); 
-    } else if ( (ccffile1) && (std::ifstream((std::string(ccffile1) + "/ifdh.cfg").c_str())) ) {
-        cffile = std::string(ccffile1); 
-        _debug && std::cerr << "ifdh: getting config file from IFDHC_DIR --  no IFDHC_CONFIG_DIR?!?\n";
-    } else if ( (ccffile2) && (std::ifstream((std::string(ccffile2) + "/ifdh.cfg").c_str())) ) {
-        cffile = std::string(ccffile2); 
-        _debug && std::cerr << "ifdh: getting config file from IFDHC_FQ_DIR --  no IFDHC_CONFIG_DIR?!?\n";
-    } else {
-	throw( std::logic_error("no ifdhc config file environment variables found"));
-    }
-    _debug && std::cerr << "ifdh: using config file: "<< ccffile << "/ifdh.cfg\n";
-
-    _config.read(cffile + "/ifdh.cfg");
-    std::vector<std::string> clist = _config.getlist("general","conditionals");
-    _debug && std::cerr << "checking conditionals:\n";
-    for( size_t i = 0; i < clist.size(); i++ ) { 
-	_debug && std::cerr << "conditional" << i << ": " << clist[i] << "\n";
-        if (clist[i] == "") {
-           continue;
-        }
-        std::string rtype;
-        std::string tststr = _config.get("conditional " + clist[i], "test");
-        std::vector<std::string> renamevec = _config.getlist("conditional " + clist[i], "rename_proto");
-        _debug && std::cerr <<"Renamevec.size() is " << renamevec.size() <<  " \n";
-        if (renamevec.size() > 1) {
-           rtype = "protocol ";
-        } else {
-            _debug && std::cerr <<  " trying rename_loc\n";
-           renamevec = _config.getlist("conditional " + clist[i], "rename_loc");
-           if (renamevec.size() > 1) {
-               rtype = "location ";
-           } else {
-                _debug && std::cerr <<  " trying rename_rot\n";
-               renamevec = _config.getlist("conditional " + clist[i], "rename_rot");
-               if (renamevec.size() > 1) {
-                   rtype = "rotation ";
-               }
-           }
-        }
-        _debug && std::cerr <<  " renamevec: " << renamevec[0] << ", " << renamevec[1] << "\n";
-        _debug && std::cerr <<  " rtype: " << rtype << "\n";
-        if (tststr[0] == '-' && tststr[1] == 'x') {
-            if (0 == access(tststr.substr(3).c_str(), X_OK)) {
-                _debug && std::cerr << "test: " << tststr << " renaming: " << renamevec[0] << " <= " << renamevec[1] << "\n";
-		_config.rename_section(rtype + renamevec[0], rtype + renamevec[1]);
-            }
-            continue;
-        }
-        if (tststr[0] == '-' && tststr[1] == 'r') {
-            if (0 == access(tststr.substr(3).c_str(), R_OK)) {
-                _debug && std::cerr << "test: " << tststr << " renaming: " << renamevec[0] << " <= " << renamevec[1] << "\n";
-		_config.rename_section(rtype + renamevec[0], rtype + renamevec[1]);
-            }
-            continue;
-        }
-        if (tststr[0] == '-' && tststr[1] == 'H') {
-           if (host_matches(tststr.substr(3))) {
-                _debug && std::cerr << "test: " << tststr << " renaming: " << renamevec[0] << " <= " << renamevec[1] << "\n";
-		_config.rename_section(rtype + renamevec[0], rtype + renamevec[1]);
-           }
-           continue;
-        }
-    }
-    // handle protocol aliases
-    std::vector<std::string> plist = _config.getlist("general","protocols");
-    std::string av;
-    for( size_t i = 0; i < plist.size(); i++ ) { 
-        av =  _config.get("protocol " + plist[i], "alias");
-        if (av != "" ) {
-             _config.copy_section("protocol " + av, "protocol " + plist[i]);
-        }
-    }
-    // -------------------------------------------------------
+       _debug && std::cerr << "checking configs: \n";
+       _config.getdefault( getenv("IFDHC_CONFIG_DIR"), getenv("IFDHC_DIR"), getenv("IFDHC_FQ_DIR"),_debug);
     }
 }
+
 
 void
 ifdh::set_base_uri(std::string baseuri) { 

@@ -18,8 +18,10 @@ namespace ifdh_util_ns {
 class WimpyConfigParser {
      private:
          std::map<std::string, std::map<std::string, std::string> > _data;
+         int _debug;
      public:
-         WimpyConfigParser();
+         WimpyConfigParser(int debug = 0);
+         void getdefault( const char *ccffile, const char *ccffile1, const char *ccffile2, int debug);
          void read(std::string filename);
          void readfp(std::istream &s);
          void add_section(std::string sectionname);

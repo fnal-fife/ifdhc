@@ -49,11 +49,15 @@ class ifdh {
         // general file copy using cpn locks dd, gridftp, or srmcp
         // supports:
         //
-        // * cp src1 dest1 [';' src2 dest2 [';'...]]                     -- basic source/dest filenames
-        // * cp -r src1 dest1 [';' src2 dest2 [';'...]]                  -- recursive directory copies
-        // * cp -D src1 src2 destdir1 [';' src3 src4 destdir2 [';'...]]  -- copies to dest. directory
-        // * cp -f file_with_src_space_dest_lines                        -- copies to a list file
-        // * any of the above can take --force={cpn,gridftp,srmcp,expgridftp}
+        // * ifdh cp src1 dest1 [';' src2 dest2 [';'...]]                     
+        // _     -- basic source/dest filenames
+        // * ifdh cp -r src1 dest1 [';' src2 dest2 [';'...]]                  
+        // _     -- recursive directory copies
+        // * ifdh cp -D src1 src2 destdir1 [';' src3 src4 destdir2 [';'...]]  
+        // _     -- copies to dest. directory
+        // * ifdh cp -f file_with_src_space_dest_lines                        
+        // _     -- copies to a list file
+        // * any of the above can take --force={cpn,gsiftp,srm,s3,...}
         // * any of the file/dest arguments can be URIs
         // ---
         int cp(std::vector<std::string> args);

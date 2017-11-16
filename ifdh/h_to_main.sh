@@ -70,12 +70,17 @@ EOF
 }
 
 print_env_help_list() {
-   printf "cout << \"Global options for all commands:\\\n\";\n"
+   printf "cout << \"Global args for all commands:\\\\n\\\\n\";\n"
    get_env_names | 
          while read name
          do
             topt=`echo $name | sed -e 's/^IFDH_//' | tr '[A-Z]' '[a-z]'`
-            printf "cout << \"\t--%s=value\t\tset %s environment variable to value\\\\n\";\n" "$topt" "$name"
+            if [ `echo $topt | wc -c` -lt 13 ]
+            then 
+                printf "cout << \"    --%s=value\t\tset %s env. variable to value\\\\n\";\n" "$topt" "$name"
+            else
+                printf "cout << \"    --%s=value\tset %s env. variable to value\\\\n\";\n" "$topt" "$name"
+            fi
          done
 }
 
@@ -135,7 +140,7 @@ do
         printf "using namespace std;\n"
         printf "using namespace ifdh_util_ns;\n"
         # printf "extern \"C\" { void exit(int); }\n"
-        printf "static void usage();\n"
+        printf "static void usage(const char *what=0);\n"
         define_stoupper
         printf "static int has_args_thru(char **argv, int i) { for(int j = 0; j <= i; j++) if (!argv[j]) return 0; return 1;}\n"
         printf "static int di(int i)\t\t{ exit(i);  return 1; }\n"
@@ -151,8 +156,11 @@ do
 
         printf "int\nmain(int argc, char **argv) { \n"
         printf "\tifdh i;\n"
-        printf "\tif (! argv[1] || 0 == strcmp(argv[1],\"--help\") || (argv[2] && 0 == strcmp(argv[2],\"--help\"))) { \n"
+        printf "\tif (! argv[1] || 0 == strcmp(argv[1],\"--help\")) { \n"
         printf "\t\tusage();exit(0);\n"
+        printf "\t}\n";
+        printf "\tif (argv[2] && 0 == strcmp(argv[2],\"--help\")) { \n"
+        printf "\t\tusage(argv[1]);exit(0);\n"
         printf "\t}\n";
         get_getopt_long_list
         printf "char *argv1 = argv[1];\n"
@@ -172,7 +180,8 @@ do
         printf "      exit(1);\n"
         printf "   }\n"
 	printf "}\n"
-	printf "void usage(){\n"
+	printf "void usage( const char *what){\n"
+        printf "   std::cout << \"Usage:\\\\n\\\\n\";\n"
         printf "$help\n"
         print_env_help_list
 	printf "}\n"
@@ -232,7 +241,7 @@ do
         esac
         echo "cargs are now: $cargs" >&2
         help="$help
-                cout << \"\\\\t\033[1mifdh [global-args] $func $args\033[0m\\\\n\\\\t  $lastcomment\\\n\\\n\";"
+               (what == 0 || 0==strcmp(what,\"$func\")) && cout << \"\\\\t\033[1mifdh [global-args] $func $args\033[0m\\\\n\\\\t  $lastcomment\\\n\\\n\";"
 	printf "\t${else}if (argc > 1 && 0 == strcmp(argv[1],\"$func\")) $pfunc(i.$func("
         else="else "
         i=2

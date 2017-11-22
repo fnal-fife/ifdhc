@@ -1334,12 +1334,12 @@ ifdh::cp( std::vector<std::string> args ) {
     _debug && std::cerr << logmsg;
 
     const char *stage_via = parse_ifdh_stage_via();
-    if (stage_via && !getenv("EXPERIMENT")) {
+    if (stage_via && *stage_via &&  !getenv("EXPERIMENT")) {
        _debug && cerr << "ignoring $IFDH_STAGE_VIA: $EXPERIMENT not set\n";
        log("ignoring $IFDH_STAGE_VIA-- $EXPERIMENT not set  ");
        stage_via = 0;
     }
-    if (stage_via) {
+    if (stage_via && *stage_via) {
        std::vector<std::string> svls = ls(parent_dir(stage_via),1,"");
        if (svls.size() == 0) {
            log("ignoring $IFDH_STAGE_VIA-- cannot ls parent directory  ");

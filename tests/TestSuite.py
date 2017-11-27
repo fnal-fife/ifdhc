@@ -5,6 +5,8 @@ import socket
 import os
 import time
 
+from argParse import argparsecases
+
 from projTests import SAMCases
 
 from cpTests import ifdh_cp_cases
@@ -29,7 +31,8 @@ def suite():
     basesuite6 = unittest.TestLoader().loadTestsFromTestCase(exitcodecases)
     basesuite7 = unittest.TestLoader().loadTestsFromTestCase(xproto_cases)
     basesuite8 = unittest.TestLoader().loadTestsFromTestCase(TimeoutCases)
-    thissuite = unittest.TestSuite( [basesuite,basesuite2,basesuite3,basesuite4,basesuite5,basesuite6,basesuite7,basesuite8] )
+    basesuite9 = unittest.TestLoader().loadTestsFromTestCase(argparsecases)
+    thissuite = unittest.TestSuite( [basesuite,basesuite2,basesuite3,basesuite4,basesuite5,basesuite6,basesuite7,basesuite8,basesuite9] )
     return thissuite
 
 if __name__ == '__main__':

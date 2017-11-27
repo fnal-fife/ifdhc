@@ -516,18 +516,25 @@ bool
 check_grid_credentials() {
     int res;
     static char buf[512];
-    FILE *pf = popen("voms-proxy-info -all 2>/dev/null", "r");
+    FILE *pf = popen("voms-proxy-info -exists -valid 0:10 -path -fqan 2>/dev/null", "r");
     bool found = false;
     std::string experiment(getexperiment());
     std::string path;
+    int first = 1;
     
     ifdh::_debug && std::cerr << "check_grid_credentials:\n";
 
     if (experiment == "samdev")  // use fermilab for fake samdev expt
         experiment = "fermilab";
 
+
     while(fgets(buf,512,pf)) {
 	 std::string s(buf);
+         if ( first ) {
+            path = s.substr(0,s.size()-1); 
+            first = 0;
+            ifdh::_debug && std::cerr << "saw path:" << path << "\n";
+         }
 
 	 if (std::string::npos != s.find("Role=") && std::string::npos == s.find("Role=NULL")) { 
 	     found = true;
@@ -538,11 +545,11 @@ check_grid_credentials() {
 	 }
     }
     res = pclose(pf);
-    if (!WIFEXITED(res) || 0 != WEXITSTATUS(res)) {
+    if (!(WIFEXITED(res) && 0 == WEXITSTATUS(res))) {
          found = false;
          ifdh::_debug && std::cerr << "..but its expired\n " ;
     } else {
-         ifdh::_debug && std::cerr << "... and passes voms-proxy-info -valid check\n " ;
+         ifdh::_debug && std::cerr << "... and passes voms-proxy-info -exists -valid check\n " ;
     }
 
     if (found and 0 == getenv("X509_USER_PROXY")) {
@@ -1334,12 +1341,12 @@ ifdh::cp( std::vector<std::string> args ) {
     _debug && std::cerr << logmsg;
 
     const char *stage_via = parse_ifdh_stage_via();
-    if (stage_via && !getenv("EXPERIMENT")) {
+    if (stage_via && *stage_via &&  !getenv("EXPERIMENT")) {
        _debug && cerr << "ignoring $IFDH_STAGE_VIA: $EXPERIMENT not set\n";
        log("ignoring $IFDH_STAGE_VIA-- $EXPERIMENT not set  ");
        stage_via = 0;
     }
-    if (stage_via) {
+    if (stage_via && *stage_via) {
        std::vector<std::string> svls = ls(parent_dir(stage_via),1,"");
        if (svls.size() == 0) {
            log("ignoring $IFDH_STAGE_VIA-- cannot ls parent directory  ");

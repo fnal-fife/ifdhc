@@ -19,6 +19,7 @@ base_uri_fmt = "http://samweb.fnal.gov:8480/sam/%s/api"
 cp = ConfigParser.ConfigParser()
 cp.read(os.environ["IFDHC_CONFIG_DIR"]+"/ifdh.cfg")
 dcache_host = cp.get('location dcache_stken', 'prefix_srm').replace("srm://","").replace("/pnfs/fnal.gov/usr/","")
+dcache_host = "fndca4a.fnal.gov"
 
 
 class Skipped(EnvironmentError):
@@ -310,7 +311,8 @@ class ifdh_cp_cases(unittest.TestCase):
         self.make_remote_test_txt()
         self.list_remote_dir()
         res = self.ifdh_handle.cp([ "gsiftp://%s%s/test.txt" % (dcache_host,self.data_dir), "%s/test.txt"%(self.work)])
-        self.assertEqual(res==0 and self.check_test_txt(), True, self._testMethodName)
+        self.assertEqual(res, 0, self._testMethodName)
+        self.assertEqual(self.check_test_txt(), True, self._testMethodName)
 
     def test_expftp__out(self):
         self.log(self._testMethodName)

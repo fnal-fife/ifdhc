@@ -44,13 +44,16 @@ get_getopt_long_list() {
 }
 
 print_env_getopt_loop() {
-    printf "int argflag = 1, argind;\n"
+    printf "int argflag = 1, badarg=0, argind;\n"
     printf "std::string ifdh_str(\"IFDH_\"), es;\n"
+    printf "opterr = 0;\n"
     printf "while(argflag) switch(getopt_long(argc, argv, \"i:o:\",envopts, &argind)) { \n"
     printf "case 'i': es = ifdh_str + stoupper(envopts[argind].name) + \"=\" + optarg; sputenv(es);break;\n";
     printf "case 'o': es = stoupper(envopts[argind].name) + \"=\" + optarg; sputenv(es);break;\n";
+    printf "case '?': argflag = 0; badarg=1; break; // leave for rest\n"
     printf "default: argflag = 0; break;\n"
-    printf "}\n";
+    printf "}\n"
+    printf "optind -= 2*badarg;\n"
 }
 
 define_stoupper() {

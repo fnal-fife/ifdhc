@@ -1077,7 +1077,8 @@ ifdh::do_cp(CpPair &cpp, bool intermed_file_flag, bool recursive, cpn_lock &cpn)
         std::string lookup("protocol " + cpp.proto);
         std::string extra_env;
         const char *extra_env_val = 0;
-        std::string cp_cmd;
+        std::string cp_cmd, src;
+        int err_expected;
         
         // command looks like:
         // cp_cmd=dd bs=512k %(extra)s if=%(src)s of=%(dst)s
@@ -1097,7 +1098,9 @@ ifdh::do_cp(CpPair &cpp, bool intermed_file_flag, bool recursive, cpn_lock &cpn)
         } else {
 	    cp_cmd = _config.get(lookup, "cp_cmd");
         }
-        cp_cmd.replace(cp_cmd.find("%(src)s"), 7, srcpath(cpp));
+        src = srcpath(cpp);
+        err_expected = (src.find("*") != std::string::npos);
+        cp_cmd.replace(cp_cmd.find("%(src)s"), 7, src );
         cp_cmd.replace(cp_cmd.find("%(dst)s"), 7, dstpath(cpp));
         if (! extra_env_val)
             extra_env_val = "";
@@ -1121,7 +1124,7 @@ ifdh::do_cp(CpPair &cpp, bool intermed_file_flag, bool recursive, cpn_lock &cpn)
             unlink_this_on_error = cpp.dst.path; 
         }
         
-        return retry_system(cp_cmd.c_str(), 0, cpn, -1, unlink_this_on_error);
+        return retry_system(cp_cmd.c_str(), err_expected, cpn, -1, unlink_this_on_error);
     }
 }
 

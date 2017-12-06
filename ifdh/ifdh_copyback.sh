@@ -35,21 +35,9 @@ run_with_timeout() {
 
 init() {
 
-    echo "Copyback v1_2_5 starting"
-    for cmd in "ifdh --help" "lcg-cp -help" "srmls -help"
-    do
-	if [ `$cmd 2>&1 | wc -l` -gt 2 ]
-	then
-	    : 
-	else
-	    echo "Cannot get output of $cmd; bailing out..."
-	    exit 1
-	fi
-    done
-    
+    echo "Copyback v2_2_2 starting: experiment ${EXPERIMENT}"
+    ifdh log "ifdh_copyback.sh: starting for ${EXPERIMENT} on $host location $wprefix"
  
-    printf "ifdh copyback script starting for experiment %s\n" "${EXPERIMENT:-nova}"
-
     IFDH_STAGE_VIA="${IFDH_STAGE_VIA:-$OSG_SITE_WRITE}"
     eval IFDH_STAGE_VIA=\""${IFDH_STAGE_VIA}"\"
 
@@ -74,7 +62,6 @@ init() {
       esac
     done
 
-    ifdh log "ifdh_copyback.sh: starting for ${EXPERIMENT} on $host location $wprefix"
     # avoid falling into a hall of mirrors
     unset IFDH_STAGE_VIA
     export IFDH_CP_MAXRETRIES=0

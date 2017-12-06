@@ -5,6 +5,8 @@ import socket
 import os
 import time
 
+from retryTests import retrycases
+
 from argParse import argparsecases
 
 from projTests import SAMCases
@@ -32,6 +34,7 @@ def suite():
     basesuite7 = unittest.TestLoader().loadTestsFromTestCase(xproto_cases)
     basesuite8 = unittest.TestLoader().loadTestsFromTestCase(TimeoutCases)
     basesuite9 = unittest.TestLoader().loadTestsFromTestCase(argparsecases)
+    basesuite10 = unittest.TestLoader().loadTestsFromTestCase(retrycases)
     thissuite = unittest.TestSuite( [basesuite,basesuite2,basesuite3,basesuite4,basesuite5,basesuite6,basesuite7,basesuite8,basesuite9] )
     return thissuite
 

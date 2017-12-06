@@ -52,7 +52,6 @@ class retrycases(unittest.TestCase):
         sys.stdout.flush()
         sys.stderr.flush()
         self.ifdh_handle = ifdh.ifdh()
-        os.environ['IFDH_CP_MAXRETRIES'] = "1"
         self.errfile = "/tmp/err%d" % os.getpid()
         try:
             os.mkdir('empty')
@@ -66,15 +65,27 @@ class retrycases(unittest.TestCase):
 
     def check_no_retries(self):
         found = False
+        toolong = True
         with open(self.errfile,'r') as f:
             for line in f:
                 if line == 'retrying...\n':
                      found = True
+                     print "saw: ", line, "bad: should not have retried"
+                if line[:4] == 'real':
+                     toolong = line[5:9] != '0m0.'
+                     if toolong:
+                         print "saw: ", line, "bad: too long!"
         self.assertEqual(found, False)
+        self.assertEqual(toolong, False)
 
     def test_star_cp(self):
         os.environ['IFDH_CP_MAXRETRIES'] = "1"
         res = os.system("(time ifdh cp -D empty/* /tmp)2>%s" % self.errfile)
+        self.check_no_retries()
+
+    def test_max_retries(self):
+        os.environ['IFDH_CP_MAXRETRIES'] = "0"
+        res = os.system("(time ifdh cp nosuchfile /tmp/nosuchfile )2>%s" % self.errfile)
         self.check_no_retries()
 
 def suite():

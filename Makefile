@@ -48,7 +48,7 @@ install-headers:
 	ARCH="-m32 $(ARCH)" make all  install
 
 withart:
-	ARCH="-g -std=c++11 $(ARCH)" make all
+	ARCH="-g -std=c++14 $(ARCH)" make all
 
 distrib:
 	mkdir src; cp ifbeam/*.[ch]*  [nuf]*/[^d]*.[ch]* src ; mv src/ifbeam.c src/ifbeam_c.c;  tar czvf nucondb-client.tgz src; rm -rf src

@@ -13,7 +13,7 @@ class numsg {
      int _severity;
      time_t _starttime;		// last time we start()-ed something
                                 // so we can give elapsed time in finish()
-     numsg(const char * jobname, char *host, int port, int parentflag=0);
+     numsg(const char * jobname, const char *host, int port, int parentflag=0);
 				// private constructor for singleton
      static numsg *_singleton;
 public:

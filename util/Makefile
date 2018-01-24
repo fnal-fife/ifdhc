@@ -23,13 +23,13 @@ ifdh_version.h: FORCE
 FORCE:
 
 utils-test: utils.cc WimpyConfigParser.o
-	g++ -o $@ $(TESTDEFS) $(CXXFLAGS) $< WimpyConfigParser.o
+	${CXX} -o $@ $(TESTDEFS) $(CXXFLAGS) $< WimpyConfigParser.o
 
 %-test: %.cc WimpyConfigParser.o
-	g++ -o $@ $(TESTDEFS) $(CXXFLAGS) $< utils.o WimpyConfigParser.o
+	${CXX} -o $@ $(TESTDEFS) $(CXXFLAGS) $< utils.o WimpyConfigParser.o
 
 
 %.o: %.cc
-	g++ -c -o $@  $(CXXFLAGS) $< 
+	${CXX} -c -o $@  $(CXXFLAGS) $< 
 utils.o: utils.cc utils.h 
 WebAPI.o: WebAPI.cc WebAPI.h 

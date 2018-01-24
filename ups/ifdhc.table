@@ -12,6 +12,7 @@ Product=ifdhc
 # p2713b -> python v2_7_13b (e10 & e14)
 # p2713d -> python v2_7_13d (e10 & e14)
 # p2714 -> python v2_7_14 (e10, e14, & e15)
+# p2714b -> python v2_7_14b (e15 & c2)
 
 Group:
 
@@ -54,6 +55,46 @@ Group:
     EnvSet(IFDHC_FQ_DIR, ${UPS_PROD_DIR} )
 
      Action=ExtraSetup
+
+Flavor=ANY
+Qualifiers=c2:p2714b:debug
+
+  Action=DefineFQ
+    EnvSet(IFDHC_FQ_DIR, ${UPS_PROD_DIR}/${UPS_PROD_FLAVOR}-c2-p2714b-debug )
+
+  Action = ExtraSetup
+    setupRequired( python v2_7_14b )
+    setupRequired( clang v5_0_1 )
+
+Flavor=ANY
+Qualifiers=c2:p2714b:prof
+
+  Action=DefineFQ
+    EnvSet(IFDHC_FQ_DIR, ${UPS_PROD_DIR}/${UPS_PROD_FLAVOR}-c2-p2714b-prof )
+
+  Action = ExtraSetup
+    setupRequired( python v2_7_14b )
+    setupRequired( clang v5_0_1 )
+
+Flavor=ANY
+Qualifiers=e15:p2714b:debug
+
+  Action=DefineFQ
+    EnvSet(IFDHC_FQ_DIR, ${UPS_PROD_DIR}/${UPS_PROD_FLAVOR}-e15-p2714bb-debug )
+
+  Action = ExtraSetup
+    setupRequired( python v2_7_14b )
+    setupRequired( gcc v6_4_0 )
+
+Flavor=ANY
+Qualifiers=e15:p2714b:prof
+
+  Action=DefineFQ
+    EnvSet(IFDHC_FQ_DIR, ${UPS_PROD_DIR}/${UPS_PROD_FLAVOR}-e15-p2714b-prof )
+
+  Action = ExtraSetup
+    setupRequired( python v2_7_14b )
+    setupRequired( gcc v6_4_0 )
 
 Flavor=ANY
 Qualifiers=e15:p2714:debug
@@ -219,167 +260,6 @@ Qualifiers=e10:p2711:prof
   Action = ExtraSetup
     setupRequired( python v2_7_11 )
     setupRequired( gcc v4_9_3a )
-
-Flavor=ANY
-Qualifiers=e9:p2711:debug
-
-  Action=DefineFQ
-    EnvSet(IFDHC_FQ_DIR, ${UPS_PROD_DIR}/${UPS_PROD_FLAVOR}-e9-p2711-debug )
-
-  Action = ExtraSetup
-    setupRequired( python v2_7_11 )
-    setupRequired( gcc v4_9_3 )
-
-Flavor=ANY
-Qualifiers=e9:p2711:prof
-
-  Action=DefineFQ
-    EnvSet(IFDHC_FQ_DIR, ${UPS_PROD_DIR}/${UPS_PROD_FLAVOR}-e9-p2711-prof )
-
-  Action = ExtraSetup
-    setupRequired( python v2_7_11 )
-    setupRequired( gcc v4_9_3 )
-
-
-Flavor=ANY
-Qualifiers=e9:p2710:debug
-
-  Action=DefineFQ
-    EnvSet(IFDHC_FQ_DIR, ${UPS_PROD_DIR}/${UPS_PROD_FLAVOR}-e9-p2710-debug )
-
-  Action = ExtraSetup
-    setupRequired( python v2_7_10 )
-    setupRequired( gcc v4_9_3 )
-
-Flavor=ANY
-Qualifiers=e9:p2710:prof
-
-  Action=DefineFQ
-    EnvSet(IFDHC_FQ_DIR, ${UPS_PROD_DIR}/${UPS_PROD_FLAVOR}-e9-p2710-prof )
-
-  Action = ExtraSetup
-    setupRequired( python v2_7_10 )
-    setupRequired( gcc v4_9_3 )
-
-Flavor=ANY
-Qualifiers=e7:p2710:debug
-
-  Action=DefineFQ
-    EnvSet(IFDHC_FQ_DIR, ${UPS_PROD_DIR}/${UPS_PROD_FLAVOR}-e7-p2710-debug )
-
-  Action = ExtraSetup
-    setupRequired( python v2_7_10 )
-    setupRequired( gcc v4_9_2 )
-
-Flavor=ANY
-Qualifiers=e7:p2710:prof
-
-  Action=DefineFQ
-    EnvSet(IFDHC_FQ_DIR, ${UPS_PROD_DIR}/${UPS_PROD_FLAVOR}-e7-p2710-prof )
-
-  Action = ExtraSetup
-    setupRequired( python v2_7_10 )
-    setupRequired( gcc v4_9_2 )
-
-Flavor=ANY
-Qualifiers=e7:p279:debug
-
-  Action=DefineFQ
-    EnvSet(IFDHC_FQ_DIR, ${UPS_PROD_DIR}/${UPS_PROD_FLAVOR}-e7-p279-debug )
-
-  Action = ExtraSetup
-    setupRequired( python v2_7_9 )
-    setupRequired( gcc v4_9_2 )
-
-Flavor=ANY
-Qualifiers=e7:p279:prof
-
-  Action=DefineFQ
-    EnvSet(IFDHC_FQ_DIR, ${UPS_PROD_DIR}/${UPS_PROD_FLAVOR}-e7-p279-prof )
-
-  Action = ExtraSetup
-    setupRequired( python v2_7_9 )
-    setupRequired( gcc v4_9_2 )
-
-Flavor=ANY
-Qualifiers=e6:p279:debug
-
-  Action=DefineFQ
-    EnvSet(IFDHC_FQ_DIR, ${UPS_PROD_DIR}/${UPS_PROD_FLAVOR}-e6-p279-debug )
-
-  Action = ExtraSetup
-    setupRequired( python v2_7_9 )
-    setupRequired( gcc v4_9_1 )
-
-Flavor=ANY
-Qualifiers=e6:p279:prof
-
-  Action=DefineFQ
-    EnvSet(IFDHC_FQ_DIR, ${UPS_PROD_DIR}/${UPS_PROD_FLAVOR}-e6-p279-prof )
-
-  Action = ExtraSetup
-    setupRequired( python v2_7_9 )
-    setupRequired( gcc v4_9_1 )
-
-Flavor=ANY
-Qualifiers=e6:p278:debug
-
-  Action=DefineFQ
-    EnvSet(IFDHC_FQ_DIR, ${UPS_PROD_DIR}/${UPS_PROD_FLAVOR}-e6-p278-debug )
-
-  Action = ExtraSetup
-    setupRequired( python v2_7_8 )
-    setupRequired( gcc v4_9_1 )
-
-Flavor=ANY
-Qualifiers=e6:p278:prof
-
-  Action=DefineFQ
-    EnvSet(IFDHC_FQ_DIR, ${UPS_PROD_DIR}/${UPS_PROD_FLAVOR}-e6-p278-prof )
-
-  Action = ExtraSetup
-    setupRequired( python v2_7_8 )
-    setupRequired( gcc v4_9_1 )
-
-Flavor=ANY
-Qualifiers=e5:p278:debug
-
-  Action=DefineFQ
-    EnvSet(IFDHC_FQ_DIR, ${UPS_PROD_DIR}/${UPS_PROD_FLAVOR}-e5-p278-debug )
-
-  Action = ExtraSetup
-    setupRequired( python v2_7_8 )
-    setupRequired( gcc v4_8_2 )
-
-Flavor=ANY
-Qualifiers=e5:p278:prof
-
-  Action=DefineFQ
-    EnvSet(IFDHC_FQ_DIR, ${UPS_PROD_DIR}/${UPS_PROD_FLAVOR}-e5-p278-prof )
-
-  Action = ExtraSetup
-    setupRequired( python v2_7_8 )
-    setupRequired( gcc v4_8_2 )
-
-Flavor=ANY
-Qualifiers=e5:p276:debug
-
-  Action=DefineFQ
-    EnvSet(IFDHC_FQ_DIR, ${UPS_PROD_DIR}/${UPS_PROD_FLAVOR}-e5-p276-debug )
-
-  Action = ExtraSetup
-    setupRequired( python v2_7_6 )
-    setupRequired( gcc v4_8_2 )
-
-Flavor=ANY
-Qualifiers=e5:p276:prof
-
-  Action=DefineFQ
-    EnvSet(IFDHC_FQ_DIR, ${UPS_PROD_DIR}/${UPS_PROD_FLAVOR}-e5-p276-prof )
-
-  Action = ExtraSetup
-    setupRequired( python v2_7_6 )
-    setupRequired( gcc v4_8_2 )
 
 Common:
 

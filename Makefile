@@ -6,6 +6,9 @@ else
 SHLIB=so
 endif
 
+# enable use of clang
+CXX=g++
+
 SUBDIRS= util numsg ifdh
 
 all: 

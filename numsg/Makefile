@@ -32,7 +32,7 @@ numsg-test: $(UTLOBJ) numsg.cc
 	$(CXX) $(CXXFLAGS) -DUNITTEST $^ -o numsg-test
 
 %.o: %.cc
-	g++ -c -o $@  $(CXXFLAGS) $< 
+	${CXX} -c -o $@  $(CXXFLAGS) $< 
 
 nulogprintf.o: nulogprintf.cc numsg.h ../util/SyslogAPI.h 
 numsg.o: ../util/utils.h 

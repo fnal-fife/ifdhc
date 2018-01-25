@@ -80,7 +80,7 @@ Flavor=ANY
 Qualifiers=e15:p2714b:debug
 
   Action=DefineFQ
-    EnvSet(IFDHC_FQ_DIR, ${UPS_PROD_DIR}/${UPS_PROD_FLAVOR}-e15-p2714bb-debug )
+    EnvSet(IFDHC_FQ_DIR, ${UPS_PROD_DIR}/${UPS_PROD_FLAVOR}-e15-p2714b-debug )
 
   Action = ExtraSetup
     setupRequired( python v2_7_14b )

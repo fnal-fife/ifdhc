@@ -1279,7 +1279,7 @@ ifdh::handle_args( std::vector<std::string> args, std::vector<std::string>::size
     lock_hi = 0;
     lock_low = args.size() + 1;
     size_t lastslot = 0;
-    for(curarg = curarg; curarg< args.size(); curarg++) {
+    for(curarg = curarg+0; curarg< args.size(); curarg++) {
         if (args[curarg] == ";") {
            continue;
         } else {

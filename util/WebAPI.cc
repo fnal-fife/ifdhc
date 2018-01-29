@@ -7,7 +7,6 @@
 #include <iomanip>
 #include <string.h>
 #include <stdlib.h>
-#include <ext/stdio_filebuf.h>
 #include <sys/types.h>
 #include <poll.h>
 #include <unistd.h>
@@ -104,6 +103,42 @@ WebAPI::parseurl(std::string url) throw(WebAPIException) {
 #include <netdb.h>
 
 
+//
+// use underlying fd behavior to open a stream to a socket.o
+//
+void 
+sockattach( std::fstream &fstr,  int &sitefd, int s, std::fstream::openmode mode) throw(WebAPIException) {
+     int sretries = 0;
+     int fdhack = -2;  
+     sitefd = -1;
+     //
+     // there is some chance that another stream interferes with this,
+     // so try up to three times..
+     //
+     while(sitefd != fdhack && sretries++ < 3) {
+         // dup the socket just to find the "next" file descriptor
+         // then close it to free it up
+         fdhack = dup(s);
+         close(fdhack);
+         fstr.open("/dev/null",mode);
+         // now the fstream should have that file descriptor..
+         // close it again behind its back
+         close(fdhack);
+         // now the sitefd should be that file descriptor
+         sitefd = dup(s);
+
+         if (sitefd != fdhack) {
+              // didn't get the same fd, so who knows what happened...
+              // close things to go around again
+              close(sitefd);
+              fstr.close();
+         }
+     }
+     if (sitefd != fdhack) {
+         std::cerr << "fdhack: " << fdhack << " sitefd: " << sitefd << "\n";
+         throw(WebAPIException("Error:","sockattach: Couldn't plumb file descriptors"));
+     }
+}
 
 // fetch a URL, opening a filestream to the content
 // we do klugy looking things here to directly return
@@ -130,7 +165,6 @@ WebAPI::WebAPI(std::string url, int postflag, std::string postdata, int maxretri
      _timeout != -1 && _debug && std::cerr << "timeout: " << _timeout << "\n";
 
      _pid = 0;
-     __gnu_cxx::stdio_filebuf<char> *buf_out = 0;
      std::string method(postflag?"POST ":"GET ");
 
      _debug && std::cerr << "fetchurl: " << url << std::endl;
@@ -207,22 +241,9 @@ WebAPI::WebAPI(std::string url, int postflag, std::string postdata, int maxretri
                 continue;
 	     }
 
-	     // start of black magic -- use stdio_filebuf class to 
-	     // attach to socket...
-	     _fromsitefd = dup(s);
-	     _buf_in = new  __gnu_cxx::stdio_filebuf<char> (dup(s), std::fstream::in|std::fstream::binary); 
-	     if (!_buf_in) {
-		throw(WebAPIException(url,"MemoryError: new failed"));
-	     }
-	     _fromsite.std::ios::rdbuf(_buf_in);
-
-             _tositefd = dup(s);
-	     buf_out = new  __gnu_cxx::stdio_filebuf<char>(_tositefd, std::fstream::out|std::fstream::binary); 
-	     if (!buf_out) {
-		throw(WebAPIException(url,"MemoryError: new failed"));
-	     }
-	     _tosite.std::ios::rdbuf(buf_out);
-	     // end of black magic
+	     
+             sockattach(_fromsite, _fromsitefd, s, std::fstream::in|std::fstream::binary);
+             sockattach(_tosite, _tositefd, s, std::fstream::out|std::fstream::binary);
 
              if (s != -1) {
 	        close(s);	     // don't need original dd anymore...
@@ -275,19 +296,10 @@ WebAPI::WebAPI(std::string url, int postflag, std::string postdata, int maxretri
                 _pid = pid;
                 close(inp[0]);  
                 close(outp[1]);  
-                _fromsitefd = outp[0];
-	        _buf_in = new  __gnu_cxx::stdio_filebuf<char> (_fromsitefd, std::fstream::in|std::fstream::binary); 
-		 if (!_buf_in) {
-		    throw(WebAPIException(url,"MemoryError: new failed"));
-		 }
-	         _fromsite.std::ios::rdbuf(_buf_in);
-
-                _tositefd = inp[1];
-                 buf_out = new  __gnu_cxx::stdio_filebuf<char>(_tositefd, std::fstream::out|std::fstream::binary);
-		 if (!buf_out) {
-		    throw(WebAPIException(url,"MemoryError: new failed"));
-		 }
-		 _tosite.std::ios::rdbuf(buf_out);
+                sockattach(_fromsite, _fromsitefd, outp[0], std::fstream::in|std::fstream::binary);
+                close(outp[0]);
+                sockattach(_tosite, _tositefd, inp[1], std::fstream::out|std::fstream::binary);
+                close(inp[1]);      
             }
          } else {
             throw(WebAPIException(url,"BadURL: only http: and https: supported"));
@@ -400,8 +412,6 @@ WebAPI::WebAPI(std::string url, int postflag, std::string postdata, int maxretri
 	 _debug && std::cerr << "http status: " << _status << std::endl;
 
 	 _tosite.close();
-         if (buf_out) 
-             delete buf_out;
 
          if (_status == 202 && retryafter > 0) {
             sleep(retryafter);
@@ -431,7 +441,6 @@ WebAPI::WebAPI(std::string url, int postflag, std::string postdata, int maxretri
 	     // we're going to redirect/retry again, so close the _fromsite side
 	     _fromsite.close();
              
-             delete _buf_in;
          }
 
          if ( _timeout > 0 && totaltime > (_timeout / 1000) ) {
@@ -463,7 +472,6 @@ WebAPI::~WebAPI() {
     }
     _tosite.close();
     _fromsite.close();
-    delete _buf_in;
 }
 
 void

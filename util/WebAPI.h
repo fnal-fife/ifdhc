@@ -4,7 +4,6 @@
 #include <fstream>
 #include <string>
 #include <sstream>
-#include <ext/stdio_filebuf.h>
 #include <stdexcept>
 
 namespace ifdh_util_ns {
@@ -20,7 +19,6 @@ public:
 class WebAPI {
     std::fstream _tosite, _fromsite;
     int _tositefd, _fromsitefd;
-    __gnu_cxx::stdio_filebuf<char> *_buf_in;
     int _status;
     long int _pid;
     int _timeout; // timeout for web actions as per poll()

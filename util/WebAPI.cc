@@ -28,7 +28,7 @@ int WebAPI::_debug(0);
 // this works if we're subclassed from GaudiException or our
 // SimpleException...
 //
-WebAPIException::WebAPIException( std::string message, std::string tag ) throw() : logic_error(message + tag) {
+WebAPIException::WebAPIException( std::string message, std::string tag ) : logic_error(message + tag) {
    ;
 }
 
@@ -66,7 +66,7 @@ test_encode() {
 //   so that it can be fetched directly
 
 WebAPI::parsed_url 
-WebAPI::parseurl(std::string url) throw(WebAPIException) {
+WebAPI::parseurl(std::string url) {
      int i, j;                // string indexes
      WebAPI::parsed_url res;  // resulting pieces
      std::string part;        // partial url
@@ -107,7 +107,7 @@ WebAPI::parseurl(std::string url) throw(WebAPIException) {
 // use underlying fd behavior to open a stream to a socket.o
 //
 void 
-sockattach( std::fstream &fstr,  int &sitefd, int s, std::fstream::openmode mode) throw(WebAPIException) {
+sockattach( std::fstream &fstr,  int &sitefd, int s, std::fstream::openmode mode)  {
      int sretries = 0;
      int fdhack = -2, fdnext, fdchk;  
      sitefd = -1;
@@ -150,7 +150,7 @@ sockattach( std::fstream &fstr,  int &sitefd, int s, std::fstream::openmode mode
 // the network connection, rather than saving he data
 // in a file and returning that.
 
-WebAPI::WebAPI(std::string url, int postflag, std::string postdata, int maxretries, int timeout) throw(WebAPIException) {
+WebAPI::WebAPI(std::string url, int postflag, std::string postdata, int maxretries, int timeout)  {
      int s = -1;		// unix socket file descriptor
      WebAPI::parsed_url pu;     // parsed url.
      // struct sockaddr_storage server; // connection address struct

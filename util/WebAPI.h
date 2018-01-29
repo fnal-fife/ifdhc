@@ -11,7 +11,7 @@ namespace ifdh_util_ns {
 class WebAPIException : public std::logic_error {
 
 public:
-   WebAPIException( std::string message, std::string tag) throw();
+   WebAPIException( std::string message, std::string tag); // throw()
    virtual ~WebAPIException() throw() {;};
    //virtual const char *what () const throw ();
 };
@@ -24,7 +24,7 @@ class WebAPI {
     int _timeout; // timeout for web actions as per poll()
 public:
     static int _debug;
-    WebAPI(std::string url, int postflag = 0, std::string postdata = "", int maxretries = 10, int timeout = -1) throw(WebAPIException);
+    WebAPI(std::string url, int postflag = 0, std::string postdata = "", int maxretries = 10, int timeout = -1); // throw(WebAPIException)
     ~WebAPI();
     int getStatus();
     std::fstream &data() { return _fromsite; }
@@ -37,7 +37,7 @@ public:
 	 int port;
 	 std::string path;
     };
-    static parsed_url parseurl(std::string url) throw(WebAPIException);
+    static parsed_url parseurl(std::string url); // throw(WebAPIException)
 
 };
 

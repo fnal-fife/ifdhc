@@ -18,6 +18,10 @@ class ifdhBuild(build):
         # build ifdh
         build_path = os.path.abspath(self.build_temp)
 
+        self.mkpath(self.build_lib)
+        bindir = self.build_lib + '/../bin'
+        self.mkpath(bindir)
+
         cmd = [
             'make',
             'all',
@@ -28,22 +32,18 @@ class ifdhBuild(build):
         def compile():
             call(cmd)
 
-        self.execute(compile, [], 'Compiling xcsoar')
+        self.execute(compile, [], 'Compiling ifdhc')
 
         # copy resulting tool to library build folder
-        self.mkpath(self.build_lib)
-        bindir = self.build_lib + '/../bin'
-        self.mkpath(bindir)
 
-        target_files=('lib/python/_ifdh.so', 'lib/python/ifdh.py')
-        bin_target_files=('bin/ifdh',)
+        #target_files=('lib/python/_ifdh.so', 'lib/python/ifdh.py')
+        #bin_target_files=('bin/ifdh',)
 
-        if not self.dry_run:
-            for target in target_files:
-                self.copy_file('%s/%s' %(build_path, target), self.build_lib)
-            for target in bin_target_files:
-                self.copy_file('%s/%s' %(build_path, target), bindir)
-
+        #if not self.dry_run:
+        #    for target in target_files:
+        #        self.copy_file('%s/%s' %(build_path, target), self.build_lib)
+        #    for target in bin_target_files:
+        #        self.copy_file('%s/%s' %(build_path, target), bindir)
 
 class ifdhInstall(install):
     def initialize_options(self):

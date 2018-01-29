@@ -109,7 +109,7 @@ WebAPI::parseurl(std::string url) throw(WebAPIException) {
 void 
 sockattach( std::fstream &fstr,  int &sitefd, int s, std::fstream::openmode mode) throw(WebAPIException) {
      int sretries = 0;
-     int fdhack = -2;  
+     int fdhack = -2, fdnext, fdchk;  
      sitefd = -1;
      //
      // there is some chance that another stream interferes with this,
@@ -119,19 +119,24 @@ sockattach( std::fstream &fstr,  int &sitefd, int s, std::fstream::openmode mode
          // dup the socket just to find the "next" file descriptor
          // then close it to free it up
          fdhack = dup(s);
+         fdnext = dup(s);
+         close(fdnext);
          close(fdhack);
          fstr.open("/dev/null",mode);
-         // now the fstream should have that file descriptor..
-         // close it again behind its back
-         close(fdhack);
-         // now the sitefd should be that file descriptor
-         sitefd = dup(s);
-
+         fdchk = dup(s);
+         close(fdchk);
+         if (fdchk == fdnext) {
+             // now the fstream should have that file descriptor..
+             // close it again behind its back
+             close(fdhack);
+             // now the sitefd should be that file descriptor
+             sitefd = dup(s);
+         }
          if (sitefd != fdhack) {
-              // didn't get the same fd, so who knows what happened...
-              // close things to go around again
-              close(sitefd);
-              fstr.close();
+             // didn't get the same fd, so who knows what happened...
+             // close things to go around again
+             close(sitefd);
+             fstr.close();
          }
      }
      if (sitefd != fdhack) {

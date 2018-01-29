@@ -7,7 +7,7 @@ SHLIB=so
 endif
 
 # enable use of clang
-CXX=g++
+CXX ?= g++
 
 SUBDIRS= util numsg ifdh
 

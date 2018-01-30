@@ -242,15 +242,15 @@ class exitcodecases(unittest.TestCase):
         self.assertEqual(res,0)
 
 ## pin ##
-    def test_pin_noexist(self):
-        res = os.system("EXPERIMENT=%s ifdh pin %s  > /dev/null 2>&1" % 
-                (self.experiment,self.badRemoteFile))
-        self.assertNotEqual(res,0)
-
-    def test_pin_exist(self):
-        res = os.system("EXPERIMENT=%s ifdh pin %s  > /dev/null 2>&1" % 
-                (self.experiment,self.goodRemoteFile))
-        self.assertEqual(res,0)
+#    def test_pin_noexist(self):
+#        res = os.system("EXPERIMENT=%s ifdh pin %s  > /dev/null 2>&1" % 
+#                (self.experiment,self.badRemoteFile))
+#        self.assertNotEqual(res,0)
+#
+#    def test_pin_exist(self):
+#        res = os.system("EXPERIMENT=%s ifdh pin %s  > /dev/null 2>&1" % 
+#                (self.experiment,self.goodRemoteFile))
+#        self.assertEqual(res,0)
 
 ## checksum ##
 

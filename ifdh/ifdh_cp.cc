@@ -935,8 +935,8 @@ ifdh::retry_system(const char *cmd_str, int error_expected, cpn_lock &locker, in
         errfile.close();
         // clean up, don't leave working directories with errtxt files lying
         // around.  Ignore failure in case other stuff is in the working dir.
-        unlink(pidbuf.str().c_str());
-        rmdir(localPath("").c_str());
+        ::unlink(pidbuf.str().c_str());
+        ::rmdir(localPath("").c_str());
 
         if (res != 0 && error_expected) {
            return res;

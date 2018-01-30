@@ -830,6 +830,8 @@ get_another_dcache_door( std::string &cmd, std::string door_regex, std::string d
 
          ifdh::_debug && cerr << "repl is " << repl << "\n";
 
+
+
          regmatch replmatch(door_re(repl));
 
          ifdh::_debug && cerr << "replmatch[0] is " << replmatch[0] << "\n";
@@ -912,6 +914,10 @@ ifdh::retry_system(const char *cmd_str, int error_expected, cpn_lock &locker, in
     while( res != 0 && tries < maxtries ) {
         rotate_door(_config, cmd_str, cmd_str_string);
               
+        stringstream logmsg;
+        logmsg << "actual command: " << cmd_str;
+        log(logmsg.str());
+
         res = system(cmd_str);
         if (WIFEXITED(res)) {
             res = WEXITSTATUS(res);

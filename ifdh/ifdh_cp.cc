@@ -2078,33 +2078,6 @@ ifdh::chmod(string mode, string loc, string force) {
     return WEXITSTATUS(status);
 }
 
-int
-ifdh::pin(string loc, long int secs) {
-    std::stringstream secsbuf;
-    std::string fullurl, proto, lookup_proto;
-    // the only pin interface we have is from srm, so look it up there
-    pick_proto_path(loc, "srm:", proto, fullurl, lookup_proto);
-   
-    std::string cmd     = _config.get(lookup_proto, "pin_cmd");
-    if (cmd.size() == 0) {
-        std::cerr << "missing pin_cmd in [" << lookup_proto << "] in ifdh.cfg\n";
-        return 1;
-    }
-
-    cmd.replace(cmd.find("%(src)s"), 7, fullurl);
-    secsbuf << secs;
-    cmd.replace(cmd.find("%(secs)s"), 8, secsbuf.str());
-
-    _debug && std::cerr << "running: " << cmd << endl;
-
-    cpn_lock locker;
-    int status = retry_system(cmd.c_str(), 0, locker,1);
-
-    if (WIFSIGNALED(status)) throw( std::logic_error("signalled while doing pin"));
-    // if (WIFEXITED(status) && WEXITSTATUS(status) != 0) throw( std::logic_error("rmdir failed"));
-    return WEXITSTATUS(status);
-}
-       
 int 
 ifdh::rename(string loc, string loc2, string force) {
     std::string fullurl, proto, lookup_proto;

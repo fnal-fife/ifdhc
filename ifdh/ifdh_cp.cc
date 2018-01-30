@@ -830,6 +830,8 @@ get_another_dcache_door( std::string &cmd, std::string door_regex, std::string d
 
          ifdh::_debug && cerr << "repl is " << repl << "\n";
 
+
+
          regmatch replmatch(door_re(repl));
 
          ifdh::_debug && cerr << "replmatch[0] is " << replmatch[0] << "\n";
@@ -912,6 +914,10 @@ ifdh::retry_system(const char *cmd_str, int error_expected, cpn_lock &locker, in
     while( res != 0 && tries < maxtries ) {
         rotate_door(_config, cmd_str, cmd_str_string);
               
+        stringstream logmsg;
+        logmsg << "actual command: " << cmd_str;
+        log(logmsg.str());
+
         res = system(cmd_str);
         if (WIFEXITED(res)) {
             res = WEXITSTATUS(res);
@@ -933,6 +939,11 @@ ifdh::retry_system(const char *cmd_str, int error_expected, cpn_lock &locker, in
            }
         }
         errfile.close();
+        // clean up, don't leave working directories with errtxt files lying
+        // around.  Ignore failure in case other stuff is in the working dir.
+        ::unlink(pidbuf.str().c_str());
+        ::rmdir(localPath("").c_str());
+
         if (res != 0 && error_expected) {
            return res;
         }
@@ -1279,7 +1290,7 @@ ifdh::handle_args( std::vector<std::string> args, std::vector<std::string>::size
     lock_hi = 0;
     lock_low = args.size() + 1;
     size_t lastslot = 0;
-    for(curarg = curarg; curarg< args.size(); curarg++) {
+    for(curarg = curarg+0; curarg< args.size(); curarg++) {
         if (args[curarg] == ";") {
            continue;
         } else {
@@ -2073,33 +2084,6 @@ ifdh::chmod(string mode, string loc, string force) {
     return WEXITSTATUS(status);
 }
 
-int
-ifdh::pin(string loc, long int secs) {
-    std::stringstream secsbuf;
-    std::string fullurl, proto, lookup_proto;
-    // the only pin interface we have is from srm, so look it up there
-    pick_proto_path(loc, "srm:", proto, fullurl, lookup_proto);
-   
-    std::string cmd     = _config.get(lookup_proto, "pin_cmd");
-    if (cmd.size() == 0) {
-        std::cerr << "missing pin_cmd in [" << lookup_proto << "] in ifdh.cfg\n";
-        return 1;
-    }
-
-    cmd.replace(cmd.find("%(src)s"), 7, fullurl);
-    secsbuf << secs;
-    cmd.replace(cmd.find("%(secs)s"), 8, secsbuf.str());
-
-    _debug && std::cerr << "running: " << cmd << endl;
-
-    cpn_lock locker;
-    int status = retry_system(cmd.c_str(), 0, locker,1);
-
-    if (WIFSIGNALED(status)) throw( std::logic_error("signalled while doing pin"));
-    // if (WIFEXITED(status) && WEXITSTATUS(status) != 0) throw( std::logic_error("rmdir failed"));
-    return WEXITSTATUS(status);
-}
-       
 int 
 ifdh::rename(string loc, string loc2, string force) {
     std::string fullurl, proto, lookup_proto;

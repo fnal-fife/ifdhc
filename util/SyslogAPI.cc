@@ -12,7 +12,7 @@ namespace ifdh_util_ns {
 
 int SyslogAPI::_debug = 0;
 
-SyslogAPI::SyslogAPI(char *desthost, int destport, int parentflag): _parentflag(parentflag) {
+SyslogAPI::SyslogAPI(const char *desthost, int destport, int parentflag): _parentflag(parentflag) {
      int res;
      struct sockaddr_in sa;
      struct addrinfo hints, *paddrs; 
@@ -39,6 +39,9 @@ SyslogAPI::SyslogAPI(char *desthost, int destport, int parentflag): _parentflag(
 
      memcpy((char *)&_destaddr, paddrs->ai_addr, paddrs->ai_addrlen);
      freeaddrinfo(paddrs);
+
+     gethostname(_hostbuf, 512);
+     _phe = gethostbyname(_hostbuf);
 }
 
 SyslogAPI::~SyslogAPI() {
@@ -48,23 +51,19 @@ SyslogAPI::~SyslogAPI() {
 ssize_t
 SyslogAPI::send( int facility, int severity, const char *tag, const char *msg) {
 
-     struct hostent *phe;
-     char hostbuf[512];
      char datebuf[24];
      std::stringstream st;
      int pri = facility * 8 + severity;
      time_t t = time(0);
      strftime(datebuf, 24, "%Y-%m-%dT%H:%M:%SZ",gmtime(&t));
 
-     gethostname(hostbuf, 512);
-     phe = gethostbyname(hostbuf);
 
      st << "<" << pri << ">";
      st << datebuf;
-     if (phe) {
-         st << ' ' << phe->h_name  << ' ' ;
-     } else if (hostbuf[0]) {
-         st << ' ' << hostbuf  << ' ' ;
+     if (_phe) {
+         st << ' ' << _phe->h_name  << ' ' ;
+     } else if (_hostbuf[0]) {
+         st << ' ' << _hostbuf  << ' ' ;
      } else {
          st << " unknown_host " ;
      }
@@ -81,9 +80,11 @@ SyslogAPI::send( int facility, int severity, const char *tag, const char *msg) {
 
 }
 #ifdef UNITTEST
+int
 main() {
 
-   SyslogAPI s("localhost");
+   SyslogAPI s("localhost", 514);
    s.send(17, 2, "SyslogAPI", "Client test message");
+   return 0;
 }
 #endif

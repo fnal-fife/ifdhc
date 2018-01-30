@@ -2,12 +2,13 @@
 --- ifdh_wrap.cxx	2013-03-28 11:07:38.087872000 -0500
 ***************
 *** 7,12 ****
---- 7,14 ----
+--- 7,15 ----
    * changes to this file unless you know what you are doing--modify the SWIG 
    * interface file instead. 
    * ----------------------------------------------------------------------------- */
 + #include <stdlib.h>
 + #include <stddef.h>
++ #define register
   
   #define SWIGPYTHON
   #define SWIG_PYTHON_DIRECTOR_NO_VTABLE

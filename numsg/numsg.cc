@@ -13,7 +13,7 @@ namespace ifdh_util_ns {
 
 numsg *numsg::_singleton = 0;
 
-numsg::numsg(const char *jobname, char *host, int port, int parentflag) : 
+numsg::numsg(const char *jobname, const char *host, int port, int parentflag) : 
 	_sa(host, port, parentflag), 
 	_jobname(jobname?jobname:(getenv("NU_LOG_TAG")?getenv("NU_LOG_TAG"):"ifdh_log")),
 	_cur_state("boot"), 

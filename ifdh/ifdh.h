@@ -134,8 +134,6 @@ class ifdh {
         int rmdir(std::string loc, std::string force = "");
         // view text files
         int more(std::string loc);
-        // pin file 
-        int pin(std::string loc, long int seconds);
         // change file permissions
         int chmod(std::string mode, std::string loc, std::string force = "");
         // atomic rename items in same directory/fs
@@ -185,6 +183,7 @@ class ifdh {
         int do_url_int(int postflag, ...);
         std::string do_url_str(int postflag,...);
         std::vector<std::string> do_url_lst(int postflag,...);
+        int addFileLocation(std::string filename, std::string location);
 };
 }
 

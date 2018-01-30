@@ -543,6 +543,11 @@ ifdh::modifyMetadata(string filename, string json_metadata) {
   return do_url_int(2,ssl_uri(_baseuri).c_str(),"files","name",filename.c_str(),"metadata","",json_metadata.c_str(),"","","");
 }
 
+int
+ifdh::addFileLocation(string filename, string location) {
+ return do_url_int(1,ssl_uri(_baseuri).c_str(),"files","name",filename.c_str(),"locations","","add",location.c_str(),"","");
+}
+
 //datasets
 int 
 ifdh::createDefinition( string name, string dims, string user, string group) {
@@ -826,6 +831,12 @@ ifdh::more(string loc) {
     std::string where = localPath(loc);
     const char *c_where = where.c_str();
     int res2 ,res;
+
+    // need tos set DATA_DIR so grandkids agree on where it is..
+    char denvbuf[] = "IFDH_DATA_DIR=/var/tmp/ifdh_xxxx_xxxxxx";
+    strcpy(denvbuf+14, localPath("").c_str());
+    putenv(denvbuf);
+
     res  = mknod(c_where, 0600 | S_IFIFO, 0);
     if (res == 0) {
        res2 = fork();
@@ -926,15 +937,32 @@ ifdh::checksum(string loc) {
     unsigned long sum;
     res  = mknod(c_where, 0600 | S_IFIFO, 0);
     if(_debug) cerr << "made node " << c_where << endl;
+ 
+    // need tos set DATA_DIR so grandkids agree on where it is..
+    char denvbuf[] = "IFDH_DATA_DIR=/var/tmp/ifdh_xxxx_xxxxxx";
+    strcpy(denvbuf+14, localPath("").c_str());
+    putenv(denvbuf);
 
     if (res == 0) {
        int status;
        res2 = fork();
        if(_debug) cerr << "fork says " << res2 << endl;
        if (res2 > 0) {
+
+            if(_debug) cerr << "starting get_adler32( " << c_where << ")" << endl;
+            sum = checksum::get_adler32(c_where);
+	    sumtext <<  "{\"crc_value\": \""  
+                    << sum
+                    << "\", \"crc_type\": \"adler 32 crc type\"}"
+                    << endl;
+            if(_debug) cerr << "finished get_adler32( " << c_where << ")" << endl;
+            waitpid(res2, &status,0);
+            unlink(c_where);
+
+       } else if (res2 == 0) {
+
             // turn off retries
             char envbuf[] = "IFDH_CP_MAXRETRIES=0\0\0\0\0";
-            const char *was = getenv("IFDH_CP_MAXRETRIES");
             putenv(envbuf);
 
             res = 0;
@@ -950,25 +978,7 @@ ifdh::checksum(string loc) {
                 res = 1;
             }
             if(_debug) cerr << "finished fetchInput( " << loc << ")" << endl;
-
-            waitpid(res2, &status,0);
-            unlink(c_where);
-
-            // put back retries
-            if (!was)
-               was = "0";
-            strcpy(envbuf+17,was);
-            putenv(envbuf);
-
-
-       } else if (res2 == 0) {
-            if(_debug) cerr << "starting get_adler32( " << c_where << ")" << endl;
-            sum = checksum::get_adler32(c_where);
-	    sumtext <<  "{\"crc_value\": \""  
-                    << sum
-                    << "\", \"crc_type\": \"adler 32 crc type\"}"
-                    << endl;
-            if(_debug) cerr << "finished get_adler32( " << c_where << ")" << endl;
+            exit(0);
 
        } else {
             throw( std::logic_error("fork failed"));

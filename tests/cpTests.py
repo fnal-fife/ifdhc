@@ -705,7 +705,7 @@ class ifdh_cp_cases(unittest.TestCase):
         self.ifdh_handle.cp([ "-f", "%s/list" % self.work])
         self.assertEqual(self.check_test_txt(), True, self._testMethodName)
 
-    def test_lock_bits(self):
+    def xx_test_lock_bits(self):  # test dropped cause we do not lock to bluearc anymore...
         
         # make some test files
         args = []

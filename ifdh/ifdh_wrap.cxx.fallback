@@ -7,8 +7,8 @@
  * changes to this file unless you know what you are doing--modify the SWIG 
  * interface file instead. 
  * ----------------------------------------------------------------------------- */
-
-typedef long int ptrdiff_t;
+#include <stdlib.h>
+#include <stddef.h>
 
 #define SWIGPYTHON
 #define SWIG_PYTHON_DIRECTOR_NO_VTABLE
@@ -567,14 +567,14 @@ SWIG_MangledTypeQueryModule(swig_module_info *start,
   swig_module_info *iter = start;
   do {
     if (iter->size) {
-      size_t l = 0;
-      size_t r = iter->size - 1;
+      register size_t l = 0;
+      register size_t r = iter->size - 1;
       do {
 	/* since l+r >= 0, we can (>> 1) instead (/ 2) */
-	size_t i = (l + r) >> 1; 
+	register size_t i = (l + r) >> 1; 
 	const char *iname = iter->types[i]->name;
 	if (iname) {
-	  int compare = strcmp(name, iname);
+	  register int compare = strcmp(name, iname);
 	  if (compare == 0) {	    
 	    return iter->types[i];
 	  } else if (compare < 0) {
@@ -618,7 +618,7 @@ SWIG_TypeQueryModule(swig_module_info *start,
        of the str field (the human readable name) */
     swig_module_info *iter = start;
     do {
-      size_t i = 0;
+      register size_t i = 0;
       for (; i < iter->size; ++i) {
 	if (iter->types[i]->str && (SWIG_TypeEquiv(iter->types[i]->str, name)))
 	  return iter->types[i];
@@ -637,10 +637,10 @@ SWIG_TypeQueryModule(swig_module_info *start,
 SWIGRUNTIME char *
 SWIG_PackData(char *c, void *ptr, size_t sz) {
   static const char hex[17] = "0123456789abcdef";
-  const unsigned char *u = (unsigned char *) ptr;
-  const unsigned char *eu =  u + sz;
+  register const unsigned char *u = (unsigned char *) ptr;
+  register const unsigned char *eu =  u + sz;
   for (; u != eu; ++u) {
-    unsigned char uu = *u;
+    register unsigned char uu = *u;
     *(c++) = hex[(uu & 0xf0) >> 4];
     *(c++) = hex[uu & 0xf];
   }
@@ -652,11 +652,11 @@ SWIG_PackData(char *c, void *ptr, size_t sz) {
 */
 SWIGRUNTIME const char *
 SWIG_UnpackData(const char *c, void *ptr, size_t sz) {
-  unsigned char *u = (unsigned char *) ptr;
-  const unsigned char *eu = u + sz;
+  register unsigned char *u = (unsigned char *) ptr;
+  register const unsigned char *eu = u + sz;
   for (; u != eu; ++u) {
-    char d = *(c++);
-    unsigned char uu;
+    register char d = *(c++);
+    register unsigned char uu;
     if ((d >= '0') && (d <= '9'))
       uu = ((d - '0') << 4);
     else if ((d >= 'a') && (d <= 'f'))
@@ -1234,7 +1234,7 @@ SWIG_Python_UnpackTuple(PyObject *args, const char *name, Py_ssize_t min, Py_ssi
     PyErr_SetString(PyExc_SystemError, "UnpackTuple() argument list is not a tuple");
     return 0;
   } else {
-    Py_ssize_t l = PyTuple_GET_SIZE(args);
+    register Py_ssize_t l = PyTuple_GET_SIZE(args);
     if (l < min) {
       PyErr_Format(PyExc_TypeError, "%s expected %s%d arguments, got %d", 
 		   name, (min == max ? "" : "at least "), (int)min, (int)l);
@@ -1244,7 +1244,7 @@ SWIG_Python_UnpackTuple(PyObject *args, const char *name, Py_ssize_t min, Py_ssi
 		   name, (min == max ? "" : "at most "), (int)max, (int)l);
       return 0;
     } else {
-      int i;
+      register int i;
       for (i = 0; i < l; ++i) {
 	objs[i] = PyTuple_GET_ITEM(args, i);
       }
@@ -2692,24 +2692,25 @@ SWIG_Python_MustGetPtr(PyObject *obj, swig_type_info *ty, int argnum, int flags)
 #define SWIGTYPE_p_char swig_types[2]
 #define SWIGTYPE_p_difference_type swig_types[3]
 #define SWIGTYPE_p_first_type swig_types[4]
-#define SWIGTYPE_p_ifdh_ns__ifdh swig_types[5]
-#define SWIGTYPE_p_key_type swig_types[6]
-#define SWIGTYPE_p_mapped_type swig_types[7]
-#define SWIGTYPE_p_p_PyObject swig_types[8]
-#define SWIGTYPE_p_second_type swig_types[9]
-#define SWIGTYPE_p_size_type swig_types[10]
-#define SWIGTYPE_p_std__invalid_argument swig_types[11]
-#define SWIGTYPE_p_std__lessT_std__string_t swig_types[12]
-#define SWIGTYPE_p_std__mapT_std__string_std__vectorT_std__string_std__allocatorT_std__string_t_t_std__lessT_std__string_t_std__allocatorT_std__pairT_std__string_const_std__vectorT_std__string_std__allocatorT_std__string_t_t_t_t_t swig_types[13]
-#define SWIGTYPE_p_std__mapT_std__string_std__vectorT_std__string_std__allocatorT_std__string_t_t_std__lessT_std__string_t_std__allocatorT_std__pairT_std__string_const_std__vectorT_std__string_std__allocatorT_std__string_t_t_t_t_t__allocator_type swig_types[14]
-#define SWIGTYPE_p_std__vectorT_std__pairT_std__string_long_t_std__allocatorT_std__pairT_std__string_long_t_t_t swig_types[15]
-#define SWIGTYPE_p_std__vectorT_std__pairT_std__string_long_t_std__allocatorT_std__pairT_std__string_long_t_t_t__allocator_type swig_types[16]
-#define SWIGTYPE_p_std__vectorT_std__string_std__allocatorT_std__string_t_t swig_types[17]
-#define SWIGTYPE_p_std__vectorT_std__string_std__allocatorT_std__string_t_t__allocator_type swig_types[18]
-#define SWIGTYPE_p_swig__SwigPyIterator swig_types[19]
-#define SWIGTYPE_p_value_type swig_types[20]
-static swig_type_info *swig_types[22];
-static swig_module_info swig_module = {swig_types, 21, 0, 0, 0, 0};
+#define SWIGTYPE_p_ifdh_ns__cpn_lock swig_types[5]
+#define SWIGTYPE_p_ifdh_ns__ifdh swig_types[6]
+#define SWIGTYPE_p_key_type swig_types[7]
+#define SWIGTYPE_p_mapped_type swig_types[8]
+#define SWIGTYPE_p_p_PyObject swig_types[9]
+#define SWIGTYPE_p_second_type swig_types[10]
+#define SWIGTYPE_p_size_type swig_types[11]
+#define SWIGTYPE_p_std__invalid_argument swig_types[12]
+#define SWIGTYPE_p_std__lessT_std__string_t swig_types[13]
+#define SWIGTYPE_p_std__mapT_std__string_std__vectorT_std__string_std__allocatorT_std__string_t_t_std__lessT_std__string_t_std__allocatorT_std__pairT_std__string_const_std__vectorT_std__string_std__allocatorT_std__string_t_t_t_t_t swig_types[14]
+#define SWIGTYPE_p_std__mapT_std__string_std__vectorT_std__string_std__allocatorT_std__string_t_t_std__lessT_std__string_t_std__allocatorT_std__pairT_std__string_const_std__vectorT_std__string_std__allocatorT_std__string_t_t_t_t_t__allocator_type swig_types[15]
+#define SWIGTYPE_p_std__vectorT_std__pairT_std__string_long_t_std__allocatorT_std__pairT_std__string_long_t_t_t swig_types[16]
+#define SWIGTYPE_p_std__vectorT_std__pairT_std__string_long_t_std__allocatorT_std__pairT_std__string_long_t_t_t__allocator_type swig_types[17]
+#define SWIGTYPE_p_std__vectorT_std__string_std__allocatorT_std__string_t_t swig_types[18]
+#define SWIGTYPE_p_std__vectorT_std__string_std__allocatorT_std__string_t_t__allocator_type swig_types[19]
+#define SWIGTYPE_p_swig__SwigPyIterator swig_types[20]
+#define SWIGTYPE_p_value_type swig_types[21]
+static swig_type_info *swig_types[23];
+static swig_module_info swig_module = {swig_types, 22, 0, 0, 0, 0};
 #define SWIG_TypeQuery(name) SWIG_TypeQueryModule(&swig_module, &swig_module, name)
 #define SWIG_MangledTypeQuery(name) SWIG_MangledTypeQueryModule(&swig_module, &swig_module, name)
 
@@ -4912,6 +4913,13 @@ SWIGINTERN void std_map_Sl_std_string_Sc_std_vector_Sl_std_string_Sg__Sg____seti
 #include <stdio.h>
 
 
+SWIGINTERNINLINE PyObject *
+SWIG_From_int  (int value)
+{    
+  return SWIG_From_long  (value);
+}
+
+
 #include <limits.h>
 #if !defined(SWIG_NO_LLONG_MAX)
 # if !defined(LLONG_MAX) && defined(__GNUC__) && defined (__LONG_LONG_MAX__)
@@ -4935,13 +4943,6 @@ SWIG_AsVal_int (PyObject * obj, int *val)
     }
   }  
   return res;
-}
-
-
-SWIGINTERNINLINE PyObject *
-SWIG_From_int  (int value)
-{    
-  return SWIG_From_long  (value);
 }
 
 #ifdef __cplusplus
@@ -10441,6 +10442,186 @@ SWIGINTERN PyObject *mapsvs_swigregister(PyObject *SWIGUNUSEDPARM(self), PyObjec
   return SWIG_Py_Void();
 }
 
+SWIGINTERN PyObject *_wrap_cpn_lock_locked(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+  PyObject *resultobj = 0;
+  ifdh_ns::cpn_lock *arg1 = (ifdh_ns::cpn_lock *) 0 ;
+  void *argp1 = 0 ;
+  int res1 = 0 ;
+  PyObject * obj0 = 0 ;
+  int result;
+  
+  if (!PyArg_ParseTuple(args,(char *)"O:cpn_lock_locked",&obj0)) SWIG_fail;
+  res1 = SWIG_ConvertPtr(obj0, &argp1,SWIGTYPE_p_ifdh_ns__cpn_lock, 0 |  0 );
+  if (!SWIG_IsOK(res1)) {
+    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "cpn_lock_locked" "', argument " "1"" of type '" "ifdh_ns::cpn_lock *""'"); 
+  }
+  arg1 = reinterpret_cast< ifdh_ns::cpn_lock * >(argp1);
+  {
+    try {
+      result = (int)(arg1)->locked();
+    } catch (ifdh_util_ns::WebAPIException &e) {
+      e.what();
+      SWIG_exception(SWIG_RuntimeError, e.what());
+    } catch (std::runtime_error &e) {
+      e.what();
+      SWIG_exception(SWIG_IOError, e.what());
+    } catch (std::logic_error &e) {
+      e.what();
+      SWIG_exception(SWIG_RuntimeError, e.what());
+    } catch (...) {
+      SWIG_exception(SWIG_RuntimeError, "unknown exception");
+    }
+  }
+  resultobj = SWIG_From_int(static_cast< int >(result));
+  return resultobj;
+fail:
+  return NULL;
+}
+
+
+SWIGINTERN PyObject *_wrap_cpn_lock_lock(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+  PyObject *resultobj = 0;
+  ifdh_ns::cpn_lock *arg1 = (ifdh_ns::cpn_lock *) 0 ;
+  void *argp1 = 0 ;
+  int res1 = 0 ;
+  PyObject * obj0 = 0 ;
+  
+  if (!PyArg_ParseTuple(args,(char *)"O:cpn_lock_lock",&obj0)) SWIG_fail;
+  res1 = SWIG_ConvertPtr(obj0, &argp1,SWIGTYPE_p_ifdh_ns__cpn_lock, 0 |  0 );
+  if (!SWIG_IsOK(res1)) {
+    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "cpn_lock_lock" "', argument " "1"" of type '" "ifdh_ns::cpn_lock *""'"); 
+  }
+  arg1 = reinterpret_cast< ifdh_ns::cpn_lock * >(argp1);
+  {
+    try {
+      (arg1)->lock();
+    } catch (ifdh_util_ns::WebAPIException &e) {
+      e.what();
+      SWIG_exception(SWIG_RuntimeError, e.what());
+    } catch (std::runtime_error &e) {
+      e.what();
+      SWIG_exception(SWIG_IOError, e.what());
+    } catch (std::logic_error &e) {
+      e.what();
+      SWIG_exception(SWIG_RuntimeError, e.what());
+    } catch (...) {
+      SWIG_exception(SWIG_RuntimeError, "unknown exception");
+    }
+  }
+  resultobj = SWIG_Py_Void();
+  return resultobj;
+fail:
+  return NULL;
+}
+
+
+SWIGINTERN PyObject *_wrap_cpn_lock_free(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+  PyObject *resultobj = 0;
+  ifdh_ns::cpn_lock *arg1 = (ifdh_ns::cpn_lock *) 0 ;
+  void *argp1 = 0 ;
+  int res1 = 0 ;
+  PyObject * obj0 = 0 ;
+  
+  if (!PyArg_ParseTuple(args,(char *)"O:cpn_lock_free",&obj0)) SWIG_fail;
+  res1 = SWIG_ConvertPtr(obj0, &argp1,SWIGTYPE_p_ifdh_ns__cpn_lock, 0 |  0 );
+  if (!SWIG_IsOK(res1)) {
+    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "cpn_lock_free" "', argument " "1"" of type '" "ifdh_ns::cpn_lock *""'"); 
+  }
+  arg1 = reinterpret_cast< ifdh_ns::cpn_lock * >(argp1);
+  {
+    try {
+      (arg1)->free();
+    } catch (ifdh_util_ns::WebAPIException &e) {
+      e.what();
+      SWIG_exception(SWIG_RuntimeError, e.what());
+    } catch (std::runtime_error &e) {
+      e.what();
+      SWIG_exception(SWIG_IOError, e.what());
+    } catch (std::logic_error &e) {
+      e.what();
+      SWIG_exception(SWIG_RuntimeError, e.what());
+    } catch (...) {
+      SWIG_exception(SWIG_RuntimeError, "unknown exception");
+    }
+  }
+  resultobj = SWIG_Py_Void();
+  return resultobj;
+fail:
+  return NULL;
+}
+
+
+SWIGINTERN PyObject *_wrap_new_cpn_lock(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+  PyObject *resultobj = 0;
+  ifdh_ns::cpn_lock *result = 0 ;
+  
+  if (!PyArg_ParseTuple(args,(char *)":new_cpn_lock")) SWIG_fail;
+  {
+    try {
+      result = (ifdh_ns::cpn_lock *)new ifdh_ns::cpn_lock();
+    } catch (ifdh_util_ns::WebAPIException &e) {
+      e.what();
+      SWIG_exception(SWIG_RuntimeError, e.what());
+    } catch (std::runtime_error &e) {
+      e.what();
+      SWIG_exception(SWIG_IOError, e.what());
+    } catch (std::logic_error &e) {
+      e.what();
+      SWIG_exception(SWIG_RuntimeError, e.what());
+    } catch (...) {
+      SWIG_exception(SWIG_RuntimeError, "unknown exception");
+    }
+  }
+  resultobj = SWIG_NewPointerObj(SWIG_as_voidptr(result), SWIGTYPE_p_ifdh_ns__cpn_lock, SWIG_POINTER_NEW |  0 );
+  return resultobj;
+fail:
+  return NULL;
+}
+
+
+SWIGINTERN PyObject *_wrap_delete_cpn_lock(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+  PyObject *resultobj = 0;
+  ifdh_ns::cpn_lock *arg1 = (ifdh_ns::cpn_lock *) 0 ;
+  void *argp1 = 0 ;
+  int res1 = 0 ;
+  PyObject * obj0 = 0 ;
+  
+  if (!PyArg_ParseTuple(args,(char *)"O:delete_cpn_lock",&obj0)) SWIG_fail;
+  res1 = SWIG_ConvertPtr(obj0, &argp1,SWIGTYPE_p_ifdh_ns__cpn_lock, SWIG_POINTER_DISOWN |  0 );
+  if (!SWIG_IsOK(res1)) {
+    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "delete_cpn_lock" "', argument " "1"" of type '" "ifdh_ns::cpn_lock *""'"); 
+  }
+  arg1 = reinterpret_cast< ifdh_ns::cpn_lock * >(argp1);
+  {
+    try {
+      delete arg1;
+    } catch (ifdh_util_ns::WebAPIException &e) {
+      e.what();
+      SWIG_exception(SWIG_RuntimeError, e.what());
+    } catch (std::runtime_error &e) {
+      e.what();
+      SWIG_exception(SWIG_IOError, e.what());
+    } catch (std::logic_error &e) {
+      e.what();
+      SWIG_exception(SWIG_RuntimeError, e.what());
+    } catch (...) {
+      SWIG_exception(SWIG_RuntimeError, "unknown exception");
+    }
+  }
+  resultobj = SWIG_Py_Void();
+  return resultobj;
+fail:
+  return NULL;
+}
+
+
+SWIGINTERN PyObject *cpn_lock_swigregister(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+  PyObject *obj;
+  if (!PyArg_ParseTuple(args,(char*)"O:swigregister", &obj)) return NULL;
+  SWIG_TypeNewClientData(SWIGTYPE_p_ifdh_ns__cpn_lock, SWIG_NewClientData(obj));
+  return SWIG_Py_Void();
+}
+
 SWIGINTERN int Swig_var_ifdh__config_set(PyObject *_val) {
   {
     void *argp = 0;
@@ -13898,63 +14079,6 @@ fail:
 }
 
 
-SWIGINTERN PyObject *_wrap_ifdh_pin(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
-  PyObject *resultobj = 0;
-  ifdh_ns::ifdh *arg1 = (ifdh_ns::ifdh *) 0 ;
-  std::string arg2 ;
-  long arg3 ;
-  void *argp1 = 0 ;
-  int res1 = 0 ;
-  long val3 ;
-  int ecode3 = 0 ;
-  PyObject * obj0 = 0 ;
-  PyObject * obj1 = 0 ;
-  PyObject * obj2 = 0 ;
-  int result;
-  
-  if (!PyArg_ParseTuple(args,(char *)"OOO:ifdh_pin",&obj0,&obj1,&obj2)) SWIG_fail;
-  res1 = SWIG_ConvertPtr(obj0, &argp1,SWIGTYPE_p_ifdh_ns__ifdh, 0 |  0 );
-  if (!SWIG_IsOK(res1)) {
-    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "ifdh_pin" "', argument " "1"" of type '" "ifdh_ns::ifdh *""'"); 
-  }
-  arg1 = reinterpret_cast< ifdh_ns::ifdh * >(argp1);
-  {
-    std::string *ptr = (std::string *)0;
-    int res = SWIG_AsPtr_std_string(obj1, &ptr);
-    if (!SWIG_IsOK(res) || !ptr) {
-      SWIG_exception_fail(SWIG_ArgError((ptr ? res : SWIG_TypeError)), "in method '" "ifdh_pin" "', argument " "2"" of type '" "std::string""'"); 
-    }
-    arg2 = *ptr;
-    if (SWIG_IsNewObj(res)) delete ptr;
-  }
-  ecode3 = SWIG_AsVal_long(obj2, &val3);
-  if (!SWIG_IsOK(ecode3)) {
-    SWIG_exception_fail(SWIG_ArgError(ecode3), "in method '" "ifdh_pin" "', argument " "3"" of type '" "long""'");
-  } 
-  arg3 = static_cast< long >(val3);
-  {
-    try {
-      result = (int)(arg1)->pin(arg2,arg3);
-    } catch (ifdh_util_ns::WebAPIException &e) {
-      e.what();
-      SWIG_exception(SWIG_RuntimeError, e.what());
-    } catch (std::runtime_error &e) {
-      e.what();
-      SWIG_exception(SWIG_IOError, e.what());
-    } catch (std::logic_error &e) {
-      e.what();
-      SWIG_exception(SWIG_RuntimeError, e.what());
-    } catch (...) {
-      SWIG_exception(SWIG_RuntimeError, "unknown exception");
-    }
-  }
-  resultobj = SWIG_From_int(static_cast< int >(result));
-  return resultobj;
-fail:
-  return NULL;
-}
-
-
 SWIGINTERN PyObject *_wrap_ifdh_chmod__SWIG_0(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
   PyObject *resultobj = 0;
   ifdh_ns::ifdh *arg1 = (ifdh_ns::ifdh *) 0 ;
@@ -15456,6 +15580,150 @@ fail:
 }
 
 
+SWIGINTERN PyObject *_wrap_ifdh_getUrl(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+  PyObject *resultobj = 0;
+  ifdh_ns::ifdh *arg1 = (ifdh_ns::ifdh *) 0 ;
+  std::string arg2 ;
+  std::string arg3 ;
+  void *argp1 = 0 ;
+  int res1 = 0 ;
+  PyObject * obj0 = 0 ;
+  PyObject * obj1 = 0 ;
+  PyObject * obj2 = 0 ;
+  std::string result;
+  
+  if (!PyArg_ParseTuple(args,(char *)"OOO:ifdh_getUrl",&obj0,&obj1,&obj2)) SWIG_fail;
+  res1 = SWIG_ConvertPtr(obj0, &argp1,SWIGTYPE_p_ifdh_ns__ifdh, 0 |  0 );
+  if (!SWIG_IsOK(res1)) {
+    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "ifdh_getUrl" "', argument " "1"" of type '" "ifdh_ns::ifdh *""'"); 
+  }
+  arg1 = reinterpret_cast< ifdh_ns::ifdh * >(argp1);
+  {
+    std::string *ptr = (std::string *)0;
+    int res = SWIG_AsPtr_std_string(obj1, &ptr);
+    if (!SWIG_IsOK(res) || !ptr) {
+      SWIG_exception_fail(SWIG_ArgError((ptr ? res : SWIG_TypeError)), "in method '" "ifdh_getUrl" "', argument " "2"" of type '" "std::string""'"); 
+    }
+    arg2 = *ptr;
+    if (SWIG_IsNewObj(res)) delete ptr;
+  }
+  {
+    std::string *ptr = (std::string *)0;
+    int res = SWIG_AsPtr_std_string(obj2, &ptr);
+    if (!SWIG_IsOK(res) || !ptr) {
+      SWIG_exception_fail(SWIG_ArgError((ptr ? res : SWIG_TypeError)), "in method '" "ifdh_getUrl" "', argument " "3"" of type '" "std::string""'"); 
+    }
+    arg3 = *ptr;
+    if (SWIG_IsNewObj(res)) delete ptr;
+  }
+  {
+    try {
+      result = (arg1)->getUrl(arg2,arg3);
+    } catch (ifdh_util_ns::WebAPIException &e) {
+      e.what();
+      SWIG_exception(SWIG_RuntimeError, e.what());
+    } catch (std::runtime_error &e) {
+      e.what();
+      SWIG_exception(SWIG_IOError, e.what());
+    } catch (std::logic_error &e) {
+      e.what();
+      SWIG_exception(SWIG_RuntimeError, e.what());
+    } catch (...) {
+      SWIG_exception(SWIG_RuntimeError, "unknown exception");
+    }
+  }
+  resultobj = SWIG_From_std_string(static_cast< std::string >(result));
+  return resultobj;
+fail:
+  return NULL;
+}
+
+
+SWIGINTERN PyObject *_wrap_ifdh_getErrorText(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+  PyObject *resultobj = 0;
+  ifdh_ns::ifdh *arg1 = (ifdh_ns::ifdh *) 0 ;
+  void *argp1 = 0 ;
+  int res1 = 0 ;
+  PyObject * obj0 = 0 ;
+  std::string result;
+  
+  if (!PyArg_ParseTuple(args,(char *)"O:ifdh_getErrorText",&obj0)) SWIG_fail;
+  res1 = SWIG_ConvertPtr(obj0, &argp1,SWIGTYPE_p_ifdh_ns__ifdh, 0 |  0 );
+  if (!SWIG_IsOK(res1)) {
+    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "ifdh_getErrorText" "', argument " "1"" of type '" "ifdh_ns::ifdh *""'"); 
+  }
+  arg1 = reinterpret_cast< ifdh_ns::ifdh * >(argp1);
+  {
+    try {
+      result = (arg1)->getErrorText();
+    } catch (ifdh_util_ns::WebAPIException &e) {
+      e.what();
+      SWIG_exception(SWIG_RuntimeError, e.what());
+    } catch (std::runtime_error &e) {
+      e.what();
+      SWIG_exception(SWIG_IOError, e.what());
+    } catch (std::logic_error &e) {
+      e.what();
+      SWIG_exception(SWIG_RuntimeError, e.what());
+    } catch (...) {
+      SWIG_exception(SWIG_RuntimeError, "unknown exception");
+    }
+  }
+  resultobj = SWIG_From_std_string(static_cast< std::string >(result));
+  return resultobj;
+fail:
+  return NULL;
+}
+
+
+SWIGINTERN PyObject *_wrap_ifdh_takeSnapshot(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+  PyObject *resultobj = 0;
+  ifdh_ns::ifdh *arg1 = (ifdh_ns::ifdh *) 0 ;
+  std::string arg2 ;
+  void *argp1 = 0 ;
+  int res1 = 0 ;
+  PyObject * obj0 = 0 ;
+  PyObject * obj1 = 0 ;
+  std::string result;
+  
+  if (!PyArg_ParseTuple(args,(char *)"OO:ifdh_takeSnapshot",&obj0,&obj1)) SWIG_fail;
+  res1 = SWIG_ConvertPtr(obj0, &argp1,SWIGTYPE_p_ifdh_ns__ifdh, 0 |  0 );
+  if (!SWIG_IsOK(res1)) {
+    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "ifdh_takeSnapshot" "', argument " "1"" of type '" "ifdh_ns::ifdh *""'"); 
+  }
+  arg1 = reinterpret_cast< ifdh_ns::ifdh * >(argp1);
+  {
+    std::string *ptr = (std::string *)0;
+    int res = SWIG_AsPtr_std_string(obj1, &ptr);
+    if (!SWIG_IsOK(res) || !ptr) {
+      SWIG_exception_fail(SWIG_ArgError((ptr ? res : SWIG_TypeError)), "in method '" "ifdh_takeSnapshot" "', argument " "2"" of type '" "std::string""'"); 
+    }
+    arg2 = *ptr;
+    if (SWIG_IsNewObj(res)) delete ptr;
+  }
+  {
+    try {
+      result = (arg1)->takeSnapshot(arg2);
+    } catch (ifdh_util_ns::WebAPIException &e) {
+      e.what();
+      SWIG_exception(SWIG_RuntimeError, e.what());
+    } catch (std::runtime_error &e) {
+      e.what();
+      SWIG_exception(SWIG_IOError, e.what());
+    } catch (std::logic_error &e) {
+      e.what();
+      SWIG_exception(SWIG_RuntimeError, e.what());
+    } catch (...) {
+      SWIG_exception(SWIG_RuntimeError, "unknown exception");
+    }
+  }
+  resultobj = SWIG_From_std_string(static_cast< std::string >(result));
+  return resultobj;
+fail:
+  return NULL;
+}
+
+
 SWIGINTERN PyObject *_wrap_delete_ifdh(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
   PyObject *resultobj = 0;
   ifdh_ns::ifdh *arg1 = (ifdh_ns::ifdh *) 0 ;
@@ -15618,6 +15886,12 @@ static PyMethodDef SwigMethods[] = {
 	 { (char *)"mapsvs_upper_bound", _wrap_mapsvs_upper_bound, METH_VARARGS, NULL},
 	 { (char *)"delete_mapsvs", _wrap_delete_mapsvs, METH_VARARGS, NULL},
 	 { (char *)"mapsvs_swigregister", mapsvs_swigregister, METH_VARARGS, NULL},
+	 { (char *)"cpn_lock_locked", _wrap_cpn_lock_locked, METH_VARARGS, NULL},
+	 { (char *)"cpn_lock_lock", _wrap_cpn_lock_lock, METH_VARARGS, NULL},
+	 { (char *)"cpn_lock_free", _wrap_cpn_lock_free, METH_VARARGS, NULL},
+	 { (char *)"new_cpn_lock", _wrap_new_cpn_lock, METH_VARARGS, NULL},
+	 { (char *)"delete_cpn_lock", _wrap_delete_cpn_lock, METH_VARARGS, NULL},
+	 { (char *)"cpn_lock_swigregister", cpn_lock_swigregister, METH_VARARGS, NULL},
 	 { (char *)"ifdh__config_get", _wrap_ifdh__config_get, METH_VARARGS, NULL},
 	 { (char *)"ifdh__config_set", _wrap_ifdh__config_set, METH_VARARGS, NULL},
 	 { (char *)"ifdh__debug_get", _wrap_ifdh__debug_get, METH_VARARGS, NULL},
@@ -15661,7 +15935,6 @@ static PyMethodDef SwigMethods[] = {
 	 { (char *)"ifdh_rm", _wrap_ifdh_rm, METH_VARARGS, NULL},
 	 { (char *)"ifdh_rmdir", _wrap_ifdh_rmdir, METH_VARARGS, NULL},
 	 { (char *)"ifdh_more", _wrap_ifdh_more, METH_VARARGS, NULL},
-	 { (char *)"ifdh_pin", _wrap_ifdh_pin, METH_VARARGS, NULL},
 	 { (char *)"ifdh_chmod", _wrap_ifdh_chmod, METH_VARARGS, NULL},
 	 { (char *)"ifdh_rename", _wrap_ifdh_rename, METH_VARARGS, NULL},
 	 { (char *)"ifdh_ll", _wrap_ifdh_ll, METH_VARARGS, NULL},
@@ -15675,6 +15948,9 @@ static PyMethodDef SwigMethods[] = {
 	 { (char *)"ifdh_declareFile", _wrap_ifdh_declareFile, METH_VARARGS, NULL},
 	 { (char *)"ifdh_modifyMetadata", _wrap_ifdh_modifyMetadata, METH_VARARGS, NULL},
 	 { (char *)"ifdh_apply", _wrap_ifdh_apply, METH_VARARGS, NULL},
+	 { (char *)"ifdh_getUrl", _wrap_ifdh_getUrl, METH_VARARGS, NULL},
+	 { (char *)"ifdh_getErrorText", _wrap_ifdh_getErrorText, METH_VARARGS, NULL},
+	 { (char *)"ifdh_takeSnapshot", _wrap_ifdh_takeSnapshot, METH_VARARGS, NULL},
 	 { (char *)"delete_ifdh", _wrap_delete_ifdh, METH_VARARGS, NULL},
 	 { (char *)"ifdh_swigregister", ifdh_swigregister, METH_VARARGS, NULL},
 	 { NULL, NULL, 0, NULL }
@@ -15688,6 +15964,7 @@ static swig_type_info _swigt__p_allocator_type = {"_p_allocator_type", "allocato
 static swig_type_info _swigt__p_char = {"_p_char", "char *", 0, 0, (void*)0, 0};
 static swig_type_info _swigt__p_difference_type = {"_p_difference_type", "difference_type *", 0, 0, (void*)0, 0};
 static swig_type_info _swigt__p_first_type = {"_p_first_type", "first_type *", 0, 0, (void*)0, 0};
+static swig_type_info _swigt__p_ifdh_ns__cpn_lock = {"_p_ifdh_ns__cpn_lock", "ifdh_ns::cpn_lock *", 0, 0, (void*)0, 0};
 static swig_type_info _swigt__p_ifdh_ns__ifdh = {"_p_ifdh_ns__ifdh", "ifdh_ns::ifdh *", 0, 0, (void*)0, 0};
 static swig_type_info _swigt__p_key_type = {"_p_key_type", "key_type *", 0, 0, (void*)0, 0};
 static swig_type_info _swigt__p_mapped_type = {"_p_mapped_type", "mapped_type *", 0, 0, (void*)0, 0};
@@ -15711,6 +15988,7 @@ static swig_type_info *swig_type_initial[] = {
   &_swigt__p_char,
   &_swigt__p_difference_type,
   &_swigt__p_first_type,
+  &_swigt__p_ifdh_ns__cpn_lock,
   &_swigt__p_ifdh_ns__ifdh,
   &_swigt__p_key_type,
   &_swigt__p_mapped_type,
@@ -15734,6 +16012,7 @@ static swig_cast_info _swigc__p_allocator_type[] = {  {&_swigt__p_allocator_type
 static swig_cast_info _swigc__p_char[] = {  {&_swigt__p_char, 0, 0, 0},{0, 0, 0, 0}};
 static swig_cast_info _swigc__p_difference_type[] = {  {&_swigt__p_difference_type, 0, 0, 0},{0, 0, 0, 0}};
 static swig_cast_info _swigc__p_first_type[] = {  {&_swigt__p_first_type, 0, 0, 0},{0, 0, 0, 0}};
+static swig_cast_info _swigc__p_ifdh_ns__cpn_lock[] = {  {&_swigt__p_ifdh_ns__cpn_lock, 0, 0, 0},{0, 0, 0, 0}};
 static swig_cast_info _swigc__p_ifdh_ns__ifdh[] = {  {&_swigt__p_ifdh_ns__ifdh, 0, 0, 0},{0, 0, 0, 0}};
 static swig_cast_info _swigc__p_key_type[] = {  {&_swigt__p_key_type, 0, 0, 0},{0, 0, 0, 0}};
 static swig_cast_info _swigc__p_mapped_type[] = {  {&_swigt__p_mapped_type, 0, 0, 0},{0, 0, 0, 0}};
@@ -15757,6 +16036,7 @@ static swig_cast_info *swig_cast_initial[] = {
   _swigc__p_char,
   _swigc__p_difference_type,
   _swigc__p_first_type,
+  _swigc__p_ifdh_ns__cpn_lock,
   _swigc__p_ifdh_ns__ifdh,
   _swigc__p_key_type,
   _swigc__p_mapped_type,

@@ -960,13 +960,16 @@ ifdh::checksum(string loc) {
 
             if(_debug) cerr << "starting get_adler32( " << c_where << ")" << endl;
             sum = checksum::get_adler32(c_where);
-	    sumtext <<  "{\"crc_value\": \""  
-                    << sum
-                    << "\", \"crc_type\": \"adler 32 crc type\"}"
-                    << endl;
             if(_debug) cerr << "finished get_adler32( " << c_where << ")" << endl;
             waitpid(res2, &status,0);
             unlink(c_where);
+            if ( WIFEXITED(status) && WEXITSTATUS(status)==0) {
+                // only fill in sum text if the fetchinput side succeeded...
+	        sumtext <<  "{\"crc_value\": \""  
+                    << sum
+                    << "\", \"crc_type\": \"adler 32 crc type\"}"
+                    << endl;
+            }
 
        } else if (res2 == 0) {
 
@@ -987,7 +990,7 @@ ifdh::checksum(string loc) {
                 res = 1;
             }
             if(_debug) cerr << "finished fetchInput( " << loc << ")" << endl;
-            exit(0);
+            exit(res);
 
        } else {
             throw( std::logic_error("fork failed"));

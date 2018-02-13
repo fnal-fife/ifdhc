@@ -168,6 +168,8 @@ class ifdh {
         std::string getErrorText();
         // generate snapshot of a named dataset definition
 	std::string takeSnapshot( std::string name);
+        // check if project is alive
+        std::string projectStatus(std::string projecturi);
     private:
         IFile lookup_loc(std::string url) ;
         std::string locpath(IFile loc, std::string proto) ;

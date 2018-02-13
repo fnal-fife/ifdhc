@@ -11,6 +11,7 @@ from multiprocessing import cpu_count
 BASEPATH = os.path.dirname(os.path.abspath(__file__))
 
 class ifdhBuild(build):
+
     def run(self):
         # run original build code
         build.run(self)
@@ -18,15 +19,18 @@ class ifdhBuild(build):
         # build ifdh
         build_path = os.path.abspath(self.build_temp)
 
+        print("build_path = %s" % build_path)
+
         self.mkpath(self.build_lib)
         bindir = self.build_lib + '/../bin'
         self.mkpath(bindir)
 
         cmd = [
             'make',
+            'DESTDIR=%s/' % build_path,
+            'clean',
             'all',
             'install',
-            'DESTDIR=%s/' % build_path
         ]
 
         def compile():

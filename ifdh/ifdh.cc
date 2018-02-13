@@ -471,6 +471,7 @@ ifdh::do_url_int(int postflag, ...) {
     try {
        unique_ptr<WebAPI> wap(do_url_2(postflag, ap));
        res = wap->getStatus() - 200;
+       if (res > 0 && res < 6) res = 0; // 201,202,.. is also success..
     } catch( exception &e )  {
        _errortxt = e.what();
        res = 300;
@@ -681,13 +682,21 @@ int ifdh::setStatus(string projecturi, string processid, string status){
   return do_url_int(1,projecturi.c_str(),"processes",processid.c_str(),"setStatus","","status",status.c_str(),"","");
 }
 
-int ifdh::endProject(string projecturi) {
+int 
+ifdh::endProject(string projecturi) {
   if (projecturi == "" && getenv("SAM_PROJECT") && getenv("SAM_STATION") ) {
       projecturi = this->findProject("","");
   }
   return do_url_int(1,projecturi.c_str(),"endProject","","","");
 }
 
+string 
+ifdh::projectStatus(string projecturi) {
+  if (projecturi == "" && getenv("SAM_PROJECT") && getenv("SAM_STATION") ) {
+      projecturi = this->findProject("","");
+  }
+  return do_url_str(0,projecturi.c_str(),"status","","","");
+}
 
 ifdh::ifdh(std::string baseuri) {
     check_env();
@@ -951,13 +960,16 @@ ifdh::checksum(string loc) {
 
             if(_debug) cerr << "starting get_adler32( " << c_where << ")" << endl;
             sum = checksum::get_adler32(c_where);
-	    sumtext <<  "{\"crc_value\": \""  
-                    << sum
-                    << "\", \"crc_type\": \"adler 32 crc type\"}"
-                    << endl;
             if(_debug) cerr << "finished get_adler32( " << c_where << ")" << endl;
             waitpid(res2, &status,0);
             unlink(c_where);
+            if ( WIFEXITED(status) && WEXITSTATUS(status)==0) {
+                // only fill in sum text if the fetchinput side succeeded...
+	        sumtext <<  "{\"crc_value\": \""  
+                    << sum
+                    << "\", \"crc_type\": \"adler 32 crc type\"}"
+                    << endl;
+            }
 
        } else if (res2 == 0) {
 
@@ -978,7 +990,7 @@ ifdh::checksum(string loc) {
                 res = 1;
             }
             if(_debug) cerr << "finished fetchInput( " << loc << ")" << endl;
-            exit(0);
+            exit(res);
 
        } else {
             throw( std::logic_error("fork failed"));

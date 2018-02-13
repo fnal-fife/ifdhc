@@ -471,6 +471,7 @@ ifdh::do_url_int(int postflag, ...) {
     try {
        unique_ptr<WebAPI> wap(do_url_2(postflag, ap));
        res = wap->getStatus() - 200;
+       if (res > 0 && res < 6) res = 0; // 201,202,.. is also success..
     } catch( exception &e )  {
        _errortxt = e.what();
        res = 300;
@@ -681,13 +682,21 @@ int ifdh::setStatus(string projecturi, string processid, string status){
   return do_url_int(1,projecturi.c_str(),"processes",processid.c_str(),"setStatus","","status",status.c_str(),"","");
 }
 
-int ifdh::endProject(string projecturi) {
+int 
+ifdh::endProject(string projecturi) {
   if (projecturi == "" && getenv("SAM_PROJECT") && getenv("SAM_STATION") ) {
       projecturi = this->findProject("","");
   }
   return do_url_int(1,projecturi.c_str(),"endProject","","","");
 }
 
+string 
+ifdh::projectStatus(string projecturi) {
+  if (projecturi == "" && getenv("SAM_PROJECT") && getenv("SAM_STATION") ) {
+      projecturi = this->findProject("","");
+  }
+  return do_url_str(0,projecturi.c_str(),"status","","","");
+}
 
 ifdh::ifdh(std::string baseuri) {
     check_env();

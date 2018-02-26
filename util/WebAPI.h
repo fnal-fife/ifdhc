@@ -6,6 +6,11 @@
 #include <sstream>
 #include <stdexcept>
 
+#if __cplusplus >= 201103L
+#include <thread>
+#include <mutex>
+#endif
+
 namespace ifdh_util_ns {
 
 class WebAPIException : public std::logic_error {
@@ -22,6 +27,12 @@ class WebAPI {
     int _status;
     long int _pid;
     int _timeout; // timeout for web actions as per poll()
+
+#if __cplusplus >= 201103L
+    static std::mutex _fd_mutex;
+#endif
+    void sockattach( std::fstream &fstr,  int &sitefd, int s, std::fstream::openmode mode);
+
 public:
     static int _debug;
     WebAPI(std::string url, int postflag = 0, std::string postdata = "", int maxretries = 10, int timeout = -1); // throw(WebAPIException)

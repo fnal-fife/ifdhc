@@ -233,23 +233,25 @@ ifdh::fetchInput( string src_uri ) {
 
     if (0 == src_uri.find("xroot:") || 0 == src_uri.find("root:")) {
         char *icx = getenv("IFDH_COPY_XROOTD");
-        if (icx && atoi(icx)) {
+        // copy it anyway if IFDH_COPY_XROOTD is set or if the file
+        // does *not* end in .root, as the app won't be able to stream
+        // it anyway.
+        // Note we should 
+        if (icx && atoi(icx) || src_uri.substr(src_uri.length()-6,5) != ".root") {
              path = localPath( src_uri );
-             string cmd("xrdcp ");
-             cmd += src_uri + " ";
-             cmd += path + " ";
-             _debug && std::cerr << "running: " << cmd << std::endl;
-             cpn_lock locker;
-             int status = retry_system(cmd.c_str(), 0, locker,1);
-             if (WIFEXITED(status) && WEXITSTATUS(status) == 0)
+             args.push_back(src_uri);
+             args.push_back(path)
+             if ( 0 == cp( args ) && flushdir(datadir().c_str()) && 0 == access(path.c_str(),R_OK)) {
+                 _lastinput = path;
                  return path;
-             else
+             } else {
                  return "";
+             }
         } else {
-        // we don't do anything for xrootd, just pass
-        // it back, and let the application layer open
-        // it that way.
-        return src_uri;
+            // we don't do anything for xrootd, just pass
+            // it back, and let the application layer open
+            // it that way.
+            return src_uri;
         }
     }
     path = localPath( src_uri );

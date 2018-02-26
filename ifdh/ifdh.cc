@@ -236,11 +236,11 @@ ifdh::fetchInput( string src_uri ) {
         // copy it anyway if IFDH_COPY_XROOTD is set or if the file
         // does *not* end in .root, as the app won't be able to stream
         // it anyway.
-        // Note we should 
-        if (icx && atoi(icx) || src_uri.substr(src_uri.length()-6,5) != ".root") {
+        _debug && std::cerr << "Checking for IFDH_COPY_XROOTD or suffix:" << src_uri.substr(src_uri.length()-5,5) << "\n";
+        if ((icx && atoi(icx)) || (src_uri.substr(src_uri.length()-5,5) != ".root")) {
              path = localPath( src_uri );
              args.push_back(src_uri);
-             args.push_back(path)
+             args.push_back(path);
              if ( 0 == cp( args ) && flushdir(datadir().c_str()) && 0 == access(path.c_str(),R_OK)) {
                  _lastinput = path;
                  return path;

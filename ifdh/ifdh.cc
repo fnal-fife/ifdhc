@@ -4,6 +4,7 @@
 #include <string>
 #include <sstream>
 #include <iostream>
+#include <iomanip>
 #include <../numsg/numsg.h>
 #include <stdlib.h>
 #include <sys/stat.h>
@@ -242,6 +243,10 @@ ifdh::fetchInput( string src_uri ) {
              args.push_back(src_uri);
              args.push_back(path);
              if ( 0 == cp( args ) && flushdir(datadir().c_str()) && 0 == access(path.c_str(),R_OK)) {
+                 const char *pc_buf;
+                 extern void rotate_door(WimpyConfigParser &_config, const char *&cmd_str, std::string &cmd_str_string);
+                 pc_buf = path.c_str();
+                 rotate_door(_config, pc_buf, path);
                  _lastinput = path;
                  return path;
              } else {
@@ -729,16 +734,36 @@ ifdh::set_base_uri(std::string baseuri) {
     _baseuri = baseuri; 
 }
 
+#include <ifaddrs.h>
 std::string
 ifdh::unique_string() {
     static int count = 0;
-    char hbuf[512];
-    gethostname(hbuf, 512);
+    struct ifaddrs *ifap;
     time_t t = time(0);
+    char hbuf[512];
     int pid = getpid();
     stringstream uniqstr;
 
-    uniqstr << '_' << hbuf << '_' << t << '_' << pid << '_' << count++;
+    if(0 == getifaddrs(&ifap)) {
+       while( ifap && ifap->ifa_next && ifap->ifa_addr->sa_family != AF_INET &&  ifap->ifa_addr->sa_family != AF_INET6 ) {
+           std::cerr << "ifaddrs loop: sa_family" << (int)ifap->ifa_addr->sa_family << "\n";
+           std::cerr << "ifaddrs loop: sa_data" << (int)ifap->ifa_addr->sa_data[0] << (int)ifap->ifa_addr->sa_data[1] << (int)ifap->ifa_addr->sa_data[2] << (int)ifap->ifa_addr->sa_data[3] << "\n";
+           ifap = ifap->ifa_next;
+       }
+       if (ifap && ifap->ifa_next) {
+           // skip loopback...
+           ifap = ifap->ifa_next;
+       }
+       if (ifap && ifap->ifa_addr->sa_family == AF_INET){
+           sprintf(hbuf, "%8.8x",  (*(unsigned int*)(ifap->ifa_addr->sa_data+2)));
+       } else if  (ifap && ifap->ifa_addr->sa_family == AF_INET6) {
+           sprintf(hbuf, "%16.16lx",  (*(unsigned long*)((char *)ifap->ifa_addr->sa_data+14)));
+           sprintf(hbuf+16, "%16.16lx",  (*(unsigned long*)((char *)ifap->ifa_addr->sa_data+6)));
+       } else {
+           sprintf(hbuf, "%8.8x", rand());
+       }
+    }
+    uniqstr << std::setbase(16) << '-' << t << '-' << pid << '-' << hbuf << '-' <<  count++ ;
     return std::string(uniqstr.str());
 }
 
@@ -823,8 +848,8 @@ ifdh::renameOutput(std::string how) {
             //      on the end already exists in the filename
             if (string::npos == outfile.find(uniq.substr(0,uniq.size()-8))) {
                 outfile = outfile.insert( spos, uniq );
-	        rename(file.c_str(), outfile.c_str());
 	        _debug && std::cerr << "renaming: " << file << " " << outfile << "\n";
+	        rename(file.c_str(), outfile.c_str());
             }
 
             newoutlog << outfile << " " << infile << "\n";

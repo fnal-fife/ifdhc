@@ -1,4 +1,5 @@
 #include "ifdh.h"
+#include "ifdh_mbuf.h"
 #include "utils.h"
 #include <fcntl.h>
 #include <string>
@@ -21,11 +22,13 @@
 #include <sys/param.h>
 #include <map>
 #include "../util/Checksum.h"
+#include <../util/regwrap.h>
 #include <setjmp.h>
 #include <memory>
 #ifndef __APPLE_CC__
 #include <gnu/libc-version.h>
 #endif
+#include <uuid/uuid.h>
 
 
 #if __cplusplus <= 199711L
@@ -234,22 +237,27 @@ ifdh::fetchInput( string src_uri ) {
 
     if (0 == src_uri.find("xroot:") || 0 == src_uri.find("root:")) {
         char *icx = getenv("IFDH_COPY_XROOTD");
+        ifdh_op_msg mbuf("cp", *this);
         // copy it anyway if IFDH_COPY_XROOTD is set or if the file
         // does *not* end in .root, as the app won't be able to stream
         // it anyway.
         _debug && std::cerr << "Checking for IFDH_COPY_XROOTD or suffix:" << src_uri.substr(src_uri.length()-5,5) << "\n";
+        mbuf.src = src_uri;
+        mbuf.dst = path;
         if ((icx && atoi(icx)) || (src_uri.substr(src_uri.length()-5,5) != ".root")) {
              path = localPath( src_uri );
              args.push_back(src_uri);
              args.push_back(path);
              if ( 0 == cp( args ) && flushdir(datadir().c_str()) && 0 == access(path.c_str(),R_OK)) {
                  const char *pc_buf;
-                 extern void rotate_door(WimpyConfigParser &_config, const char *&cmd_str, std::string &cmd_str_string);
+                 extern void rotate_door(WimpyConfigParser &_config, const char *&cmd_str, std::string &cmd_str_string, ifdh_op_msg &mbuf);
                  pc_buf = path.c_str();
-                 rotate_door(_config, pc_buf, path);
+                 rotate_door(_config, pc_buf, path, mbuf);
                  _lastinput = path;
+                 mbuf.log_success();
                  return path;
              } else {
+                 mbuf.log_failure();
                  return "";
              }
         } else {
@@ -479,6 +487,14 @@ ifdh::do_url_int(int postflag, ...) {
        unique_ptr<WebAPI> wap(do_url_2(postflag, ap));
        res = wap->getStatus() - 200;
        if (res > 0 && res < 6) res = 0; // 201,202,.. is also success..
+       if (res != 0 ) {
+           string line;
+           _errortxt = "";
+	   while (!wap->data().eof() && !wap->data().fail()) {
+	      getline(wap->data(), line);
+              _errortxt = _errortxt + line;
+           }
+       }
     } catch( exception &e )  {
        _errortxt = e.what();
        res = 300;
@@ -737,34 +753,11 @@ ifdh::set_base_uri(std::string baseuri) {
 #include <ifaddrs.h>
 std::string
 ifdh::unique_string() {
-    static int count = 0;
-    struct ifaddrs *ifap;
-    time_t t = time(0);
-    char hbuf[512];
-    int pid = getpid();
-    stringstream uniqstr;
-
-    if(0 == getifaddrs(&ifap)) {
-       while( ifap && ifap->ifa_next && ifap->ifa_addr->sa_family != AF_INET &&  ifap->ifa_addr->sa_family != AF_INET6 ) {
-           std::cerr << "ifaddrs loop: sa_family" << (int)ifap->ifa_addr->sa_family << "\n";
-           std::cerr << "ifaddrs loop: sa_data" << (int)ifap->ifa_addr->sa_data[0] << (int)ifap->ifa_addr->sa_data[1] << (int)ifap->ifa_addr->sa_data[2] << (int)ifap->ifa_addr->sa_data[3] << "\n";
-           ifap = ifap->ifa_next;
-       }
-       if (ifap && ifap->ifa_next) {
-           // skip loopback...
-           ifap = ifap->ifa_next;
-       }
-       if (ifap && ifap->ifa_addr->sa_family == AF_INET){
-           sprintf(hbuf, "%8.8x",  (*(unsigned int*)(ifap->ifa_addr->sa_data+2)));
-       } else if  (ifap && ifap->ifa_addr->sa_family == AF_INET6) {
-           sprintf(hbuf, "%16.16lx",  (*(unsigned long*)((char *)ifap->ifa_addr->sa_data+14)));
-           sprintf(hbuf+16, "%16.16lx",  (*(unsigned long*)((char *)ifap->ifa_addr->sa_data+6)));
-       } else {
-           sprintf(hbuf, "%8.8x", rand());
-       }
-    }
-    uniqstr << std::setbase(16) << '-' << t << '-' << pid << '-' << hbuf << '-' <<  count++ ;
-    return std::string(uniqstr.str());
+    uuid_t uuid;
+    char uuidbuf[80];
+    uuid_generate(uuid);
+    uuid_unparse(uuid,uuidbuf);
+    return std::string(uuidbuf);
 }
 
 // give output files reported with addOutputFile a unique name
@@ -775,8 +768,7 @@ ifdh::renameOutput(std::string how) {
     std::string line;
     std::string file, infile, froms, tos, outfile;
     size_t spos;
-   
-
+    ifdh_op_msg mbuf("renameOutput", *this);
 
     if (how[0] == 's') {
 
@@ -802,8 +794,9 @@ ifdh::renameOutput(std::string how) {
         _debug && std::cerr << "running: " << perlcmd.str() << "\n";
 
         cpn_lock locker;
-        return retry_system(perlcmd.str().c_str(), 0, locker,1);
-    
+        int res = retry_system(perlcmd.str().c_str(), 0, locker,mbuf,1);
+        mbuf.log_success();
+        return res;
     } else if (how[0] == 'e') {
 
         size_t loc = how.find(':');
@@ -812,7 +805,7 @@ ifdh::renameOutput(std::string how) {
         _debug && std::cerr << "running: " << cmd << "\n";
 
         cpn_lock locker;
-        return retry_system(cmd.c_str(), 0, locker,1);
+        return retry_system(cmd.c_str(), 0, locker,mbuf,1);
 
     } else if (how[0] == 'u') {
 
@@ -835,22 +828,27 @@ ifdh::renameOutput(std::string how) {
                break;
             }
   
-            spos = file.find('.');
-            if (spos == string::npos) {
-               spos = file.length();
-            }
-
 
             outfile = file;
             string uniq = unique_string();
-            // don't double-uniqify if renameOutput is called repeatedly
-            //  -- i.e. if the uniqe string without the pid and counter 
-            //      on the end already exists in the filename
-            if (string::npos == outfile.find(uniq.substr(0,uniq.size()-8))) {
-                outfile = outfile.insert( spos, uniq );
-	        _debug && std::cerr << "renaming: " << file << " " << outfile << "\n";
-	        rename(file.c_str(), outfile.c_str());
+            // don't expand repeatedly if renameOutput is called repeatedly
+            // now using same rule as fife_utils  add_dataset
+            // replace uuid's in the name.
+            regexp uuid_re("-?[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}-?");
+            regmatch m(uuid_re(file));
+            
+            if (m) {
+                // trim out existing uuid before adding new one
+                outfile = outfile.substr(0,m.data()[0].rm_so) + outfile.substr(m.data()[0].rm_eo);
             }
+
+            spos = outfile.find('.');
+            if (spos == string::npos) {
+               spos = outfile.size();
+            }
+            
+            outfile =  outfile.substr(0,spos) + "-" + uniq + outfile.substr(spos);
+            rename(file.c_str(), outfile.c_str());
 
             newoutlog << outfile << " " << infile << "\n";
         }

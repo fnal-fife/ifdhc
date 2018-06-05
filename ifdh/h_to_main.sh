@@ -244,7 +244,7 @@ do
         esac
         echo "cargs are now: $cargs" >&2
         help="$help
-               (what == 0 || 0==strcmp(what,\"$func\")) && cout << \"\\\\t\033[1mifdh [global-args] $func $args\033[0m\\\\n\\\\t  $lastcomment\\\n\\\n\";"
+               (what == 0 || 0==strcmp(what,\"$func\")) && cout << \"\\\\t\033[1mifdh  $func [global-args] $args\033[0m\\\\n\\\\t  $lastcomment\\\n\\\n\";"
 	printf "\t${else}if (argc > 1 && 0 == strcmp(argv[1],\"$func\")) $pfunc(i.$func("
         else="else "
         i=2

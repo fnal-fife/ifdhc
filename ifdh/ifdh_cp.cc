@@ -1298,7 +1298,7 @@ ifdh::pick_proto(CpPair &p, std::string force) {
             continue;
          }
          // only take file: if it is actually visible here -- or there's no other option
-         if (*sp == "file:" && 0 != access(parent_dir(p.src.path).c_str(),R_OK) && sp+1 != slist.end()) {
+         if (*sp == "file:" && 0 != access(mount_dir(p.src.path).c_str(),R_OK) && sp+1 != slist.end()) {
              ifdh::_debug && cerr << "ignoring src file: -- not visible\n";
              continue;
          }
@@ -1307,7 +1307,7 @@ ifdh::pick_proto(CpPair &p, std::string force) {
 		continue;
 	     }
              // only take file: if it is a path actually visible here -- or there's no other option
-             if (*dp == "file:" && 0 != access(parent_dir(p.dst.path).c_str(),R_OK) && dp+1 != dlist.end()) {
+             if (*dp == "file:" && 0 != access(mount_dir(p.dst.path).c_str(),R_OK) && dp+1 != dlist.end()) {
                  ifdh::_debug && cerr << "ignoring dst file: -- not visible\n";
                  continue;
              }
@@ -1585,7 +1585,7 @@ ifdh::pick_proto_path(std::string loc, std::string force, std::string &proto, st
         ifdh::_debug && std::cerr << "location " <<  src.location << " protocols: " << protos << "\n";
         std::vector<std::string> plist = split(protos, ' ');
         // don't use file: if its not visible..
-        if (plist[0] == "file:" && 0 != access(parent_dir(src.path).c_str(),R_OK) && plist.size() > 1) {
+        if (plist[0] == "file:" && 0 != access(mount_dir(src.path).c_str(),R_OK) && plist.size() > 1) {
             proto = plist[1];
         } else { 
             proto = plist[0]; 

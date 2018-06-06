@@ -343,8 +343,8 @@ class ifdh_cp_cases(unittest.TestCase):
         self.check_writable( "%s/test.txt" % self.data_dir)
         # shouldn't need this one, but we seem to?
         list1 = self.ifdh_handle.ls(self.data_dir,1,"")
-        list = self.ifdh_handle.ls("%s/test.txt" % self.data_dir, 1,"")
-        self.assertEqual(len(list),1,self._testMethodName)  
+        l = self.ifdh_handle.ls("%s/test.txt" % self.data_dir, 1,"")
+        self.assertEqual(len(l),1,self._testMethodName)  
 
     def test_srm_in(self):
         self.log(self._testMethodName)
@@ -363,13 +363,13 @@ class ifdh_cp_cases(unittest.TestCase):
         # shouldn't need this one, but we seem to?
         # list1 = self.ifdh_handle.ls(self.data_dir,1,"")
         time.sleep(1)
-        list = self.ifdh_handle.ls( dest, 0, "")
-        print "got list: " , list
+        l = self.ifdh_handle.ls( dest, 0, "")
+        print "got list: " , l
         # some utilities give the directory *and* the file, so
         # prune the first item if it's a directory
-        if len(list) > 0 and list[0][-1] == '/' and len(list) > 1:
-            list = list[1:]
-        self.assertEqual(len(list),1, self._testMethodName) 
+        if len(l) > 0 and l[0][-1] == '/' and len(l) > 1:
+            l = l[1:]
+        self.assertEqual(len(l),1, self._testMethodName) 
 
     def test_explicit_srm_in(self):
         self.log(self._testMethodName)

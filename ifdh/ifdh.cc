@@ -1,9 +1,11 @@
 #include "ifdh.h"
+#include "ifdh_mbuf.h"
 #include "utils.h"
 #include <fcntl.h>
 #include <string>
 #include <sstream>
 #include <iostream>
+#include <iomanip>
 #include <../numsg/numsg.h>
 #include <stdlib.h>
 #include <sys/stat.h>
@@ -20,11 +22,13 @@
 #include <sys/param.h>
 #include <map>
 #include "../util/Checksum.h"
+#include <../util/regwrap.h>
 #include <setjmp.h>
 #include <memory>
 #ifndef __APPLE_CC__
 #include <gnu/libc-version.h>
 #endif
+#include <uuid/uuid.h>
 
 
 #if __cplusplus <= 199711L
@@ -233,23 +237,34 @@ ifdh::fetchInput( string src_uri ) {
 
     if (0 == src_uri.find("xroot:") || 0 == src_uri.find("root:")) {
         char *icx = getenv("IFDH_COPY_XROOTD");
-        if (icx && atoi(icx)) {
+        ifdh_op_msg mbuf("cp", *this);
+        // copy it anyway if IFDH_COPY_XROOTD is set or if the file
+        // does *not* end in .root, as the app won't be able to stream
+        // it anyway.
+        _debug && std::cerr << "Checking for IFDH_COPY_XROOTD or suffix:" << src_uri.substr(src_uri.length()-5,5) << "\n";
+        mbuf.src = src_uri;
+        mbuf.dst = path;
+        if ((icx && atoi(icx)) || (src_uri.substr(src_uri.length()-5,5) != ".root")) {
              path = localPath( src_uri );
-             string cmd("xrdcp ");
-             cmd += src_uri + " ";
-             cmd += path + " ";
-             _debug && std::cerr << "running: " << cmd << std::endl;
-             cpn_lock locker;
-             int status = retry_system(cmd.c_str(), 0, locker,1);
-             if (WIFEXITED(status) && WEXITSTATUS(status) == 0)
+             args.push_back(src_uri);
+             args.push_back(path);
+             if ( 0 == cp( args ) && flushdir(datadir().c_str()) && 0 == access(path.c_str(),R_OK)) {
+                 const char *pc_buf;
+                 extern void rotate_door(WimpyConfigParser &_config, const char *&cmd_str, std::string &cmd_str_string, ifdh_op_msg &mbuf);
+                 pc_buf = path.c_str();
+                 rotate_door(_config, pc_buf, path, mbuf);
+                 _lastinput = path;
+                 mbuf.log_success();
                  return path;
-             else
+             } else {
+                 mbuf.log_failure();
                  return "";
+             }
         } else {
-        // we don't do anything for xrootd, just pass
-        // it back, and let the application layer open
-        // it that way.
-        return src_uri;
+            // we don't do anything for xrootd, just pass
+            // it back, and let the application layer open
+            // it that way.
+            return src_uri;
         }
     }
     path = localPath( src_uri );
@@ -471,6 +486,15 @@ ifdh::do_url_int(int postflag, ...) {
     try {
        unique_ptr<WebAPI> wap(do_url_2(postflag, ap));
        res = wap->getStatus() - 200;
+       if (res > 0 && res < 6) res = 0; // 201,202,.. is also success..
+       if (res != 0 ) {
+           string line;
+           _errortxt = "";
+	   while (!wap->data().eof() && !wap->data().fail()) {
+	      getline(wap->data(), line);
+              _errortxt = _errortxt + line;
+           }
+       }
     } catch( exception &e )  {
        _errortxt = e.what();
        res = 300;
@@ -681,13 +705,21 @@ int ifdh::setStatus(string projecturi, string processid, string status){
   return do_url_int(1,projecturi.c_str(),"processes",processid.c_str(),"setStatus","","status",status.c_str(),"","");
 }
 
-int ifdh::endProject(string projecturi) {
+int 
+ifdh::endProject(string projecturi) {
   if (projecturi == "" && getenv("SAM_PROJECT") && getenv("SAM_STATION") ) {
       projecturi = this->findProject("","");
   }
   return do_url_int(1,projecturi.c_str(),"endProject","","","");
 }
 
+string 
+ifdh::projectStatus(string projecturi) {
+  if (projecturi == "" && getenv("SAM_PROJECT") && getenv("SAM_STATION") ) {
+      projecturi = this->findProject("","");
+  }
+  return do_url_str(0,projecturi.c_str(),"status","","","");
+}
 
 ifdh::ifdh(std::string baseuri) {
     check_env();
@@ -718,17 +750,14 @@ ifdh::set_base_uri(std::string baseuri) {
     _baseuri = baseuri; 
 }
 
+#include <ifaddrs.h>
 std::string
 ifdh::unique_string() {
-    static int count = 0;
-    char hbuf[512];
-    gethostname(hbuf, 512);
-    time_t t = time(0);
-    int pid = getpid();
-    stringstream uniqstr;
-
-    uniqstr << '_' << hbuf << '_' << t << '_' << pid << '_' << count++;
-    return std::string(uniqstr.str());
+    uuid_t uuid;
+    char uuidbuf[80];
+    uuid_generate(uuid);
+    uuid_unparse(uuid,uuidbuf);
+    return std::string(uuidbuf);
 }
 
 // give output files reported with addOutputFile a unique name
@@ -739,8 +768,7 @@ ifdh::renameOutput(std::string how) {
     std::string line;
     std::string file, infile, froms, tos, outfile;
     size_t spos;
-   
-
+    ifdh_op_msg mbuf("renameOutput", *this);
 
     if (how[0] == 's') {
 
@@ -766,8 +794,9 @@ ifdh::renameOutput(std::string how) {
         _debug && std::cerr << "running: " << perlcmd.str() << "\n";
 
         cpn_lock locker;
-        return retry_system(perlcmd.str().c_str(), 0, locker,1);
-    
+        int res = retry_system(perlcmd.str().c_str(), 0, locker,mbuf,1);
+        mbuf.log_success();
+        return res;
     } else if (how[0] == 'e') {
 
         size_t loc = how.find(':');
@@ -776,7 +805,7 @@ ifdh::renameOutput(std::string how) {
         _debug && std::cerr << "running: " << cmd << "\n";
 
         cpn_lock locker;
-        return retry_system(cmd.c_str(), 0, locker,1);
+        return retry_system(cmd.c_str(), 0, locker,mbuf,1);
 
     } else if (how[0] == 'u') {
 
@@ -799,22 +828,27 @@ ifdh::renameOutput(std::string how) {
                break;
             }
   
-            spos = file.find('.');
-            if (spos == string::npos) {
-               spos = file.length();
-            }
-
 
             outfile = file;
             string uniq = unique_string();
-            // don't double-uniqify if renameOutput is called repeatedly
-            //  -- i.e. if the uniqe string without the pid and counter 
-            //      on the end already exists in the filename
-            if (string::npos == outfile.find(uniq.substr(0,uniq.size()-8))) {
-                outfile = outfile.insert( spos, uniq );
-	        rename(file.c_str(), outfile.c_str());
-	        _debug && std::cerr << "renaming: " << file << " " << outfile << "\n";
+            // don't expand repeatedly if renameOutput is called repeatedly
+            // now using same rule as fife_utils  add_dataset
+            // replace uuid's in the name.
+            regexp uuid_re("-?[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}-?");
+            regmatch m(uuid_re(file));
+            
+            if (m) {
+                // trim out existing uuid before adding new one
+                outfile = outfile.substr(0,m.data()[0].rm_so) + outfile.substr(m.data()[0].rm_eo);
             }
+
+            spos = outfile.find('.');
+            if (spos == string::npos) {
+               spos = outfile.size();
+            }
+            
+            outfile =  outfile.substr(0,spos) + "-" + uniq + outfile.substr(spos);
+            rename(file.c_str(), outfile.c_str());
 
             newoutlog << outfile << " " << infile << "\n";
         }
@@ -951,13 +985,16 @@ ifdh::checksum(string loc) {
 
             if(_debug) cerr << "starting get_adler32( " << c_where << ")" << endl;
             sum = checksum::get_adler32(c_where);
-	    sumtext <<  "{\"crc_value\": \""  
-                    << sum
-                    << "\", \"crc_type\": \"adler 32 crc type\"}"
-                    << endl;
             if(_debug) cerr << "finished get_adler32( " << c_where << ")" << endl;
             waitpid(res2, &status,0);
             unlink(c_where);
+            if ( WIFEXITED(status) && WEXITSTATUS(status)==0) {
+                // only fill in sum text if the fetchinput side succeeded...
+	        sumtext <<  "{\"crc_value\": \""  
+                    << sum
+                    << "\", \"crc_type\": \"adler 32 crc type\"}"
+                    << endl;
+            }
 
        } else if (res2 == 0) {
 
@@ -978,7 +1015,7 @@ ifdh::checksum(string loc) {
                 res = 1;
             }
             if(_debug) cerr << "finished fetchInput( " << loc << ")" << endl;
-            exit(0);
+            exit(res);
 
        } else {
             throw( std::logic_error("fork failed"));

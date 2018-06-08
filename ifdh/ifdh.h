@@ -8,6 +8,7 @@
 #include <stdlib.h>
 #include <map>
 #include <utility>
+#include <uuid/uuid.h>
 
 
 namespace ifdh_ns {
@@ -27,6 +28,9 @@ public:
     ~cpn_lock();
 };
 
+class ifdh;
+
+class ifdh_op_msg;
 class ifdh {
         std::string _baseuri;
         std::string _lastinput;
@@ -168,14 +172,16 @@ class ifdh {
         std::string getErrorText();
         // generate snapshot of a named dataset definition
 	std::string takeSnapshot( std::string name);
+        // check if project is alive
+        std::string projectStatus(std::string projecturi);
     private:
         IFile lookup_loc(std::string url) ;
         std::string locpath(IFile loc, std::string proto) ;
-        int retry_system(const char *cmd_str, int error_expected, cpn_lock &locker,   int maxtries = -1, std::string unlink_on_error = "") ;
+        int retry_system(const char *cmd_str, int error_expected,  cpn_lock &locker, ifdh_op_msg &mbuf, int maxtries = -1, std::string unlink_on_error = "") ;
         std::string srcpath(CpPair &cpp) ;
         std::string dstpath(CpPair &cpp) ;
-        int do_cp_bg(CpPair &cpp, bool intermed_file_flag, bool recursive, cpn_lock &cpn);
-        int do_cp(CpPair &cpp,  bool intermed_file_flag, bool recursive, cpn_lock &cpn) ;
+        int do_cp_bg(CpPair &cpp, bool intermed_file_flag, bool recursive, cpn_lock &cpn,  ifdh_op_msg &mbuf);
+        int do_cp(CpPair &cpp,  bool intermed_file_flag, bool recursive, cpn_lock &cpn, ifdh_op_msg &mbuf) ;
 	void pick_proto(CpPair &p, std::string force) ;
         std::vector<CpPair> handle_args( std::vector<std::string> args, std::vector<std::string>::size_type curarg, bool dest_is_dir,  size_t &lock_low, size_t &lock_hi, std::string &force);
         bool have_stage_subdirs(std::string uri);

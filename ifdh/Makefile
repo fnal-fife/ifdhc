@@ -16,7 +16,11 @@ ALL_OBJS=$(OBJ) ../util/WebAPI.o ../numsg/numsg.o ../util/SyslogAPI.o ../util/ut
 genOBJ=ifdh_main.o ifdh_wrap.o python/_ifdh.$(SHLIB)
 genSRC=ifdh_wrap.cxx ifdh_main.cc
 PYMOD_OBJS=$(ALL_OBJS) ifdh_wrap.o
+ifeq ($(UNAME),Darwin)
 LDLIBS=-lz
+else
+LDLIBS=-lz -luuid
+endif
 DIRS=python
 ALL=ifdh python/_ifdh.$(SHLIB) libifdh.$(SHLIB) libifdh.a
 

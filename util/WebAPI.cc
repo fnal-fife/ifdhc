@@ -102,12 +102,21 @@ WebAPI::parseurl(std::string url) {
 #include <arpa/inet.h>
 #include <netdb.h>
 
-
+#if __cplusplus >= 201103L
+std::mutex WebAPI::_fd_mutex;
+#endif
 //
 // use underlying fd behavior to open a stream to a socket.o
 //
 void 
-sockattach( std::fstream &fstr,  int &sitefd, int s, std::fstream::openmode mode)  {
+WebAPI::sockattach( std::fstream &fstr,  int &sitefd, int s, std::fstream::openmode mode)  {
+#if __cplusplus >= 201103L
+     // use RAII lock_guard to protect this subroutine region with a mutex
+     // this should mean the while loop/retry below is unneccesary, 
+     // but we only have it when building in a newer stdc++11 or 
+     // later environment...
+     std::lock_guard<std::mutex> lock(_fd_mutex);
+#endif
      int sretries = 0;
      int fdhack = -2, fdnext, fdchk;  
      sitefd = -1;
@@ -119,7 +128,15 @@ sockattach( std::fstream &fstr,  int &sitefd, int s, std::fstream::openmode mode
          // dup the socket just to find the "next" file descriptor
          // then close it to free it up
          fdhack = dup(s);
+         if (fdhack == -1) {
+             std::cerr << "fdhack: " << fdhack << "\n";
+             throw(WebAPIException("Error:","sockattach: Couldn't plumb file descriptors"));
+         }
          fdnext = dup(s);
+         if (fdnext == -1) {
+             std::cerr << "fdnext: " << fdnext << "\n";
+             throw(WebAPIException("Error:","sockattach: Couldn't plumb file descriptors"));
+         }
          close(fdnext);
          close(fdhack);
          fstr.open("/dev/null",mode);
@@ -551,6 +568,18 @@ test_WebAPI_fetchurl() {
    }
 }
 
+void
+test_WebAPI_leakcheck() {
+   std::string line;
+
+   for(int  i=0; i< 2048; i++) {
+       WebAPI ds("http://home.fnal.gov/~mengel/Ascii_Chart.html");
+       while(!ds.data().eof()) {
+            getline(ds.data(), line);
+       }
+   }
+}
+ 
 }
 #ifdef UNITTEST
 
@@ -559,5 +588,7 @@ main() {
    ifdh_util_ns::WebAPI::_debug = 1;
    test_encode();
    test_WebAPI_fetchurl();
+   test_WebAPI_leakcheck();
+   return 0;
 }
 #endif

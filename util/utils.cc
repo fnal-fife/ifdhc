@@ -46,6 +46,22 @@ std::string parent_dir(std::string path) {
    return path.substr(0, pos);
 }
 
+std::string mount_dir(std::string path) {
+   size_t pos = path.find('/',1);
+   size_t pos2 = path.find('/', pos);
+   while (pos2 == pos + 1) {
+        // it's a URL?
+        pos = path.find('/', pos2);
+        pos2 = path.find('/', pos);
+   }
+   if (pos2 != std::string::npos) {
+      return path.substr(0, pos2);
+   } else {
+      return "/";
+   }
+}
+
+
 int
 flushdir(const char *dir){
     // according to legend this flushes NFS directory cachng...

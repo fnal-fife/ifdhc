@@ -90,6 +90,7 @@ ifdh_op_msg::log_common(std::stringstream &message) {
   if (proto.size()) { message << "\"proto\": \"" << proto << "\"," ;}
   if (door.size()) { message << "\"door\": \"" << door << "\"," ;}
   if (count) { message << "\"count\": \"" << count << "\","; }
+  if (getenv("POMS_CAMPAIGN_ID")) { message << "\"campaign_stage_id\": \"" << getenv("POMS_CAMPAIGN_ID") << "\","; }
   message << "\"secs\": \"" << time(0) - ctime << "\"}"; 
   handle.log(message.str());
 }

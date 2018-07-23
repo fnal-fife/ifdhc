@@ -867,7 +867,7 @@ ifdh::more(string loc) {
     int res2 ,res;
 
     // need tos set DATA_DIR so grandkids agree on where it is..
-    char denvbuf[512];
+    char denvbuf[MAXPATHLEN];
     strcpy(denvbuf,"IFDH_DATA_DIR=");
     strcpy(denvbuf+14, localPath("").c_str());
     putenv(denvbuf);
@@ -974,7 +974,7 @@ ifdh::checksum(string loc) {
     if(_debug) cerr << "made node " << c_where << endl;
  
     // need tos set DATA_DIR so grandkids agree on where it is..
-    char denvbuf[512];
+    char denvbuf[MAXPATHLEN];
     strcpy(denvbuf,"IFDH_DATA_DIR=");
     strcpy(denvbuf+14, localPath("").c_str());
     putenv(denvbuf);

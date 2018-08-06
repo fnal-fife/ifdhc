@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <fcntl.h>
 #include "ifdh.h"
+#include "ifdh_mbuf.h"
 #include "utils.h"
 #include "../util/WimpyConfigParser.h"
 #include <iostream>
@@ -35,17 +36,64 @@
 #define NFS_SUPER_MAGIC VT_NFS
 #include <libgen.h>
 #else
-#include <sys/vfs.h> 
 #include <linux/nfs_fs.h>
 #endif
 #include <ifaddrs.h>
 #include <../util/regwrap.h>
 #include <stdexcept>
+#include <uuid/uuid.h>
 
 using namespace std;
 
 namespace ifdh_ns {
 
+ifdh_op_msg::ifdh_op_msg(std::string op, ifdh &ih): handle(ih) {
+  count = 0;
+  operation = op;
+  ctime = time(0);
+  uuid_generate(uuid);
+  this->log_start();
+}
+
+void
+ifdh_op_msg::log_start() {
+  std::stringstream message;
+  message << "{ \"status\":\"starting\", ";
+  this->log_common(message);
+}
+void 
+ifdh_op_msg:: log_retry() {
+  std::stringstream message;
+  message << "{ \"status\":\"retried\", ";
+  this->log_common(message);
+}
+void 
+ifdh_op_msg::log_failure() {
+  std::stringstream message;
+  message << "{ \"status\":\"failed\", ";
+  this->log_common(message);
+}
+void
+ifdh_op_msg::log_success() {
+  std::stringstream message;
+  message << "{ \"status\": \"success\", ";
+  this->log_common(message);
+}
+void
+ifdh_op_msg::log_common(std::stringstream &message) {
+  char uuidbuf[80];
+  uuid_unparse(uuid,uuidbuf);
+  message << "\"uuid\": \"" << uuidbuf << "\","; 
+  if (operation.size()) { message << "\"op\": \"" << operation << "\"," ;}
+  if (src.size()) { message << "\"src\": \"" << src << "\"," ;}
+  if (dst.size()) { message << "\"dst\": \"" << dst << "\"," ;}
+  if (proto.size()) { message << "\"proto\": \"" << proto << "\"," ;}
+  if (door.size()) { message << "\"door\": \"" << door << "\"," ;}
+  if (count) { message << "\"count\": \"" << count << "\","; }
+  if (getenv("POMS_CAMPAIGN_ID")) { message << "\"campaign_stage_id\": \"" << getenv("POMS_CAMPAIGN_ID") << "\","; }
+  message << "\"secs\": \"" << time(0) - ctime << "\"}"; 
+  handle.log(message.str());
+}
 
 struct IFile {
      std::string location;
@@ -585,6 +633,7 @@ get_grid_credentials_if_needed() {
     std::stringstream plainproxyfile;
     std::stringstream vomsproxyfile;
     int res;
+    int f;
 
     ifdh::_debug && std::cerr << "Checking for proxy cert..."<< endl;
 
@@ -619,6 +668,14 @@ get_grid_credentials_if_needed() {
     if (!check_grid_credentials() && have_kerberos_creds() ) {
         // if we still don't have credentials, try to get some from kx509
 	ifdh::_debug && std::cerr << "trying to kx509/voms-proxy-init...\n " ;
+
+        std::string lockfile = vomsproxyfile.str() + ".lock";
+        f = open(lockfile.c_str(),O_RDWR|O_EXCL,0600);
+        if (f < 0) {
+          // someone else is getting the credential..   
+          sleep(5);
+          return;
+        }
 
 	cmd = "kx509 -o ";
         cmd += plainproxyfile.str();
@@ -690,6 +747,11 @@ get_grid_credentials_if_needed() {
            sleep(1);
 	   res = system(cmd.c_str());
         }
+
+        // dink the lock file now
+        close(f);
+        unlink(lockfile.c_str());
+
         // when you request a long timeout and it truncates it, it exits 256
         // even though things are fine...
         if ((!WIFEXITED(res) ||  0 != WEXITSTATUS(res)) && res != 256) {
@@ -805,7 +867,7 @@ get_pnfs_uri(std::string door_url,  std::string door_proto, std::vector<std::str
 }
 
 void
-get_another_dcache_door( std::string &cmd, std::string door_regex, std::string door_url, std::string door_proto, std::vector<std::string>&def_doors ) {
+get_another_dcache_door( std::string &cmd, std::string door_regex, std::string door_url, std::string door_proto, std::vector<std::string>&def_doors , ifdh_op_msg &mbuf ) {
     size_t base, oldbase;
     std::string repl;
 
@@ -830,14 +892,14 @@ get_another_dcache_door( std::string &cmd, std::string door_regex, std::string d
 
          ifdh::_debug && cerr << "repl is " << repl << "\n";
 
-
-
          regmatch replmatch(door_re(repl));
 
          ifdh::_debug && cerr << "replmatch[0] is " << replmatch[0] << "\n";
 
          string trimrepl = repl.substr(replmatch.data()[0].rm_so, replmatch.data()[0].rm_eo - replmatch.data()[0].rm_so);
          ifdh::_debug && cerr << "doors[0] is " << doors[0] << "\n";
+
+         mbuf.door = trimrepl;
 
          ifdh::_debug && cerr << "replacing: " << cmd.substr(base + doors.data()[0].rm_so, doors.data()[0].rm_eo - doors.data()[0].rm_so) << "with " << trimrepl << "\n";
          cmd.replace(base + doors.data()[0].rm_so, doors.data()[0].rm_eo - doors.data()[0].rm_so, trimrepl);
@@ -850,7 +912,7 @@ get_another_dcache_door( std::string &cmd, std::string door_regex, std::string d
 }
 
 void
-rotate_door(WimpyConfigParser &_config, const char *&cmd_str, std::string &cmd_str_string) {
+rotate_door(WimpyConfigParser &_config, const char *&cmd_str, std::string &cmd_str_string, ifdh_op_msg &mbuf) {
 
         std::vector<std::string> rot_list = _config.getlist("general","rotations");
         for (size_t i = 0; i < rot_list.size(); i++ ) {
@@ -875,14 +937,14 @@ rotate_door(WimpyConfigParser &_config, const char *&cmd_str, std::string &cmd_s
             regexp door_re(door_regex);
 
 	    if (0 != door_re(cmd_str_string)) {
-	       get_another_dcache_door(cmd_str_string, door_regex, door_url, door_proto, def_doors );   
+	       get_another_dcache_door(cmd_str_string, door_regex, door_url, door_proto, def_doors, mbuf);   
                cmd_str = cmd_str_string.c_str();
 	    }
         }
 }
 
 int
-ifdh::retry_system(const char *cmd_str, int error_expected, cpn_lock &locker, int maxtries, std::string unlink_on_error) {
+ifdh::retry_system(const char *cmd_str, int error_expected, cpn_lock &locker, ifdh_op_msg &mbuf, int maxtries, std::string unlink_on_error) {
     int res = 1;
     int tries = 0;
     int delay;
@@ -902,7 +964,7 @@ ifdh::retry_system(const char *cmd_str, int error_expected, cpn_lock &locker, in
     //
     cmd_str_string = cmd_str;
     std::stringstream pidbuf;
-    pidbuf << localPath("errtxt");
+    pidbuf << localPath("errtxt") << getpid();
     cmd_str_string = cmd_str_string + " 2>%(pidfile)s";
     cmd_str_string.replace(cmd_str_string.find("%(pidfile)s"), 11, pidbuf.str());
     cmd_str = cmd_str_string.c_str();
@@ -912,7 +974,7 @@ ifdh::retry_system(const char *cmd_str, int error_expected, cpn_lock &locker, in
     _errortxt.clear();
 
     while( res != 0 && tries < maxtries ) {
-        rotate_door(_config, cmd_str, cmd_str_string);
+        rotate_door(_config, cmd_str, cmd_str_string, mbuf);
               
         stringstream logmsg;
         logmsg << "actual command: " << cmd_str;
@@ -1054,28 +1116,30 @@ ifdh::dstpath(CpPair &cpp) {
 }
 
 int
-ifdh::do_cp(CpPair &cpp, bool intermed_file_flag, bool recursive, cpn_lock &cpn) {
+ifdh::do_cp(CpPair &cpp, bool intermed_file_flag, bool recursive, cpn_lock &cpn, ifdh_op_msg &mbuf) {
     int res1, res2, pid;
+
+
     if ( cpp.proto2 != "" ) {
         // deail with cross-protocol copies
 	IFile iftmp = get_intermed(intermed_file_flag);
 	CpPair cp1(cpp.src, iftmp, cpp.proto), cp2(iftmp, cpp.dst, cpp.proto2);
 	if (intermed_file_flag) {
-	   res1 = do_cp(cp1, intermed_file_flag, recursive, cpn); 
+	   res1 = do_cp(cp1, intermed_file_flag, recursive, cpn, mbuf); 
            if (res1 != 0) {
                unlink(iftmp.path.c_str());
                return res1;
            }
-	   res2 = do_cp(cp2, intermed_file_flag, recursive, cpn);
+	   res2 = do_cp(cp2, intermed_file_flag, recursive, cpn, mbuf);
 	   unlink(iftmp.path.c_str());
 	   return res2;
 	} else {
            // disable retries in background copy..
            char envbuf[] = "IFDH_CP_MAXRETRIES=0";
            putenv(envbuf);
-	   pid = do_cp_bg(cp1, intermed_file_flag, recursive, cpn);
+	   pid = do_cp_bg(cp1, intermed_file_flag, recursive, cpn, mbuf);
            if (pid > 0) {
-	       res2 = do_cp(cp2, intermed_file_flag, recursive, cpn);
+	       res2 = do_cp(cp2, intermed_file_flag, recursive, cpn, mbuf);
 	       (void)waitpid(pid, &res1, 0);
                unlink(iftmp.path.c_str());
                return res2;
@@ -1090,6 +1154,10 @@ ifdh::do_cp(CpPair &cpp, bool intermed_file_flag, bool recursive, cpn_lock &cpn)
         const char *extra_env_val = 0;
         std::string cp_cmd, src;
         int err_expected;
+
+        mbuf.src = cpp.src.path;
+        mbuf.dst = cpp.dst.path;
+        mbuf.proto = cpp.proto;
         
         // command looks like:
         // cp_cmd=dd bs=512k %(extra)s if=%(src)s of=%(dst)s
@@ -1135,7 +1203,7 @@ ifdh::do_cp(CpPair &cpp, bool intermed_file_flag, bool recursive, cpn_lock &cpn)
             unlink_this_on_error = cpp.dst.path; 
         }
         
-        return retry_system(cp_cmd.c_str(), err_expected, cpn, -1, unlink_this_on_error);
+        return retry_system(cp_cmd.c_str(), err_expected, cpn, mbuf, -1, unlink_this_on_error);
     }
 }
 
@@ -1143,13 +1211,13 @@ ifdh::do_cp(CpPair &cpp, bool intermed_file_flag, bool recursive, cpn_lock &cpn)
 // do a copy in background, return the pid or -1
 //
 int
-ifdh::do_cp_bg(CpPair &cpp, bool intermed_file_flag, bool recursive, cpn_lock &cpn) {
+ifdh::do_cp_bg(CpPair &cpp, bool intermed_file_flag, bool recursive, cpn_lock &cpn, ifdh_op_msg &mbuf ) {
     ifdh::_debug && std::cerr << "do_cp_bg: starting...\n";
     int res2 = fork();
     if (res2 == 0) {
 
        ifdh::_debug && std::cerr << "do_cp_bg: in child, about to call do_cp\n";
-       int res = do_cp(cpp, intermed_file_flag, recursive, cpn);
+       int res = do_cp(cpp, intermed_file_flag, recursive, cpn, mbuf);
        ifdh::_debug && std::cerr << "do_cp_bg: in child, to return "<< res << "\n";
        if (res != 0 ) {
            sleep(5);
@@ -1245,7 +1313,7 @@ ifdh::pick_proto(CpPair &p, std::string force) {
             continue;
          }
          // only take file: if it is actually visible here -- or there's no other option
-         if (*sp == "file:" && 0 != access(parent_dir(p.src.path).c_str(),R_OK) && sp+1 != slist.end()) {
+         if (*sp == "file:" && 0 != access(mount_dir(p.src.path).c_str(),R_OK) && sp+1 != slist.end()) {
              ifdh::_debug && cerr << "ignoring src file: -- not visible\n";
              continue;
          }
@@ -1254,7 +1322,7 @@ ifdh::pick_proto(CpPair &p, std::string force) {
 		continue;
 	     }
              // only take file: if it is a path actually visible here -- or there's no other option
-             if (*dp == "file:" && 0 != access(parent_dir(p.dst.path).c_str(),R_OK) && dp+1 != dlist.end()) {
+             if (*dp == "file:" && 0 != access(mount_dir(p.dst.path).c_str(),R_OK) && dp+1 != dlist.end()) {
                  ifdh::_debug && cerr << "ignoring dst file: -- not visible\n";
                  continue;
              }
@@ -1340,6 +1408,7 @@ ifdh::cp( std::vector<std::string> args ) {
     struct stat *sbp;
     size_t lock_low, lock_hi;
     cpn_lock cpn;
+    ifdh_op_msg mbuf("cp", *this);
     struct timeval time_before, time_after;
 
     for( std::vector<std::string>::size_type i = 0; i < args.size(); i++ ) {
@@ -1386,15 +1455,9 @@ ifdh::cp( std::vector<std::string> args ) {
             cpn.lock();
         }
 
-        stringstream cpstartmessage;
-        cpstartmessage << "ifdh starting transfer: " << cpp->src.path << ", " << cpp->dst.path << "\n";
-        log(cpstartmessage.str());
-
         // actually do the copy
-        res = do_cp(*cpp, intermed_file_flag, recursive, cpn);
+        res = do_cp(*cpp, intermed_file_flag, recursive, cpn, mbuf);
 
-        // try to keep a total copied
-        xfersize = -1;
 	if (0 != (sbp =  cache_stat(locpath(cpp->src, "local_fs")))) {
 		srcsize += sbp->st_size;
                 xfersize = sbp->st_size;
@@ -1403,10 +1466,7 @@ ifdh::cp( std::vector<std::string> args ) {
 		dstsize += sbp->st_size;
                 xfersize = sbp->st_size;
         }
-
-        stringstream cpdonemessage;
-        cpdonemessage << "ifdh finished transfer: " << cpp->src.path << ", " << cpp->dst.path << " size: " << xfersize << "\n";
-        log(cpdonemessage.str());
+        mbuf.count = xfersize;
 
         // release lock if needed
         if (curarg == lock_hi && lock_hi >= lock_low) {
@@ -1417,6 +1477,9 @@ ifdh::cp( std::vector<std::string> args ) {
         // update overall success
         if (res != 0 && rres == 0) {
             rres = res;
+            mbuf.log_failure();
+        } else {
+            mbuf.log_success();
         }
 
         curarg++;
@@ -1424,31 +1487,7 @@ ifdh::cp( std::vector<std::string> args ) {
 
     gettimeofday(&time_after,0);
 
-    if (rres == 0) {
-	long int copysize;
-	stringstream logmessage;
-
-	if (srcsize > dstsize) {
-	    copysize = srcsize ;
-	} else {
-	    copysize = dstsize ;
-	}
-        long int delta_t = time_after.tv_sec - time_before.tv_sec;
-	long int delta_ut = time_after.tv_usec - time_before.tv_usec;
-	// borrow from seconds if needed
-	if (delta_ut < 0) {
-	    delta_ut += 1000000;
-	    delta_t--;
-	}
-	double fdelta_t = ((double)delta_ut / 100000.0) + delta_t;
-	logmessage << "ifdh cp: transferred: " <<  copysize << " bytes in " <<  fdelta_t << " seconds \n";
-	_debug && cerr << logmessage.str();
-	log(logmessage.str());
-    } else {
-        std::cerr << "ifdh cp failed at: " << ctime(&time_after.tv_sec) << endl;
-        log("ifdh cp failed.");
-    }
-    if (cleanup_stage) {
+    if (cleanup_stage && cplist.size() ) {
         // try to clean up the stage copy list file
         // we wrote in build_stage_list, which is the
         // src of our last copy...
@@ -1561,7 +1600,7 @@ ifdh::pick_proto_path(std::string loc, std::string force, std::string &proto, st
         ifdh::_debug && std::cerr << "location " <<  src.location << " protocols: " << protos << "\n";
         std::vector<std::string> plist = split(protos, ' ');
         // don't use file: if its not visible..
-        if (plist[0] == "file:" && 0 != access(parent_dir(src.path).c_str(),R_OK) && plist.size() > 1) {
+        if (plist[0] == "file:" && 0 != access(mount_dir(src.path).c_str(),R_OK) && plist.size() > 1) {
             proto = plist[1];
         } else { 
             proto = plist[0]; 
@@ -1629,11 +1668,17 @@ ifdh::ll( std::string loc, int recursion_depth, std::string force) {
 
     _debug && std::cerr << "ifdh ll: running: " << cmd << endl;
 
+    ifdh_op_msg mbuf("ll", *this);
     cpn_lock locker;
-    int status = retry_system(cmd.c_str(), 0, locker,1);
+    int status = retry_system(cmd.c_str(), 0, locker,mbuf,1);
 
-    if (WIFSIGNALED(status)) throw( std::logic_error("signalled while doing ll"));
-    return WEXITSTATUS(status);
+    if (WIFSIGNALED(status)) {
+        mbuf.log_failure();
+        throw( std::logic_error("signalled while doing ll"));
+    } else {
+        mbuf.log_success();
+        return WEXITSTATUS(status);
+    }
 }
 
 
@@ -1645,10 +1690,12 @@ mypaircmp( std::pair<std::string,long> a, std::pair<std::string,long> b) {
 std::vector<std::pair<std::string,long> > 
 ifdh::lss( std::string loc, int recursion_depth, std::string force) {
 
+    ifdh_op_msg mbuf("lss", *this);
     std::vector<std::pair<std::string,long> >  res;
 
     // save original location before messing with it to get full url
     string origloc(loc);
+    mbuf.src=loc;
 
     std::string fullurl, proto, lookup_proto;
     pick_proto_path(loc, force, proto, fullurl, lookup_proto);
@@ -1693,7 +1740,7 @@ ifdh::lss( std::string loc, int recursion_depth, std::string force) {
     _debug && std::cerr << "running: " << lss_cmd << "\n";
 
     const char *pc_lss_cmd = lss_cmd.c_str();
-    rotate_door(_config, pc_lss_cmd, lss_cmd);
+    rotate_door(_config, pc_lss_cmd, lss_cmd, mbuf);
 
     // no c++ popen, so doing it C-style..
     int fake_popen = _config.getint(lookup_proto,"lss_fake_popen");
@@ -1867,6 +1914,10 @@ ifdh::lss( std::string loc, int recursion_depth, std::string force) {
            res.erase( res.begin()+1, res.end());         
        }
     }
+    if (res.size()) {
+       mbuf.count=res.size();
+       mbuf.log_success();
+    }
     return res;
 }
 
@@ -1937,7 +1988,10 @@ ifdh::mkdir_p(string loc, string force, int depth) {
 int
 ifdh::mkdir(string loc, string force ) {
     std::string fullurl, proto, lookup_proto;
+    ifdh_op_msg mbuf("mkdir", *this);
     pick_proto_path(loc, force, proto, fullurl, lookup_proto);
+    mbuf.src=loc;
+    mbuf.proto = proto;
     int retries;
    
     std::string cmd     = _config.get(lookup_proto, "mkdir_cmd");
@@ -1958,22 +2012,25 @@ ifdh::mkdir(string loc, string force ) {
         retries = 1;
     }
     cpn_lock locker;
-    int status = retry_system(cmd.c_str(), 0, locker,retries+1);
-
+    int status = retry_system(cmd.c_str(), 0, locker,mbuf,retries+1);
 
     if (WIFSIGNALED(status)) {
+      mbuf.log_failure();
       // throw( std::logic_error("signalled while doing mkdir"));
       return -1;
     }
     //  if (WIFEXITED(status) && WEXITSTATUS(status) != 0) throw( std::logic_error("mkdir failed"));
+    mbuf.log_success();
     return WEXITSTATUS(status);
 }
 
 int
 ifdh::rm(string loc, string force) {
     std::string fullurl, proto, lookup_proto;
+    ifdh_op_msg mbuf("rm", *this);
     pick_proto_path(loc, force, proto, fullurl, lookup_proto);
-   
+    mbuf.src=loc;
+    mbuf.proto = proto;
     std::string cmd     = _config.get(lookup_proto, "rm_cmd");
     if (cmd.size() == 0) {
         std::cerr << "missing rm_cmd in [" << lookup_proto << "] in ifdh.cfg\n";
@@ -1985,16 +2042,26 @@ ifdh::rm(string loc, string force) {
     _debug && std::cerr << "running: " << cmd << endl;
 
     cpn_lock locker;
-    int status = retry_system(cmd.c_str(), 0, locker,1);
-    if (WIFSIGNALED(status)) throw( std::logic_error("signalled while doing rm"));
-    if (WIFEXITED(status) && WEXITSTATUS(status) != 0) throw( std::logic_error("rm failed"));
+    int status = retry_system(cmd.c_str(), 0, locker,mbuf,1);
+    if (WIFSIGNALED(status)) {
+       mbuf.log_failure();
+       throw( std::logic_error("signalled while doing rm"));
+    }
+    if (WIFEXITED(status) && WEXITSTATUS(status) != 0) {
+       mbuf.log_failure();
+       throw( std::logic_error("rm failed"));
+    }
+    mbuf.log_success();
     return 0;
 }
 
 int
 ifdh::rmdir(string loc, string force) {
     std::string fullurl, proto, lookup_proto;
+    ifdh_op_msg mbuf("rmdir", *this);
     pick_proto_path(loc, force, proto, fullurl, lookup_proto);
+    mbuf.src=loc;
+    mbuf.proto = proto;
    
     std::string cmd     = _config.get(lookup_proto, "rmdir_cmd");
     if (cmd.size() == 0) {
@@ -2007,9 +2074,16 @@ ifdh::rmdir(string loc, string force) {
     _debug && std::cerr << "running: " << cmd << endl;
 
     cpn_lock locker;
-    int status = retry_system(cmd.c_str(), 0, locker,1);
-    if (WIFSIGNALED(status)) throw( std::logic_error("signalled while doing rm"));
-    if (WIFEXITED(status) && WEXITSTATUS(status) != 0) throw( std::logic_error("rm failed"));
+    int status = retry_system(cmd.c_str(), 0, locker,mbuf,1);
+    if (WIFSIGNALED(status)){
+       mbuf.log_failure();
+       throw( std::logic_error("signalled while doing rm"));
+    }
+    if (WIFEXITED(status) && WEXITSTATUS(status) != 0) {
+       mbuf.log_failure();
+       throw( std::logic_error("rm failed"));
+    }
+    mbuf.log_success();
     return 0;
 }
 
@@ -2048,7 +2122,10 @@ rwx(string smode) {
 int
 ifdh::chmod(string mode, string loc, string force) {
     std::string fullurl, proto, lookup_proto;
+    ifdh_op_msg mbuf("chmod", *this);
     pick_proto_path(loc, force, proto, fullurl, lookup_proto);
+    mbuf.src=loc;
+    mbuf.proto = proto;
    
     std::string cmd     = _config.get(lookup_proto, "chmod_cmd");
     if (cmd.size() == 0) {
@@ -2077,10 +2154,19 @@ ifdh::chmod(string mode, string loc, string force) {
     _debug && std::cerr << "running: " << cmd << endl;
 
     cpn_lock locker;
-    int status = retry_system(cmd.c_str(), 0, locker,1);
+    int status = retry_system(cmd.c_str(), 0, locker,mbuf,1);
 
-    if (WIFSIGNALED(status)) throw( std::logic_error("signalled while doing chmod"));
+    if (WIFSIGNALED(status)) {
+       mbuf.log_failure();
+       throw( std::logic_error("signalled while doing chmod"));
+    }
     // if (WIFEXITED(status) && WEXITSTATUS(status) != 0) throw( std::logic_error("chmod failed"));
+    if (WIFEXITED(status) && WEXITSTATUS(status) != 0) {
+       throw( std::logic_error("chmod failed"));
+       mbuf.log_failure();
+    } else {
+       mbuf.log_success();
+    }
     return WEXITSTATUS(status);
 }
 
@@ -2088,12 +2174,15 @@ int
 ifdh::rename(string loc, string loc2, string force) {
     std::string fullurl, proto, lookup_proto;
     std::string fullurl2, proto2, lookup_proto2;
+    ifdh_op_msg mbuf("rename", *this);
     pick_proto_path(loc, force, proto, fullurl, lookup_proto);
     pick_proto_path(loc2, force, proto2, fullurl2, lookup_proto2);
 
     if (proto != proto2) {
         throw( std::logic_error("Cannot rename accros protocols/locations"));
     }
+    mbuf.src=loc;
+    mbuf.proto = proto;
    
     std::string cmd     = _config.get(lookup_proto, "mv_cmd");
     if (cmd.size() == 0) {
@@ -2107,10 +2196,18 @@ ifdh::rename(string loc, string loc2, string force) {
     _debug && cerr << "running: " << cmd << endl;
 
     cpn_lock locker;
-    int status = retry_system(cmd.c_str(), 0, locker,1);
+    int status = retry_system(cmd.c_str(), 0, locker,mbuf,1);
 
-    if (WIFSIGNALED(status)) throw( logic_error("signalled while doing rename"));
+    if (WIFSIGNALED(status)) {
+       mbuf.log_failure();
+       throw( logic_error("signalled while doing rename"));
+    }
     //if (WIFEXITED(status) && WEXITSTATUS(status) != 0) throw( logic_error("rename failed"));
+    if (WIFEXITED(status) && WEXITSTATUS(status) != 0) {
+        mbuf.log_failure();
+    } else {
+        mbuf.log_success();
+    }
     return WEXITSTATUS(status);
 }
 
@@ -2184,10 +2281,15 @@ ifdh::findMatchingFiles( string path, string glob) {
 
    glob = glob_2_re(glob);
 
+   int dirdepth = 10;
+   if (0 != getenv("IFDH_FIND_MATCHING_DEPTH") && 0 != atoi(getenv("IFDH_FIND_MATCHING_DEPTH"))) {
+        dirdepth = atoi(getenv("IFDH_FIND_MATCHING_DEPTH"));
+   }
+
    for (size_t i = 0; i < dlist.size(); ++i) {
         if (_debug) cerr << "checking dir: " << dlist[i] << endl;
         try {
-            batch = lss(dlist[i],10,"");
+            batch = lss(dlist[i],dirdepth,"");
         } catch ( exception &e ) {
             continue;
         }

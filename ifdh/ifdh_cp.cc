@@ -633,6 +633,7 @@ get_grid_credentials_if_needed() {
     std::stringstream plainproxyfile;
     std::stringstream vomsproxyfile;
     int res;
+    int f;
 
     ifdh::_debug && std::cerr << "Checking for proxy cert..."<< endl;
 
@@ -667,6 +668,14 @@ get_grid_credentials_if_needed() {
     if (!check_grid_credentials() && have_kerberos_creds() ) {
         // if we still don't have credentials, try to get some from kx509
 	ifdh::_debug && std::cerr << "trying to kx509/voms-proxy-init...\n " ;
+
+        std::string lockfile = vomsproxyfile.str() + ".lock";
+        f = open(lockfile.c_str(),O_RDWR|O_EXCL,0600);
+        if (f < 0) {
+          // someone else is getting the credential..   
+          sleep(5);
+          return;
+        }
 
 	cmd = "kx509 -o ";
         cmd += plainproxyfile.str();
@@ -738,6 +747,11 @@ get_grid_credentials_if_needed() {
            sleep(1);
 	   res = system(cmd.c_str());
         }
+
+        // dink the lock file now
+        close(f);
+        unlink(lockfile.c_str());
+
         // when you request a long timeout and it truncates it, it exits 256
         // even though things are fine...
         if ((!WIFEXITED(res) ||  0 != WEXITSTATUS(res)) && res != 256) {
@@ -950,7 +964,7 @@ ifdh::retry_system(const char *cmd_str, int error_expected, cpn_lock &locker, if
     //
     cmd_str_string = cmd_str;
     std::stringstream pidbuf;
-    pidbuf << localPath("errtxt");
+    pidbuf << localPath("errtxt") << getpid();
     cmd_str_string = cmd_str_string + " 2>%(pidfile)s";
     cmd_str_string.replace(cmd_str_string.find("%(pidfile)s"), 11, pidbuf.str());
     cmd_str = cmd_str_string.c_str();

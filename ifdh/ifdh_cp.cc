@@ -670,11 +670,19 @@ get_grid_credentials_if_needed() {
 	ifdh::_debug && std::cerr << "trying to kx509/voms-proxy-init...\n " ;
 
         std::string lockfile = vomsproxyfile.str() + ".lock";
-        f = open(lockfile.c_str(),O_RDWR|O_EXCL,0600);
-        if (f < 0) {
+
+        f = open(lockfile.c_str(),O_CREAT|O_RDWR|O_EXCL|O_CLOEXEC,0600);
+        int retries = 3;
+
+        while (f < 0 && retries--) {
           // someone else is getting the credential..   
           sleep(5);
-          return;
+          std::cerr << "retrying lock file " << lockfile << "\n";
+          f = open(lockfile.c_str(),O_CREAT|O_RDWR|O_EXCL|O_CLOEXEC,0600);
+        }
+
+        if (f < 0){
+          std::cerr << "Couldn't get lock file " << lockfile << "\n";
         }
 
 	cmd = "kx509 -o ";

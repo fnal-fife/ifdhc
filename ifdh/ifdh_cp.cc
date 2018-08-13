@@ -628,12 +628,11 @@ have_kerberos_creds() {
 
 void
 get_grid_credentials_if_needed() {
-    std::string cmd;
+    std::stringstream cmdbuf;
     std::string experiment(getexperiment());
     std::stringstream plainproxyfile;
     std::stringstream vomsproxyfile;
     int res;
-    int f;
 
     ifdh::_debug && std::cerr << "Checking for proxy cert..."<< endl;
 
@@ -669,40 +668,27 @@ get_grid_credentials_if_needed() {
         // if we still don't have credentials, try to get some from kx509
 	ifdh::_debug && std::cerr << "trying to kx509/voms-proxy-init...\n " ;
 
-        std::string lockfile = vomsproxyfile.str() + ".lock";
-
-        f = open(lockfile.c_str(),O_CREAT|O_RDWR|O_EXCL|O_CLOEXEC,0600);
-        int retries = 3;
-
-        while (f < 0 && retries--) {
-          // someone else is getting the credential..   
-          sleep(5);
-          std::cerr << "retrying lock file " << lockfile << "\n";
-          f = open(lockfile.c_str(),O_CREAT|O_RDWR|O_EXCL|O_CLOEXEC,0600);
-        }
-
-        if (f < 0){
-          std::cerr << "Couldn't get lock file " << lockfile << "\n";
-        }
-
-	cmd = "kx509 -o ";
-        cmd += plainproxyfile.str();
+        cmdbuf << "( kx509 -o " << plainproxyfile.str() << getpid() << "; mv " <<     plainproxyfile.str() << getpid() <<  " " <<  plainproxyfile.str();
 
         if (ifdh::_debug) {
-            cmd += " >&2 ";
+            cmdbuf << ") >&2 ";
         } else {
-            cmd += " >/dev/null 2>&1 ";
+            cmdbuf << ") >/dev/null 2>&1 ";
         }
-	ifdh::_debug && std::cerr << "running: " << cmd << endl;
-        system(cmd.c_str()); 
+	ifdh::_debug && std::cerr << "running: " << cmdbuf.str() << endl;
+        system(cmdbuf.str().c_str()); 
 
-        cmd = "voms-proxy-init -dont-verify-ac -valid 120:00 -rfc -noregen -debug -cert " ;
-        cmd += plainproxyfile.str() ;
-        cmd += " -key " ;
-        cmd +=  plainproxyfile.str() ;
-        cmd += " -out ";
-        cmd +=  vomsproxyfile.str() ;
-        cmd += " -voms ";
+        // start new command...
+        cmdbuf.str("");
+
+        cmdbuf <<  "( voms-proxy-init -dont-verify-ac -valid 120:00 -rfc -noregen -debug -cert "
+               << plainproxyfile.str() 
+               << " -key " 
+               <<  plainproxyfile.str() 
+               <<  " -out "
+               <<   vomsproxyfile.str() 
+               <<  getpid()
+               <<  " -voms ";
 
         // table based vo mapping...
         std::string vo;
@@ -738,27 +724,29 @@ get_grid_credentials_if_needed() {
             }
             
         }
-        cmd += vo + "/Role=" + role;
+        cmdbuf <<  vo << "/Role=" << role;
+
+        cmdbuf << "; mv "
+               <<  vomsproxyfile.str() 
+               <<  getpid()
+               << " "
+               <<   vomsproxyfile.str();
 
         if (ifdh::_debug) {
-            cmd += " >&2";
+            cmdbuf <<  ") >&2";
         } else {
-            cmd += " >/dev/null 2>&1";
+            cmdbuf <<  ") >/dev/null 2>&1";
         }
 
-	ifdh::_debug && std::cerr << "running: " << cmd << endl;
-	res = system(cmd.c_str());
+	ifdh::_debug && std::cerr << "running: " << cmdbuf.str() << endl;
+	res = system(cmdbuf.str().c_str());
         // try a second time if it failed...
         // when you request a long timeout and it truncates it, it exits 256
         // even though things are fine...
         if ((!WIFEXITED(res) || 0 != WEXITSTATUS(res)) && res != 256) {
            sleep(1);
-	   res = system(cmd.c_str());
+	   res = system(cmdbuf.str().c_str());
         }
-
-        // dink the lock file now
-        close(f);
-        unlink(lockfile.c_str());
 
         // when you request a long timeout and it truncates it, it exits 256
         // even though things are fine...

@@ -1246,6 +1246,8 @@ ifdh::pick_proto(CpPair &p, std::string force) {
 
     std::string srcps = _config.get("location "+p.src.location,"protocols");
     std::string dstps = _config.get("location "+p.dst.location,"protocols");
+    std::string srcip = _config.get("location "+p.src.location,"ignore_url_proto");
+    std::string dstip = _config.get("location "+p.dst.location,"ignore_url_proto");
 
     if (force != "" && force != "--force=" ) {
         if (force[0] == '-' && force[1] == '-') {
@@ -1291,12 +1293,13 @@ ifdh::pick_proto(CpPair &p, std::string force) {
     }
     std::vector<std::string> slist, dlist;
     // if src or dst has a specified proto, thats the only choice,
+    //  -- unless we have a prefer_file_proto flag
     // otherwise we use the list from the location.
-    if (p.src.proto != "") { 
+    if (p.src.proto != "" && (srcip == "" || srcip == "false")) { 
         srcps = p.src.proto;
     }
     slist = split(srcps, ' ');
-    if (p.dst.proto != "") {
+    if (p.dst.proto != "" && (dstip == "" || dstip == "false")) {
        dstps =  p.dst.proto;
     }
     dlist = split(dstps, ' ');

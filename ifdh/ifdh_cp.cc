@@ -628,7 +628,7 @@ have_kerberos_creds() {
 
 void
 get_grid_credentials_if_needed() {
-    std::string cmd;
+    std::stringstream cmdbuf;
     std::string experiment(getexperiment());
     std::stringstream plainproxyfile;
     std::stringstream vomsproxyfile;
@@ -668,24 +668,27 @@ get_grid_credentials_if_needed() {
         // if we still don't have credentials, try to get some from kx509
 	ifdh::_debug && std::cerr << "trying to kx509/voms-proxy-init...\n " ;
 
-	cmd = "kx509 -o ";
-        cmd += plainproxyfile.str();
+        cmdbuf << "( kx509 -o " << plainproxyfile.str() << getpid() << "; mv " <<     plainproxyfile.str() << getpid() <<  " " <<  plainproxyfile.str();
 
         if (ifdh::_debug) {
-            cmd += " >&2 ";
+            cmdbuf << ") >&2 ";
         } else {
-            cmd += " >/dev/null 2>&1 ";
+            cmdbuf << ") >/dev/null 2>&1 ";
         }
-	ifdh::_debug && std::cerr << "running: " << cmd << endl;
-        system(cmd.c_str()); 
+	ifdh::_debug && std::cerr << "running: " << cmdbuf.str() << endl;
+        system(cmdbuf.str().c_str()); 
 
-        cmd = "voms-proxy-init -dont-verify-ac -valid 120:00 -rfc -noregen -debug -cert " ;
-        cmd += plainproxyfile.str() ;
-        cmd += " -key " ;
-        cmd +=  plainproxyfile.str() ;
-        cmd += " -out ";
-        cmd +=  vomsproxyfile.str() ;
-        cmd += " -voms ";
+        // start new command...
+        cmdbuf.str("");
+
+        cmdbuf <<  "( voms-proxy-init -dont-verify-ac -valid 120:00 -rfc -noregen -debug -cert "
+               << plainproxyfile.str() 
+               << " -key " 
+               <<  plainproxyfile.str() 
+               <<  " -out "
+               <<   vomsproxyfile.str() 
+               <<  getpid()
+               <<  " -voms ";
 
         // table based vo mapping...
         std::string vo;
@@ -721,23 +724,30 @@ get_grid_credentials_if_needed() {
             }
             
         }
-        cmd += vo + "/Role=" + role;
+        cmdbuf <<  vo << "/Role=" << role;
+
+        cmdbuf << "; mv "
+               <<  vomsproxyfile.str() 
+               <<  getpid()
+               << " "
+               <<   vomsproxyfile.str();
 
         if (ifdh::_debug) {
-            cmd += " >&2";
+            cmdbuf <<  ") >&2";
         } else {
-            cmd += " >/dev/null 2>&1";
+            cmdbuf <<  ") >/dev/null 2>&1";
         }
 
-	ifdh::_debug && std::cerr << "running: " << cmd << endl;
-	res = system(cmd.c_str());
+	ifdh::_debug && std::cerr << "running: " << cmdbuf.str() << endl;
+	res = system(cmdbuf.str().c_str());
         // try a second time if it failed...
         // when you request a long timeout and it truncates it, it exits 256
         // even though things are fine...
         if ((!WIFEXITED(res) || 0 != WEXITSTATUS(res)) && res != 256) {
            sleep(1);
-	   res = system(cmd.c_str());
+	   res = system(cmdbuf.str().c_str());
         }
+
         // when you request a long timeout and it truncates it, it exits 256
         // even though things are fine...
         if ((!WIFEXITED(res) ||  0 != WEXITSTATUS(res)) && res != 256) {
@@ -950,7 +960,7 @@ ifdh::retry_system(const char *cmd_str, int error_expected, cpn_lock &locker, if
     //
     cmd_str_string = cmd_str;
     std::stringstream pidbuf;
-    pidbuf << localPath("errtxt");
+    pidbuf << localPath("errtxt") << getpid();
     cmd_str_string = cmd_str_string + " 2>%(pidfile)s";
     cmd_str_string.replace(cmd_str_string.find("%(pidfile)s"), 11, pidbuf.str());
     cmd_str = cmd_str_string.c_str();
@@ -1236,6 +1246,8 @@ ifdh::pick_proto(CpPair &p, std::string force) {
 
     std::string srcps = _config.get("location "+p.src.location,"protocols");
     std::string dstps = _config.get("location "+p.dst.location,"protocols");
+    std::string srcip = _config.get("location "+p.src.location,"ignore_url_proto");
+    std::string dstip = _config.get("location "+p.dst.location,"ignore_url_proto");
 
     if (force != "" && force != "--force=" ) {
         if (force[0] == '-' && force[1] == '-') {
@@ -1281,12 +1293,13 @@ ifdh::pick_proto(CpPair &p, std::string force) {
     }
     std::vector<std::string> slist, dlist;
     // if src or dst has a specified proto, thats the only choice,
+    //  -- unless we have a prefer_file_proto flag
     // otherwise we use the list from the location.
-    if (p.src.proto != "") { 
+    if (p.src.proto != "" && (srcip == "" || srcip == "false")) { 
         srcps = p.src.proto;
     }
     slist = split(srcps, ' ');
-    if (p.dst.proto != "") {
+    if (p.dst.proto != "" && (dstip == "" || dstip == "false")) {
        dstps =  p.dst.proto;
     }
     dlist = split(dstps, ' ');

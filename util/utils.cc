@@ -186,7 +186,8 @@ char *getexperiment() {
     default:
        struct group *pg;
        pg = getgrgid(gid);
-       if (pg && pg->gr_name) {
+       if (pg && pg->gr_name && getenv("USER") && strcmp(pg->gr_name, getenv("USER"))) {
+           // if we have a group id and it doesn't match our usename
            return pg->gr_name;
        } else {
            // we *really * don't know who they are...

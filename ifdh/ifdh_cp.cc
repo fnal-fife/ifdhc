@@ -1313,7 +1313,7 @@ ifdh::pick_proto(CpPair &p, std::string force) {
          }
          // only take file: if it is actually visible here -- or there's no other option
          if (*sp == "file:" && 0 != access(mount_dir(p.src.path).c_str(),R_OK) && sp+1 != slist.end()) {
-             ifdh::_debug && cerr << "ignoring src file: -- not visible\n";
+             ifdh::_debug && cerr << "ignoring src file: " << mount_dir(p.src.path) << "-- not visible\n";
              continue;
          }
          for( std::vector<std::string>::iterator dp = dlist.begin(); dp != dlist.end(); dp++) {

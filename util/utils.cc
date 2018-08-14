@@ -47,6 +47,9 @@ std::string parent_dir(std::string path) {
 }
 
 std::string mount_dir(std::string path) {
+   if (path[0] != '/') {
+       path.insert(0,"/");
+   }
    size_t pos = path.find('/',1);
    size_t pos2 = path.find('/', pos);
    while (pos2 == pos + 1) {

@@ -119,6 +119,12 @@ cache_stat(std::string s) {
        s = s.substr(7);
        ifdh::_debug && std::cerr << "cache_stat trimmed to " << s << "\n";
    }
+
+   // these should always be absolute paths... but if not...
+   if (s[0] != '/') {
+       s.insert(0,"/");
+   }
+
    if (last_s == s) {
        return &sbuf;
    }
@@ -976,6 +982,9 @@ ifdh::retry_system(const char *cmd_str, int error_expected, cpn_lock &locker, if
         logmsg << "actual command: " << cmd_str;
         log(logmsg.str());
 
+        // call datadir() to make sure we still have our working dir
+        (void)datadir();
+
         res = system(cmd_str);
         if (WIFEXITED(res)) {
             res = WEXITSTATUS(res);
@@ -1000,7 +1009,6 @@ ifdh::retry_system(const char *cmd_str, int error_expected, cpn_lock &locker, if
         // clean up, don't leave working directories with errtxt files lying
         // around.  Ignore failure in case other stuff is in the working dir.
         ::unlink(pidbuf.str().c_str());
-        ::rmdir(localPath("").c_str());
 
         if (res != 0 && error_expected) {
            return res;
@@ -1021,6 +1029,13 @@ ifdh::retry_system(const char *cmd_str, int error_expected, cpn_lock &locker, if
                 log(logmsg.str());
                 std::cerr << logmsg.str();
                 sleep(delay);
+                // our credentials could have expired while we slept: so
+                // double-check them.  Except we don't know for sure if 
+                // we need them at this layer, but if our command
+                // has a URL in it, it's a good guess...
+                if ( cmd_str_string.find("://") != std::string::npos) {
+                    check_grid_credentials();
+                }
             }
             log("retrying...");
             std::cerr << "retrying...\n";

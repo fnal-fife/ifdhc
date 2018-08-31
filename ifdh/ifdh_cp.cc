@@ -119,18 +119,12 @@ cache_stat(std::string s) {
        s = s.substr(7);
        ifdh::_debug && std::cerr << "cache_stat trimmed to " << s << "\n";
    }
-<<<<<<< HEAD
-   if (s[0] != '/') {
-       s.insert(0,"/");
-   }
-=======
 
    // these should always be absolute paths... but if not...
    if (s[0] != '/') {
        s.insert(0,"/");
    }
 
->>>>>>> 3455d42ebc6862e5bb644b33393c388c801beac0
    if (last_s == s) {
        return &sbuf;
    }

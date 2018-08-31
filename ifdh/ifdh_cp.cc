@@ -119,9 +119,18 @@ cache_stat(std::string s) {
        s = s.substr(7);
        ifdh::_debug && std::cerr << "cache_stat trimmed to " << s << "\n";
    }
+<<<<<<< HEAD
    if (s[0] != '/') {
        s.insert(0,"/");
    }
+=======
+
+   // these should always be absolute paths... but if not...
+   if (s[0] != '/') {
+       s.insert(0,"/");
+   }
+
+>>>>>>> 3455d42ebc6862e5bb644b33393c388c801beac0
    if (last_s == s) {
        return &sbuf;
    }
@@ -933,6 +942,34 @@ rotate_door(WimpyConfigParser &_config, const char *&cmd_str, std::string &cmd_s
         }
 }
 
+/*
+ *  run command with popen and redirection to collect the stderr
+ *  without temporary files
+ */
+int
+my_system(const char *cmd, std::string &errortxt) {
+    FILE *pF;
+    int fd, status;
+    char cmdbuf[4096];
+    char linebuf[4095];
+    char *fgres;
+    fd = dup(1);
+    snprintf(cmdbuf, 4096, "%s 1>&%d 2>&1", cmd, fd );
+    pF = popen(cmd, "r");
+    while (!feof(pF)) {
+        fgres = fgets(linebuf, 1024, pF);
+        if (fgres) {
+            errortxt = errortxt + linebuf;
+        }
+        if (!getenv("IFDH_SILENT") || !atoi(getenv("IFDH_SILENT"))) {
+            std::cerr << linebuf;
+        }
+    } 
+    status = pclose(pF);
+    close(fd);
+    return status;
+}
+
 int
 ifdh::retry_system(const char *cmd_str, int error_expected, cpn_lock &locker, ifdh_op_msg &mbuf, int maxtries, std::string unlink_on_error) {
     int res = 1;
@@ -953,13 +990,6 @@ ifdh::retry_system(const char *cmd_str, int error_expected, cpn_lock &locker, if
     // we need to collect the error string, so some redirection silliness...
     //
     cmd_str_string = cmd_str;
-    std::stringstream pidbuf;
-    pidbuf << localPath("errtxt") << getpid();
-    cmd_str_string = cmd_str_string + " 2>%(pidfile)s";
-    cmd_str_string.replace(cmd_str_string.find("%(pidfile)s"), 11, pidbuf.str());
-    cmd_str = cmd_str_string.c_str();
-
-    ifdh::_debug && std::cerr << "here: after err redirect: "  << cmd_str << "\n";
 
     _errortxt.clear();
 
@@ -970,7 +1000,8 @@ ifdh::retry_system(const char *cmd_str, int error_expected, cpn_lock &locker, if
         logmsg << "actual command: " << cmd_str;
         log(logmsg.str());
 
-        res = system(cmd_str);
+        res = my_system(cmd_str, _errortxt);
+
         if (WIFEXITED(res)) {
             res = WEXITSTATUS(res);
         } else {
@@ -981,24 +1012,10 @@ ifdh::retry_system(const char *cmd_str, int error_expected, cpn_lock &locker, if
             exit(-1);
         }
 
-        std::ifstream errfile(pidbuf.str().c_str());
-
-        while( !errfile.eof() && !errfile.fail()) {
-           getline(errfile, line);
-           _errortxt = _errortxt + line;
-           if (!getenv("IFDH_SILENT") || !atoi(getenv("IFDH_SILENT"))) {
-              std::cerr << line;
-           }
-        }
-        errfile.close();
-        // clean up, don't leave working directories with errtxt files lying
-        // around.  Ignore failure in case other stuff is in the working dir.
-        ::unlink(pidbuf.str().c_str());
-        ::rmdir(localPath("").c_str());
-
         if (res != 0 && error_expected) {
            return res;
         }
+
 	ifdh::_debug && std::cerr << "program: " << cmd_str << "exited status " << res << "\n";
         if (res != 0 && tries < maxtries - 1) {
             if (dolock)
@@ -1015,6 +1032,13 @@ ifdh::retry_system(const char *cmd_str, int error_expected, cpn_lock &locker, if
                 log(logmsg.str());
                 std::cerr << logmsg.str();
                 sleep(delay);
+                // our credentials could have expired while we slept: so
+                // double-check them.  Except we don't know for sure if 
+                // we need them at this layer, but if our command
+                // has a URL in it, it's a good guess...
+                if ( cmd_str_string.find("://") != std::string::npos) {
+                    check_grid_credentials();
+                }
             }
             log("retrying...");
             std::cerr << "retrying...\n";

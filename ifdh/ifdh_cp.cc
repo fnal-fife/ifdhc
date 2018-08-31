@@ -119,12 +119,18 @@ cache_stat(std::string s) {
        s = s.substr(7);
        ifdh::_debug && std::cerr << "cache_stat trimmed to " << s << "\n";
    }
+<<<<<<< HEAD
+   if (s[0] != '/') {
+       s.insert(0,"/");
+   }
+=======
 
    // these should always be absolute paths... but if not...
    if (s[0] != '/') {
        s.insert(0,"/");
    }
 
+>>>>>>> 3455d42ebc6862e5bb644b33393c388c801beac0
    if (last_s == s) {
        return &sbuf;
    }
@@ -202,27 +208,18 @@ std::string
 ifdh::locpath(IFile loc, std::string proto) {
     std::string pre, cstag, spre;
     ifdh::_debug && cerr << "Entering locpath\n";
-    if (loc.location == "local_fs") { // XXX should be a flag?
+    // genericized: use file:// prefix for bluearc if stat-able
+    // becomes use "can_stat_"+proto prefix for locations that have one
+    // if we can stat the location and we're using protocol proto
+    cstag = "can_stat_";
+    cstag += proto.substr(0,proto.size()-1);
+    spre = _config.get("location " + loc.location,cstag);
 
-       if (_config.getint("protocol " + proto, "strip_file_prefix")) {
-           pre = "";
-       } else {
-           pre = "file:///";
-       }
+    ifdh::_debug && cerr << "for "<< proto <<" got " << cstag << ":" << spre <<"\n";
+    if (spre.size() > 0 && 0 != cache_stat(parent_dir(loc.path))) {
+       pre = spre;
     } else {
-       // genericized: use file:// prefix for bluearc if stat-able
-       // becomes use "can_stat_"+proto prefix for locations that have one
-       // if we can stat the location and we're using protocol proto
-       cstag = "can_stat_";
-       cstag += proto.substr(0,proto.size()-1);
-       spre = _config.get("location " + loc.location,cstag);
-
-       ifdh::_debug && cerr << "for "<< proto <<" got " << cstag << ":" << spre <<"\n";
-       if (spre.size() > 0 && 0 != cache_stat(parent_dir(loc.path))) {
-          pre = spre;
-       } else {
-          pre  = _config.get("location " + loc.location, "prefix_"+proto.substr(0,proto.size()-1));
-       }
+       pre  = _config.get("location " + loc.location, "prefix_"+proto.substr(0,proto.size()-1));
     }
     return pre + loc.path;
 }

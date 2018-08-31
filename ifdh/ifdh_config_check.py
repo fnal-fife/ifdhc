@@ -213,13 +213,14 @@ def check_protocols(cp):
 
 def check_gid_exp(cp):
     print "\tChecking gid_exp..."
-    verify(cp.get3('gid_exp', 'gidexplist', None), 'Not in [gid_exp] ', 'gidexplist')
+    print "\t\t -- " , cp.get3('gid_exp', 'gidexplist', None)
+    verify(cp.get3('gid_exp', 'gidexplist', None), 'Not in [gid_exp]:', 'gidexplist')
     glist = cp.get3('gid_exp','gidexplist').split(' ')
     for g in glist:
         if g == '':
             continue
         t = 'gids_%s' % g
-        verify(cp.get3('gid_exp', t, None), 'Not in [gid_exp] ', t)
+        verify(cp.get3('gid_exp', t, None), 'Not in [gid_exp]:', t)
         if(cp.get3('gid_exp', t, None)):
             pl = cp.get3('gid_exp', t).split(' ')
             for p in pl:

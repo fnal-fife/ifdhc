@@ -1,7 +1,15 @@
 SRCDIR=../../ifdh/
 VPATH=$(SRCDIR)
 
+PYVER:= $(shell python -V | sed -e 's/\..*//')
 UNAME:= $(shell uname -s)
+ifeq ($(PYVER),Python 3) 
+SWIGOPTS=-py3
+FALLBACK=fallback.python3
+else
+SWIGOPTS=
+FALLBACK=fallback
+endif
 ifeq ($(UNAME),Darwin)
 SHLIB=dylib
 else
@@ -67,7 +75,7 @@ ifdh_wrap.cxx: ifdh.h
 
 ifdh_wrap.cxx: ifdh.i 
 	test -d python || mkdir python
-	swig $(SWIGOPTS) -python -c++ -o ifdh_wrap.cxx $< || (cp ifdh_wrap.cxx.fallback ifdh_wrap.cxx && cp ifdh.py.fallback ifdh.py)
+	swig $(SWIGOPTS) -python -c++ -o ifdh_wrap.cxx $< || (cp ifdh_wrap.cxx.$(FALLBACK) ifdh_wrap.cxx && cp ifdh.py.fallback ifdh.py)
 	set -x ; python -V 2>&1 | grep ' 2.[67]' > /dev/null && rpm -qf /usr/bin/swig | grep 1.3.[42][90] && (patch -p0 < ifdh_wrap.patch ||  patch -p0 < ../../ifdh/ifdh_wrap.patch) || true
 	mv ifdh.py python/ifdh.py
 

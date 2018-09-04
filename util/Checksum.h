@@ -21,7 +21,9 @@ namespace checksum {
 
   const int charbuffersize = 11; // largest buffer needed to hold the checksum
 
-  unsigned long get_adler32(const std::string& filename);
+  unsigned long convert_0_adler32_to_1_adler32(long int crc, long int filesize);
+
+  void get_sums(const std::string& filename, unsigned long* adler_32_0 = 0, unsigned long* adler_32_1 = 0, unsigned char *md5digest = 0);
 
   int get_adler32(const std::string& filename, char* buf, size_t len); // return number of bytes written
   std::string get_adler32_str(const std::string& filename);

@@ -9,6 +9,7 @@
 #include <zlib.h>
 #include "../util/Checksum.h"
 #include <stdio.h>
+#include "md5.h"
 
 namespace checksum {
 
@@ -28,8 +29,24 @@ namespace checksum {
   const char* ChecksumError::what() const throw() { return _msg.c_str(); }
   ChecksumError::~ChecksumError() throw() {}
 
-  unsigned long get_adler32(const std::string& filename) {
+  unsigned long convert_0_adler32_to_1_adler32(long int crc, long int filesize) {
+      const long int BASE = 65521;
+      long int size;
+      long int s1, s2;
+      
+      size = filesize % BASE;
+      s1 = crc & 0xffff;
+      s2 = ((crc >> 16) & 0xffff);
+      s1 = (s1 + 1) % BASE;
+      s2 = (size + s2 ) % BASE;
+      return (s2 << 16) + s1;
+  }
+
+  void
+  get_sums(const std::string& filename, unsigned long* adler_32_0, unsigned long* adler_32_1, unsigned char *md5digest) {
     const size_t buffersize=4096*256;
+    long int filesize;
+    md5_state_t ms;
 
     int fd = open(filename.c_str(),O_RDONLY);
     if (fd < 0) {
@@ -40,9 +57,12 @@ namespace checksum {
 #if defined(POSIX_FADV_SEQUENTIAL)
     posix_fadvise(fd,0,0,POSIX_FADV_SEQUENTIAL); // may speed up reading sequentially
 #endif
+  
     std::vector<Bytef> buffer(buffersize);
     ssize_t length;
     unsigned long adler = 0L; // seed value for enstore compatibility
+    md5_init(&ms);
+    filesize = 0;
     while ( (length = read(fd,&buffer[0],buffer.size())) > 0 ) {
       if (length < 0) {
         std::string msg("Error reading file ");
@@ -50,64 +70,27 @@ namespace checksum {
         close(fd);
         throw ChecksumSysError(msg,errno);
       }
+      filesize += length;
+      md5_append(&ms, &buffer[0], length);
       adler = adler32(adler,&buffer[0],length);
     }
     close(fd);
-    return adler;
+    if (md5digest) {
+        md5_finish(&ms, md5digest);
+    }
+    if (adler_32_0) {
+        *adler_32_0 = adler;
+    }
+    if (adler_32_1) {
+        *adler_32_1 = convert_0_adler32_to_1_adler32(adler, filesize);
+    }
+    return;
   }
 
-  /* mmap based alternative implementation - I'm not sure there's really much benefit to this
-  unsigned long get_adler32(const std::string& filename) {
-
-    int fd = open(filename.c_str(),O_RDONLY);
-    if (fd < 0) {
-      std::string msg("Unable to open file ");
-      msg+=filename;
-      throw ChecksumSysError(msg,errno);
-    }
-
-    unsigned long adler = 0L; // seed value for enstore compatibility
-    struct stat st;
-    if (fstat(fd,&st) != 0) {
-      std::string msg("Unable to stat file ");
-      msg+=filename;
-      close(fd);
-      throw ChecksumSysError(msg,errno);
-    }
-    off_t filesize = st.st_size;
-    off_t offset = 0;
-    // find the size in pages, rounding up
-    size_t page_size = (size_t) sysconf (_SC_PAGESIZE);
-    off_t mapchunksize = ((filesize+1)/page_size)*page_size ;
-    // if the chunksize won't fit in the virtual memory, shrink it
-    while (mapchunksize > std::numeric_limits<size_t>::max()/4) mapchunksize/=2;
-    while (offset < filesize) {
-      off_t mapsize = std::min(filesize - offset,mapchunksize);
-      void* buffer = mmap(0,(size_t)mapsize,PROT_READ,MAP_SHARED,fd,offset);
-      if (buffer == MAP_FAILED) {
-	if (errno == ENOMEM) {
-	  // won't fit in address space
-	  mapchunksize/=2;
-	  continue;
-	} else {
-	  std::string msg("Unable to mmap file ");
-	  msg+=filename;
-	  close(fd);
-	  throw ChecksumSysError(msg,errno);
-	}
-      }
-      madvise(buffer, (size_t)mapsize, MADV_SEQUENTIAL);
-      adler = adler32(adler,(Bytef*)buffer,mapsize);
-      munmap(buffer,mapsize);
-      offset+=mapsize;
-    }
-    close(fd);
-    return adler;
-  }
-  */
 
   int get_adler32(const std::string& filename, char* buf, size_t len) {
-    unsigned long adler = get_adler32(filename);
+    unsigned long adler;
+    get_sums(filename, &adler, 0, 0);
     return snprintf(buf, len, "%lu", adler);
   }
 

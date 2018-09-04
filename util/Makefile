@@ -1,13 +1,14 @@
 SRCDIR=../../util/
 VPATH=$(SRCDIR)
 GEN=ifdh_version.h
-SRC=$(notdir $(wildcard $(SRCDIR)*.cc *.cc))
+SRC=$(notdir $(wildcard $(SRCDIR)*.cc *.cc *.c))
 HDR=$(notdir $(wildcard $(SRCDIR)*.h *.h)
 OBJ=$(addsuffix .o,$(basename $(SRC)))
 TST=$(addsuffix -test,$(basename($SRC)))
 DEFS=
 TESTDEFS=-DUNITTEST
 CXXFLAGS=-pedantic-errors -Wall -Wextra -Werror -fPIC -g $(DEFS) $(ARCH) -I../../util
+CFLAGS=-pedantic-errors -Wall -Wextra -Werror -fPIC -g $(DEFS) $(ARCH) -I../../util
 
 
 all: $(GEN) $(OBJ) $(TST)

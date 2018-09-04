@@ -969,7 +969,7 @@ ifdh::checksum(string loc) {
     std::string path;
     const char *c_where = where.c_str();
     int res2 ,res;
-    unsigned long sum;
+    unsigned long sum0, sum1;
     res  = mknod(c_where, 0600 | S_IFIFO, 0);
     if(_debug) cerr << "made node " << c_where << endl;
  
@@ -981,23 +981,28 @@ ifdh::checksum(string loc) {
 
     if (res == 0) {
        int status;
+       unsigned char md5digest[16];
        res2 = fork();
        if(_debug) cerr << "fork says " << res2 << endl;
        if (res2 > 0) {
 
             if(_debug) cerr << "starting get_adler32( " << c_where << ")" << endl;
-            sum = checksum::get_adler32(c_where);
+            checksum::get_sums(c_where, &sum0, &sum1, md5digest);
+
             if(_debug) cerr << "finished get_adler32( " << c_where << ")" << endl;
             waitpid(res2, &status,0);
             unlink(c_where);
             if ( WIFEXITED(status) && WEXITSTATUS(status)==0) {
                 // only fill in sum text if the fetchinput side succeeded...
-	        sumtext <<  "{\"crc_value\": \""  
-                    << sum
-                    << "\", \"crc_type\": \"adler 32 crc type\"}"
-                    << endl;
+	        sumtext <<  "[ "
+                    << "\"enstore:" << std::dec << sum0 << "\","
+                    << "\"adler32:" << std::hex << sum1 << "\","
+                    << "\"md5:"; 
+                for (int i = 0 ; i< 16; i++ ) {
+                    sumtext << std::hex << int(md5digest[i]);
+                }
+	        sumtext << "\"" << " ]" << endl << std::dec;
             }
-
        } else if (res2 == 0) {
 
             // turn off retries

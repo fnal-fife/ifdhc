@@ -107,7 +107,7 @@ char *getexperiment() {
              p1 = strchr(penv+29, '/');
              if(p1) {
                  *p1 = 0;
-                 strncpy(expbuf, penv+28, MAXEXPBUF);
+                 strncpy(expbuf, penv+28, MAXEXPBUF-1);
                  *p1 = '/';
                  return expbuf;
              }
@@ -127,7 +127,7 @@ char *getexperiment() {
         for( std::vector<std::string>::iterator vsigid = gidlist.begin(); vsigid != gidlist.end(); vsigid++) {
             // std::cerr << "Trying gid:" << *vsigid << "\n";
             if (gid == (unsigned)atoi(vsigid->c_str())) {
-                strncpy(expbuf, vsiexp->c_str(), MAXEXPBUF);
+                strncpy(expbuf, vsiexp->c_str(), MAXEXPBUF-1);
                 return expbuf;
             }
         }

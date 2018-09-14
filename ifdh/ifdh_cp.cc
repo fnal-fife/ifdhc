@@ -775,7 +775,7 @@ parse_ifdh_stage_via() {
    if (std::string::npos != (loc1 = svia.find("=>",start))) {
       while (std::string::npos != (loc2 = svia.find(";;",start))) {
            if (host_matches(svia.substr(start, loc1 - start))) {
-               strncpy(resultbuf,svia.substr( loc1+2,loc2 - loc1 - 2).c_str(),1024);
+               strncpy(resultbuf,svia.substr( loc1+2,loc2 - loc1 - 2).c_str(),1023);
                if ( 0 != strlen(resultbuf) ) {
                   return resultbuf;
                } else {
@@ -842,7 +842,7 @@ get_pnfs_uri(std::string door_url,  std::string door_proto, std::vector<std::str
                ifdh::_debug && cerr << node << ", ";
 	    }
 	}
-        }  catch( exception e ) {
+        }  catch( exception &e ) {
         ;
         }
         ifdh::_debug && cerr << "]\n";
@@ -1971,7 +1971,7 @@ ifdh::mkdir_p(string loc, string force, int depth) {
 
    try {
       m = mkdir(loc, force);
-   } catch (exception e) {
+   } catch (exception &e) {
       m = -1;
    }
 
@@ -1988,7 +1988,7 @@ ifdh::mkdir_p(string loc, string force, int depth) {
       mkdir_p(parent_dir(loc), force, depth - 1 );
       try {
          m = mkdir(loc, force);
-      } catch (exception e) {
+      } catch (exception &e) {
          m = -1;
       }
       return m;

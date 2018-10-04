@@ -661,7 +661,8 @@ get_grid_credentials_if_needed() {
         ifdh::_debug && std::cerr << "Now X509_USER_PROXY is: " << getenv("X509_USER_PROXY")<< endl;
     }
 
-    if (!check_grid_credentials() && have_kerberos_creds() ) {
+    if (!check_grid_credentials() ) {
+      if (have_kerberos_creds() ) {
         // if we still don't have credentials, try to get some from kx509
 	ifdh::_debug && std::cerr << "trying to kx509/voms-proxy-init...\n " ;
 
@@ -748,9 +749,12 @@ get_grid_credentials_if_needed() {
         // when you request a long timeout and it truncates it, it exits 256
         // even though things are fine...
         if ((!WIFEXITED(res) ||  0 != WEXITSTATUS(res)) && res != 256) {
-            std::cerr << "Error: exit code " << res << " from voms-proxy-init... later things may fail\n";
+            std::cerr << "Error: exit code " << res << " from voms-proxy-init... later actions will likely fail\n";
         }
+    } else {
+        std::cerr << "Notice: Unable to find valid grid or kerberos credentials. Later actions will likely fail."<< endl;
     }
+  }
 }
 
 std::string

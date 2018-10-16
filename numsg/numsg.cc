@@ -40,7 +40,7 @@ numsg::init(const char *jobname, int parentflag) {
     
     host = getenv("NU_LOG_HOST");
     if (host) { 
-	strncpy(hostbuf, host, 512);
+	strncpy(hostbuf, host, 511);
 	if (0 != (pcolon = strchr(hostbuf,':'))) {
 	    port = atoi(pcolon + 1);
 	    *pcolon = 0; 

@@ -953,7 +953,6 @@ my_system(const char *cmd, std::string &errortxt) {
     char *fgres;
     fd = dup(1);
     snprintf(cmdbuf, 4095, "%s 2>&1 1>&%d ", cmd, fd );
-    std::cerr << "cmdbuf: " << cmdbuf << "\n---\n";
     pF = popen(cmdbuf, "r");
     while (!feof(pF)) {
         fgres = fgets(linebuf, 1023, pF);

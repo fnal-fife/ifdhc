@@ -953,14 +953,14 @@ my_system(const char *cmd, std::string &errortxt) {
     char *fgres;
     fd = dup(1);
     snprintf(cmdbuf, 4096, "%s 1>&%d 2>&1", cmd, fd );
-    pF = popen(cmd, "r");
+    pF = popen(cmdbuf, "r");
     while (!feof(pF)) {
         fgres = fgets(linebuf, 1024, pF);
         if (fgres) {
             errortxt = errortxt + linebuf;
-        }
-        if (!getenv("IFDH_SILENT") || !atoi(getenv("IFDH_SILENT"))) {
-            std::cerr << linebuf;
+            if (!getenv("IFDH_SILENT") || !atoi(getenv("IFDH_SILENT"))) {
+                std::cerr << linebuf;
+            }
         }
     } 
     status = pclose(pF);

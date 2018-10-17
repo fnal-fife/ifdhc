@@ -2,18 +2,18 @@
 
 # set the base URI for our samweb service
 
-export IFDH_BASE_URI="http://samweb-minerva.fnal.gov:20004/sam/minerva/api"
+export EXPERIMENT=uboone
 
 # test locate/describe
-ifdh locateFile  "MV_00003142_0014_numil_v09_1105080215_RawDigits_v1_linjc.root"
-ifdh describeDefinition  "mwm_test_2"
+#ifdh locateFile  "MV_00003142_0014_numil_v09_1105080215_RawDigits_v1_linjc.root"
+#ifdh describeDefinition  "mwm_test_2"
 
 # now start a project, and consume its files, alternately skipping or consuming
 # them...
 projname=mwm_`date +%Y%m%d%H`_$$
-cpurl=`ifdh startProject $projname  minerva mwm_test_2 mengel minerva `
+cpurl=`ifdh startProject $projname  uboone mwm_test_2 mengel uboone `
 sleep 2
-cpurl=`ifdh findProject  $projname minerva `
+cpurl=`ifdh findProject  $projname uboone `
 consumer_id=`ifdh establishProcess $cpurl demo 1 bel-kwinith.fnal.gov mengel "" "" "" `
 flag=true
 furi=`ifdh getNextFile $cpurl $consumer_id`

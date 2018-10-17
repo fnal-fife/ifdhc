@@ -43,6 +43,8 @@
 #include <stdexcept>
 #include <uuid/uuid.h>
 
+extern time_t gt;
+
 using namespace std;
 
 namespace ifdh_ns {
@@ -297,6 +299,7 @@ cpn_lock::lock() {
     struct ifaddrs *ifap, *ifscan;
 
     if (_locked) {
+        std::cerr << (time(&gt)?ctime(&gt):"") << " ";
         std::cerr << "ifdh bug: lock() called when already locked\n";
         return;
     }
@@ -584,6 +587,7 @@ check_grid_credentials() {
 	 if (std::string::npos != s.find("Role=") && std::string::npos == s.find("Role=NULL")) { 
 	     found = true;
              if (std::string::npos ==  s.find(experiment)) {
+                 std::cerr << (time(&gt)?ctime(&gt):"") << " ";
                  std::cerr << "Notice: Expected a certificate for " << experiment << " but found " << s << endl;
              }
              ifdh::_debug && std::cerr << "found: " << buf << endl;
@@ -749,9 +753,11 @@ get_grid_credentials_if_needed() {
         // when you request a long timeout and it truncates it, it exits 256
         // even though things are fine...
         if ((!WIFEXITED(res) ||  0 != WEXITSTATUS(res)) && res != 256) {
+            std::cerr << (time(&gt)?ctime(&gt):"") << " ";
             std::cerr << "Error: exit code " << res << " from voms-proxy-init... later actions will likely fail\n";
         }
     } else {
+        std::cerr << (time(&gt)?ctime(&gt):"") << " ";
         std::cerr << "Notice: Unable to find valid grid or kerberos credentials. Later actions will likely fail."<< endl;
     }
   }
@@ -1006,6 +1012,7 @@ ifdh::retry_system(const char *cmd_str, int error_expected, cpn_lock &locker, if
             stringstream logmsg;
             logmsg << "program: " << cmd_str<< " died from signal " << WTERMSIG(res) << "-- exiting.\n";
             log(logmsg.str());
+            std::cerr << (time(&gt)?ctime(&gt):"") << " ";
             std::cerr << logmsg.str();
             exit(-1);
         }
@@ -1018,6 +1025,7 @@ ifdh::retry_system(const char *cmd_str, int error_expected, cpn_lock &locker, if
         if (res != 0 && tries < maxtries - 1) {
             if (dolock)
                 locker.free();
+            std::cerr << (time(&gt)?ctime(&gt):"") << " ";
             std::cerr << "program: " << cmd_str << "exited status " << res << "\n";
             log(_errortxt);
             if (unlink_on_error != "" ) {
@@ -1039,6 +1047,7 @@ ifdh::retry_system(const char *cmd_str, int error_expected, cpn_lock &locker, if
                 }
             }
             log("retrying...");
+            std::cerr << (time(&gt)?ctime(&gt):"") << " ";
             std::cerr << "retrying...\n";
             if (dolock)
                 locker.lock();
@@ -1287,6 +1296,7 @@ ifdh::pick_proto(CpPair &p, std::string force) {
         }
         std::string check = _config.get("protocol " + force, "cp_cmd");
         if (check == "") {
+            std::cerr << (time(&gt)?ctime(&gt):"") << " ";
             std::cerr << "Notice: Ignoring unknown force option " << force << "\n";
             std::cerr << "    force options should be --force=protocol \n";
             std::cerr << "    or export IFDH_FORCE=protocol \n";
@@ -1609,6 +1619,7 @@ ifdh::pick_proto_path(std::string loc, std::string force, std::string &proto, st
     } else {
         protos = _config.get("location "+src.location,"protocols");
         if (protos.size() == 0) {
+            std::cerr << (time(&gt)?ctime(&gt):"") << " ";
             std::cerr << "no 'protocols' in [location " + src.location + "] stanza in ifdh.cfg\n";
             protos = "file: gsiftp:";  /* guess -- but most common */
         }
@@ -1646,6 +1657,7 @@ ifdh::ll( std::string loc, int recursion_depth, std::string force) {
     std::stringstream rdbuf;
 
     if (cmd.size() == 0) {
+        std::cerr << (time(&gt)?ctime(&gt):"") << " ";
         std::cerr << "no 'll_cmd' in [" << lookup_proto << "] stanza of ifdh.cfg\n";
         return 1;
     }
@@ -1730,6 +1742,7 @@ ifdh::lss( std::string loc, int recursion_depth, std::string force) {
     std::string lss_re1_str = _config.get(lookup_proto, "lss_re1");
 
     if (lss_cmd.size() == 0 || lss_re1_str.size() == 0) {
+        std::cerr << (time(&gt)?ctime(&gt):"") << " ";
         std::cerr << "Missing lss_cmd or lss_re1 in [" << lookup_proto << "] stanza in ifdh.cfg\n";
         return res;
     }
@@ -1771,6 +1784,7 @@ ifdh::lss( std::string loc, int recursion_depth, std::string force) {
     }
 
     if (pf == NULL) {
+       std::cerr << (time(&gt)?ctime(&gt):"") << " ";
        std::cerr << "ifdh lss: popen failed; errno == " << errno << "\n";
        throw( std::logic_error("popen failed"));
     }
@@ -2012,6 +2026,7 @@ ifdh::mkdir(string loc, string force ) {
     std::string cmd     = _config.get(lookup_proto, "mkdir_cmd");
 
     if (cmd.size() == 0) {
+        std::cerr << (time(&gt)?ctime(&gt):"") << " ";
         std::cerr << "missing mkdir_cmd in [" << lookup_proto << "] in ifdh.cfg\n";
         return 1;
     }
@@ -2048,6 +2063,7 @@ ifdh::rm(string loc, string force) {
     mbuf.proto = proto;
     std::string cmd     = _config.get(lookup_proto, "rm_cmd");
     if (cmd.size() == 0) {
+        std::cerr << (time(&gt)?ctime(&gt):"") << " ";
         std::cerr << "missing rm_cmd in [" << lookup_proto << "] in ifdh.cfg\n";
         return 1;
     }
@@ -2144,6 +2160,7 @@ ifdh::chmod(string mode, string loc, string force) {
    
     std::string cmd     = _config.get(lookup_proto, "chmod_cmd");
     if (cmd.size() == 0) {
+        std::cerr << (time(&gt)?ctime(&gt):"") << " ";
         std::cerr << "missing chmod_cmd in [" << lookup_proto << "] in ifdh.cfg\n";
         return 1;
     }
@@ -2201,6 +2218,7 @@ ifdh::rename(string loc, string loc2, string force) {
    
     std::string cmd     = _config.get(lookup_proto, "mv_cmd");
     if (cmd.size() == 0) {
+        std::cerr << (time(&gt)?ctime(&gt):"") << " ";
         std::cerr << "missing mv_cmd in [" << lookup_proto << "] in ifdh.cfg\n";
         return 1;
     }

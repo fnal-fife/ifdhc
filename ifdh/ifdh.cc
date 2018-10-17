@@ -30,6 +30,7 @@
 #endif
 #include <uuid/uuid.h>
 
+time_t gt;
 
 #if __cplusplus <= 199711L
 #define unique_ptr auto_ptr
@@ -523,6 +524,7 @@ ifdh::do_url_str(int postflag,...) {
     } catch( exception &e )  {
        _errortxt = e.what();
        if (!getenv("IFDH_SILENT") || !atoi(getenv("IFDH_SILENT"))) {
+           std::cerr << (time(&gt)?ctime(&gt):"") << " ";
            std::cerr << "Exception: " << _errortxt;
        }
        return "";
@@ -936,7 +938,6 @@ ifdh::apply(std::vector<std::string> args) {
 
         if (has(file, "/")) {
             subdir = file.substr(dir.size(),file.rfind('/'));
-            std::cerr << "dir " << dir << " subdir " << subdir << "\n";
         } else {
             subdir = "";
         }

@@ -62,7 +62,7 @@ class ifdh_cp_cases(unittest.TestCase):
         self.log(msg)
         self.mk_remote_dir('%s/%s'%(self.data_dir,msg))
 
-    def list_remote_dir(self):
+    def li_remote_dir(self):
 
         if 1: return 0
         return self.ifdh_handle.ll(self.data_dir,1,'')
@@ -232,24 +232,24 @@ class ifdh_cp_cases(unittest.TestCase):
         self.ifdh_handle.copyBackOutput(self.work)
         self.ifdh_handle.cleanup()
 
-    def test_1_list_copy(self):
+    def test_1_li_copy(self):
         self.log(self._testMethodName)
         self.make_local_test_txt()
-        f = open("%s/list" % self.work,"w")
+        f = open("%s/li" % self.work,"w")
         f.write("%s/test.txt %s/test2.txt\n%s/test2.txt %s/test3.txt\n" % (self.work, self.work, self.work, self.work))
         f.close()
-        self.ifdh_handle.cp([ "-f", "%s/list" % self.work])
+        self.ifdh_handle.cp([ "-f", "%s/li" % self.work])
         os.system("mv %s/test3.txt %s/test.txt" % (self.work, self.work))
         self.assertEqual(self.check_test_txt(), True, self._testMethodName)
          
-    def test_2_list_copy_ws(self):
-        """make sure list files with whitespace work."""
+    def test_2_li_copy_ws(self):
+        """make sure li files with whitespace work."""
         self.log(self._testMethodName)
         self.make_local_test_txt()
-        f = open("%s/list" % self.work,"w")
+        f = open("%s/li" % self.work,"w")
         f.write("%s/test.txt   %s/test2.txt  \n%s/test2.txt\t%s/test3.txt \n" % (self.work, self.work, self.work, self.work))
         f.close()
-        self.ifdh_handle.cp([ "-f", "%s/list" % self.work])
+        self.ifdh_handle.cp([ "-f", "%s/li" % self.work])
         os.system("mv %s/test3.txt %s/test.txt" % (self.work, self.work))
         self.assertEqual(self.check_test_txt(), True, self._testMethodName)
          
@@ -269,14 +269,14 @@ class ifdh_cp_cases(unittest.TestCase):
         # shouldn't need this one, but we seem to?
         self.check_writable( "%s/test.txt" % self.data_dir)
         self.ifdh_handle.ll(self.data_dir, 1,"")
-        list = self.ifdh_handle.ls("%s/test.txt" % self.data_dir, 1,"")
-        print "got list: " , list
-        self.assertEqual(len(list),1, self._testMethodName)  
+        li = self.ifdh_handle.ls("%s/test.txt" % self.data_dir, 1,"")
+        print "got li: " , li
+        self.assertEqual(len(li),1, self._testMethodName)  
 
     def test_gsiftp_in(self):
         self.log(self._testMethodName)
         self.make_remote_test_txt()
-        self.list_remote_dir()
+        self.li_remote_dir()
 
     def test_xrootd__out(self):
         self.log(self._testMethodName)
@@ -285,14 +285,14 @@ class ifdh_cp_cases(unittest.TestCase):
         # shouldn't need this one, but we seem to?
         self.check_writable( "%s/test.txt" % self.data_dir)
         self.ifdh_handle.ll(self.data_dir, 1,"")
-        list = self.ifdh_handle.ls("%s/test.txt" % self.data_dir, 1,"")
-        print "got list: " , list
-        self.assertEqual(len(list),1, self._testMethodName)  
+        l1 = self.ifdh_handle.ls("%s/test.txt" % self.data_dir, 1,"")
+        print "got li: " , l1
+        self.assertEqual(len(l1),1, self._testMethodName)  
 
     def test_xrootd_in(self):
         self.log(self._testMethodName)
         self.make_remote_test_txt()
-        self.list_remote_dir()
+        self.li_remote_dir()
         res = self.ifdh_handle.cp([ "--force=xrootd" , "%s/test.txt" % self.data_dir, "%s/test.txt"%self.work])
         self.assertEqual(res==0 and self.check_test_txt(), True, self._testMethodName)
 
@@ -302,14 +302,14 @@ class ifdh_cp_cases(unittest.TestCase):
         res = self.ifdh_handle.cp([ "%s/test.txt"%self.work, "gsiftp://%s/%s/test.txt" % (dcache_host, self.data_dir)])
         self.check_writable( "%s/test.txt" % self.data_dir)
         # shouldn't need this one, but we seem to?
-        #list1 = self.ifdh_handle.ls(self.data_dir,1,"")
-        list = self.ifdh_handle.ls("%s/test.txt" % self.data_dir, 1,"")
-        self.assertEqual(len(list),1,self._testMethodName)  
+        #li1 = self.ifdh_handle.ls(self.data_dir,1,"")
+        l1 = self.ifdh_handle.ls("%s/test.txt" % self.data_dir, 1,"")
+        self.assertEqual(len(l1),1,self._testMethodName)  
 
     def test_explicit_gsiftp_in(self):
         self.log(self._testMethodName)
         self.make_remote_test_txt()
-        self.list_remote_dir()
+        self.li_remote_dir()
         res = self.ifdh_handle.cp([ "gsiftp://%s%s/test.txt" % (dcache_host,self.data_dir), "%s/test.txt"%(self.work)])
         self.assertEqual(res, 0, self._testMethodName)
         self.assertEqual(self.check_test_txt(), True, self._testMethodName)
@@ -320,13 +320,13 @@ class ifdh_cp_cases(unittest.TestCase):
         res = self.ifdh_handle.cp([ "--force=expftp", "%s/test.txt"%self.work, "%s/test.txt" % self.data_dir])
         self.check_writable( "%s/test.txt" % self.data_dir)
         # shouldn't need this one, but we seem to?
-        list1 = self.ifdh_handle.ls(self.data_dir,1,"")
-        list = self.ifdh_handle.ls("%s/test.txt" % self.data_dir, 1,"")
-        self.assertEqual(len(list),1,self._testMethodName)  
+        li1 = self.ifdh_handle.ls(self.data_dir,1,"")
+        l2 = self.ifdh_handle.ls("%s/test.txt" % self.data_dir, 1,"")
+        self.assertEqual(len(l2),1,self._testMethodName)  
 
     def test_expftp_in(self):
         self.log(self._testMethodName)
-        #dir=self.list_remote_dir()
+        #dir=self.li_remote_dir()
         data_dir = self.ifdh_handle.ls("%s/test.txt" % self.data_dir, 1,"")
         test_text='%s/test.text'%(self.data_dir)
         #self.log('%s: searching for %s in data_dir '%(self._testMethodName,test_text))
@@ -342,14 +342,14 @@ class ifdh_cp_cases(unittest.TestCase):
         res = self.ifdh_handle.cp([ "--force=srm", "%s/test.txt"%self.work, "%s/test.txt" % self.data_dir])
         self.check_writable( "%s/test.txt" % self.data_dir)
         # shouldn't need this one, but we seem to?
-        list1 = self.ifdh_handle.ls(self.data_dir,1,"")
+        li1 = self.ifdh_handle.ls(self.data_dir,1,"")
         l = self.ifdh_handle.ls("%s/test.txt" % self.data_dir, 1,"")
         self.assertEqual(len(l),1,self._testMethodName)  
 
     def test_srm_in(self):
         self.log(self._testMethodName)
         self.make_remote_test_txt()
-        self.list_remote_dir()
+        self.li_remote_dir()
         res = self.ifdh_handle.cp([ "--force=srm" , "%s/test.txt"%self.data_dir, "%s/test.txt"%self.work])
         self.assertEqual(res==0 and self.check_test_txt(), True, self._testMethodName)
 
@@ -361,10 +361,10 @@ class ifdh_cp_cases(unittest.TestCase):
         self.ifdh_handle.cp([ "%s/test.txt"%self.work, dest])
         self.check_writable( "%s/test.txt" % self.data_dir)
         # shouldn't need this one, but we seem to?
-        # list1 = self.ifdh_handle.ls(self.data_dir,1,"")
+        # li1 = self.ifdh_handle.ls(self.data_dir,1,"")
         time.sleep(1)
         l = self.ifdh_handle.ls( dest, 0, "")
-        print "got list: " , l
+        print "got li: " , l
         # some utilities give the directory *and* the file, so
         # prune the first item if it's a directory
         if len(l) > 0 and l[0][-1] == '/' and len(l) > 1:
@@ -373,7 +373,7 @@ class ifdh_cp_cases(unittest.TestCase):
 
     def test_explicit_srm_in(self):
         self.log(self._testMethodName)
-        self.list_remote_dir()
+        self.li_remote_dir()
         self.make_remote_test_txt()
         trim_dir =  self.data_dir.replace("/pnfs","")
         src = "srm://%s:8443/srm/managerv2?SFN=/pnfs/fnal.gov/usr%s/test.txt" % (dcache_host, trim_dir)
@@ -386,14 +386,14 @@ class ifdh_cp_cases(unittest.TestCase):
         self.ifdh_handle.cp([ "%s/test.txt"%self.work, "%s/test.txt" % self.data_dir])
         self.check_writable( "%s/test.txt" % self.data_dir)
         # shouldn't need this one, but we seem to?
-        list1 = self.ifdh_handle.ls(self.data_dir,1,"")
-        list = self.ifdh_handle.ls("%s/test.txt" % self.data_dir, 1,"")
-        print "got list: ", list
-        self.assertEqual(len(list),1, self._testMethodName)  # not sure how to verify if it is remote..
+        li1 = self.ifdh_handle.ls(self.data_dir,1,"")
+        l2 = self.ifdh_handle.ls("%s/test.txt" % self.data_dir, 1,"")
+        print "got li: ", l2
+        self.assertEqual(len(l2),1, self._testMethodName)  # not sure how to verify if it is remote..
 
     def test_01_default_in(self):
         self.log(self._testMethodName)
-        self.list_remote_dir()
+        self.li_remote_dir()
         self.make_remote_test_txt()
         self.ifdh_handle.cp([ "%s/test.txt"%self.data_dir, "%s/test.txt"%self.work])
         res = os.stat("%s/test.txt" % self.work)
@@ -462,12 +462,12 @@ class ifdh_cp_cases(unittest.TestCase):
         os.mkdir('%s/d/b' % self.work)
         os.mkdir('%s/d/c' % self.work)
 
-        list = (["-D"] +
+        l1 = (["-D"] +
                l1 + ['%s/d'%self.work , ';'] +
                l2 + ['%s/d/b'%self.work, ';'] +
                l3 + ['%s/d/c'%self.work ] )
         
-        self.ifdh_handle.cp(list)
+        self.ifdh_handle.cp(l1)
 
         #afterwards, should have 6 files in work/d
         l4 = glob.glob("%s/d/f*" % self.work)
@@ -485,12 +485,12 @@ class ifdh_cp_cases(unittest.TestCase):
         os.mkdir('%s/d/b' % self.work)
         os.mkdir('%s/d/c' % self.work)
 
-        list = (["--force=gridftp", "-D"] +
+        lr = (["--force=gridftp", "-D"] +
                l1 + ['%s/d'%self.work , ';'] +
                l2 + ['%s/d/b'%self.work, ';'] +
                l3 + ['%s/d/c'%self.work ] )
 
-        self.ifdh_handle.cp(list)
+        self.ifdh_handle.cp(lr)
 
         #afterwards, should have 6 files in work/d
         l4 = glob.glob("%s/d/f*" % self.work)
@@ -507,11 +507,11 @@ class ifdh_cp_cases(unittest.TestCase):
         os.mkdir('%s/d/b' % self.work)
         os.mkdir('%s/d/c' % self.work)
 
-        list = (["-D",  "--force=gridftp" ] +
+        lr = (["-D",  "--force=gridftp" ] +
                l1 + ['%s/d'%self.work , ';'] +
                l2 + ['%s/d/b'%self.work, ';'] +
                l3 + ['%s/d/c'%self.work ] )
-        self.ifdh_handle.cp(list)
+        self.ifdh_handle.cp(lr)
 
         #afterwards, should have 6 files in work/d
         l4 = glob.glob("%s/d/f*" % self.work)
@@ -589,56 +589,56 @@ class ifdh_cp_cases(unittest.TestCase):
         
     def test_pnfs_ls(self):
          self.log(self._testMethodName)
-         list = self.ifdh_handle.ls('/pnfs/nova/scratch', 1, "")
-         self.assertEqual(len(list) > 0, True, self._testMethodName)
+         l1 = self.ifdh_handle.ls('/pnfs/nova/scratch', 1, "")
+         self.assertEqual(len(l1) > 0, True, self._testMethodName)
 
     def test_bluearc_ls_gftp(self):
          self.log(self._testMethodName)
-         list = self.ifdh_handle.ls(self.data_dir, 1, "--force=gridftp")
-         self.assertEqual(len(list) > 0, True, self._testMethodName)
+         l1 = self.ifdh_handle.ls(self.data_dir, 1, "--force=gridftp")
+         self.assertEqual(len(l1) > 0, True, self._testMethodName)
 
     def test_pnfs_ls_gftp(self):
          self.log(self._testMethodName)
-         list = self.ifdh_handle.ls('/pnfs/nova/scratch', 1, "--force=gridftp")
-         self.assertEqual(len(list) > 0, True, self._testMethodName)
+         l1 = self.ifdh_handle.ls('/pnfs/nova/scratch', 1, "--force=gridftp")
+         self.assertEqual(len(l1) > 0, True, self._testMethodName)
 
     def test_pnfs_ls_srm(self):
          self.log(self._testMethodName)
-         list = self.ifdh_handle.ls('/pnfs/nova/scratch', 1, "--force=srm")
-         self.assertEqual(len(list) > 0, True, self._testMethodName)
+         l1 = self.ifdh_handle.ls('/pnfs/nova/scratch', 1, "--force=srm")
+         self.assertEqual(len(l1) > 0, True, self._testMethodName)
 
     def test_pnfs_mkdir_add(self):
          self.log(self._testMethodName)
          dir = '/pnfs/nova/scratch/users/%s/%d' % (os.environ.get('TEST_USER', os.environ['USER']), os.getpid())
          self.ifdh_handle.mkdir(dir,'')
          self.ifdh_handle.cp( ['-D','%s/a/f1' % self.work, dir])
-         list = self.ifdh_handle.ls(dir + '/f1' , 1, "")
-         print "list is:", list
+         li = self.ifdh_handle.ls(dir + '/f1' , 1, "")
+         print "list is:", li
          self.ifdh_handle.rm(dir + '/f1','')
          self.ifdh_handle.rmdir(dir,'')
-         self.assertEqual(len(list) > 0, True, self._testMethodName)
+         self.assertEqual(len(li) > 0, True, self._testMethodName)
 
     def test_expgridftp_mkdir_add(self):
          self.log(self._testMethodName)
          dir = "%s/%d" % (self.data_dir, os.getpid())
          self.ifdh_handle.mkdir(dir, '--force=expgridftp')
          self.ifdh_handle.cp( ['--force=expgridftp', '-D','%s/a/f1' % self.work, dir])
-         list = self.ifdh_handle.ls(dir + '/f1' , 1, "--force=expgridftp")
-         print "list is:", list
+         l1 = self.ifdh_handle.ls(dir + '/f1' , 1, "--force=expgridftp")
+         print "list is:", l1
          self.ifdh_handle.rm(dir + '/f1','--force=expgridftp')
          self.ifdh_handle.rmdir(dir,'--force=expgridftp')
-         self.assertEqual(len(list) > 0, True, self._testMethodName)
+         self.assertEqual(len(l1) > 0, True, self._testMethodName)
 
     def test_bestman_mkdir_add(self):
          self.log(self._testMethodName)
          dir = '%s/%d' % (self.data_dir, os.getpid())
          self.ifdh_handle.mkdir(dir, '--force=gridftp')
          self.ifdh_handle.cp( ['--force=gridftp', '-D','%s/a/f1' % self.work, dir])
-         list = self.ifdh_handle.ls(dir + '/f1' , 1, "--force=gridftp")
-         print "list is:", list
+         l1 = self.ifdh_handle.ls(dir + '/f1' , 1, "--force=gridftp")
+         print "list is:", l1
          self.ifdh_handle.rm(dir + '/f1','--force=gridftp')
          self.ifdh_handle.rmdir(dir,'--force=gridftp')
-         self.assertEqual(len(list) > 0, True, self._testMethodName)
+         self.assertEqual(len(l1) > 0, True, self._testMethodName)
 
     def test_dcache_bluearc(self):
          self.log(self._testMethodName)
@@ -676,33 +676,33 @@ class ifdh_cp_cases(unittest.TestCase):
          res = self.ifdh_handle.cp(["%s/foo.txt" % self.data_dir, "/pnfs/nova/scratch/users/mengel/foo.txt"])
          self.assertEqual(res == 0, True, self._testMethodName)
 
-    def test_list_copy_force_gridftp(self):
+    def test_li_copy_force_gridftp(self):
         self.log(self._testMethodName)
         self.make_local_test_txt()
-        f = open("%s/list" % self.work,"w")
+        f = open("%s/li" % self.work,"w")
         f.write("%s/test.txt %s/test2.txt\n%s/test2.txt %s/test3.txt\n" % (self.work, self.work, self.work, self.work))
         f.close()
-        self.ifdh_handle.cp([ "--force=gridftp", "-f", "%s/list" % self.work])
+        self.ifdh_handle.cp([ "--force=gridftp", "-f", "%s/li" % self.work])
         os.system("mv %s/test3.txt %s/test.txt" % (self.work, self.work))
         self.assertEqual(self.check_test_txt(), True, self._testMethodName)
 
-    def test_list_copy_force_dd(self):
+    def test_li_copy_force_dd(self):
         self.log(self._testMethodName)
         self.make_local_test_txt()
-        f = open("%s/list" % self.work,"w")
+        f = open("%s/li" % self.work,"w")
         f.write("%s/test.txt %s/test2.txt\n%s/test2.txt %s/test3.txt\n" % (self.work, self.work, self.work, self.work))
         f.close()
-        self.ifdh_handle.cp([ "--force=dd", "-f", "%s/list" % self.work])
+        self.ifdh_handle.cp([ "--force=dd", "-f", "%s/li" % self.work])
         os.system("mv %s/test3.txt %s/test.txt" % (self.work, self.work))
         self.assertEqual(self.check_test_txt(), True, self._testMethodName)
 
-    def test_list_copy_mixed(self):
+    def test_li_copy_mixed(self):
         self.log(self._testMethodName)
         self.make_local_test_txt()
-        f = open("%s/list" % self.work,"w")
+        f = open("%s/li" % self.work,"w")
         f.write("%s/test.txt %s/test2.txt\n/pnfs/nova/scratch/users/mengel/foo.txt %s/foo.txt\n" % (self.data_dir, self.work, self.work ))
         f.close()
-        self.ifdh_handle.cp([ "-f", "%s/list" % self.work])
+        self.ifdh_handle.cp([ "-f", "%s/li" % self.work])
         self.assertEqual(self.check_test_txt(), True, self._testMethodName)
 
     def xx_test_lock_bits(self):  # test dropped cause we do not lock to bluearc anymore...

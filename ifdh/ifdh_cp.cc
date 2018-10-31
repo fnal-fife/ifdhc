@@ -1043,7 +1043,7 @@ ifdh::retry_system(const char *cmd_str, int error_expected, cpn_lock &locker, if
                 // we need them at this layer, but if our command
                 // has a URL in it, it's a good guess...
                 if ( cmd_str_string.find("://") != std::string::npos) {
-                    check_grid_credentials();
+	            get_grid_credentials_if_needed();
                 }
             }
             log("retrying...");

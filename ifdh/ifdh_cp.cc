@@ -1176,8 +1176,8 @@ ifdh::do_cp(CpPair &cpp, bool intermed_file_flag, bool recursive, cpn_lock &cpn,
         std::string cp_cmd, src;
         int err_expected;
 
-        mbuf.src = cpp.src.path;
-        mbuf.dst = cpp.dst.path;
+        mbuf.src = locpath(cpp.src, cpp.proto);
+        mbuf.dst = locpath(cpp.dst, cpp.proto);
         mbuf.proto = cpp.proto;
         
         // command looks like:
@@ -1483,11 +1483,11 @@ ifdh::cp( std::vector<std::string> args ) {
         // actually do the copy
         res = do_cp(*cpp, intermed_file_flag, recursive, cpn, mbuf);
 
-	if (0 != (sbp =  cache_stat(locpath(cpp->src, "local_fs")))) {
+	if (0 != (sbp =  cache_stat(locpath(cpp->src, "file:")))) {
 		srcsize += sbp->st_size;
                 xfersize = sbp->st_size;
         }
-	if (0 != (sbp =  cache_stat(locpath(cpp->dst, "local_fs")))) {
+	if (0 != (sbp =  cache_stat(locpath(cpp->dst, "file:")))) {
 		dstsize += sbp->st_size;
                 xfersize = sbp->st_size;
         }

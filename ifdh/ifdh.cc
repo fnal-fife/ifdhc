@@ -997,12 +997,13 @@ ifdh::checksum(string loc) {
                 // only fill in sum text if the fetchinput side succeeded...
 	        sumtext <<  "[ "
                     << "\"enstore:" << std::dec << sum0 << "\","
-                    << "\"adler32:" << std::hex << sum1 << "\","
+                    << "\"adler32:" << std::hex << setw(8) << setfill('0') << sum1 << "\","
                     << "\"md5:"; 
                 for (int i = 0 ; i< 16; i++ ) {
-                    sumtext << std::hex << int(md5digest[i]);
+                    sumtext << std::hex << setw(2) << setfill('0');
+                    sumtext << (unsigned int)(md5digest[i]);
                 }
-	        sumtext << "\"" << " ]" << endl << std::dec;
+	        sumtext << "\"" << " ]" << endl << std::dec << setfill(' ') << setw(0);
             }
        } else if (res2 == 0) {
 

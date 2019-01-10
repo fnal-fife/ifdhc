@@ -656,6 +656,9 @@ ifdh::establishProcess( string projecturi, string appname, string appversion, st
       projecturi = this->findProject("","");
   }
 
+  if (description == "" && getenv("JOBSUBJOBID")) {
+      description = description + getenv("JOBSUBJOBID");
+  }
   if (description == "" && getenv("CLUSTER") && getenv("PROCESS")) {
       description = description + getenv("CLUSTER") + "." + getenv("PROCESS");
   }

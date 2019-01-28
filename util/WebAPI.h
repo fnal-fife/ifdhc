@@ -35,7 +35,7 @@ class WebAPI {
 
 public:
     static int _debug;
-    WebAPI(std::string url, int postflag = 0, std::string postdata = "", int maxretries = 10, int timeout = -1); // throw(WebAPIException)
+    WebAPI(std::string url, int postflag = 0, std::string postdata = "", int maxretries = 10, int timeout = -1, std::string http_proxy = ""); // throw(WebAPIException)
     ~WebAPI();
     int getStatus();
     std::fstream &data() { return _fromsite; }
@@ -48,7 +48,7 @@ public:
 	 int port;
 	 std::string path;
     };
-    static parsed_url parseurl(std::string url); // throw(WebAPIException)
+    static parsed_url parseurl(std::string url, std::string http_proxy = ""); // throw(WebAPIException)
 
 };
 

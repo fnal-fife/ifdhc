@@ -529,6 +529,10 @@ ifdh::do_url_str(int postflag,...) {
        }
        return "";
     }
+    // strip trailing newline
+    if ( res[res.length()] == '\n' ) {
+        res = res.substr(0,res.length()-1);
+    }
     if (ifdh::_debug) std::cerr << "got back string result: " << res << "\n";
     return res;
 }

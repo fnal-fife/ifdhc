@@ -134,6 +134,7 @@ WebAPI::sockattach( std::fstream &fstr,  int &sitefd, int s, std::fstream::openm
          }
          fdnext = dup(s);
          if (fdnext == -1) {
+             close(fdhack);
              std::cerr << "fdnext: " << fdnext << "\n";
              throw(WebAPIException("Error:","sockattach: Couldn't plumb file descriptors"));
          }
@@ -246,6 +247,7 @@ WebAPI::WebAPI(std::string url, int postflag, std::string postdata, int maxretri
 		 if (connect(s, addrp->ai_addr,addrp->ai_addrlen) < 0) {
                      _debug && std::cerr << "connect failed: errno = " << errno << "\n";
 		     addrp = addrp->ai_next;
+                     close(s);
 		 } else {
                      _debug && std::cerr << "connect succeeded\n";
 		     connected = 1;

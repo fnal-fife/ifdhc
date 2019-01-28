@@ -822,7 +822,13 @@ get_pnfs_uri(std::string door_url,  std::string door_proto, std::vector<std::str
         nodes.clear();
         ifdh::_debug && cerr << "finding " << door_proto << " dcache doors...[ "; 
         try {
-        WebAPI wa(door_url, 0, "", 1, 5000);  // pass in maxretries of 1, web timeout of 5000ms == 5 sec
+        std::string http_proxy = "";
+        if (getenv("OSG_SQUID_LOCATION")) {
+            http_proxy = getenv("OSG_SQUID_LOCATION");
+            ifdh::_debug && cerr << "saw OSG_SQUID_LOCATION " << http_proxy << "\n";
+        }
+
+        WebAPI wa(door_url, 0, "", 1, 5000, http_proxy);  // pass in maxretries of 1, web timeout of 5000ms == 5 sec, use the OSG_SQUID_PROXY..
 	while (!wa.data().eof() && !wa.data().fail()) {
 	    getline(wa.data(), line);
             // ifdh::_debug && cerr << "got: " << line << "\n";

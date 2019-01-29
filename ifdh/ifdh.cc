@@ -750,6 +750,9 @@ ifdh::ifdh(std::string baseuri) {
     if (_config.size() == 0) {
        _debug && std::cerr << "checking configs: \n";
        _config.getdefault( getenv("IFDHC_CONFIG_DIR"), getenv("IFDHC_DIR"), getenv("IFDHC_FQ_DIR"),_debug);
+       if ( _config.get("general","protocols") == "" ||  _config.get("general","prefixes") == "") {
+           throw(std::logic_error("ifdh: bad config file: no protocols or prefixes"));
+       }
     }
 }
 

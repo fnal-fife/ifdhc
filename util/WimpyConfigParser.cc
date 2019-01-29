@@ -15,15 +15,15 @@ WimpyConfigParser::
 getdefault( const char *ccffile, const char *ccffile1, const char *ccffile2, int debug) {
     _debug = debug;
     std::string cffile;
-    if (ccffile) {
+    if (ccffile && (std::ifstream((std::string(ccffile)+"/ifdh.cfg").c_str()))) {
         cffile = std::string(ccffile); 
         _debug && std::cerr << "ifdh: getting config file from IFDHC_CONFIG_DIR\n";
     } else if ( (ccffile1) && (std::ifstream((std::string(ccffile1) + "/ifdh.cfg").c_str())) ) {
         cffile = std::string(ccffile1); 
-        _debug && std::cerr << "ifdh: getting config file from IFDHC_DIR --  no IFDHC_CONFIG_DIR?!?\n";
+        std::cerr << "ifdh: notice: getting config file from IFDHC_DIR --  no IFDHC_CONFIG_DIR?!?\n";
     } else if ( (ccffile2) && (std::ifstream((std::string(ccffile2) + "/ifdh.cfg").c_str())) ) {
         cffile = std::string(ccffile2); 
-        _debug && std::cerr << "ifdh: getting config file from IFDHC_FQ_DIR --  no IFDHC_CONFIG_DIR?!?\n";
+        std::cerr << "ifdh: notice: getting config file from IFDHC_FQ_DIR --  no IFDHC_CONFIG_DIR?!?\n";
     } else {
 	throw( std::logic_error("no ifdhc config file environment variables found"));
     }

@@ -195,7 +195,7 @@ ifdh::lookup_loc(std::string url) {
             return res;
         }
     }
-    throw( std::logic_error("Path " + res.path +  " did not match in configuration"));
+    throw( std::logic_error("Path " + url +  " did not match in configuration"));
 }
 
 

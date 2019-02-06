@@ -333,8 +333,28 @@ ifdh::addOutputFile(string filename) {
     return 1;
 }
 
+#include "md5.h"
+
+std::string
+get_hashdir(std::string filename, int n) {
+
+    std::stringstream hashdir;
+    unsigned char md5digest[16];
+    md5_state_t ms;
+    md5_init(&ms);
+    md5_append(&ms, (const md5_byte_t*)filename.c_str(), filename.size());
+    md5_finish(&ms, md5digest);
+    for (int i = 0 ; i< n; i++ ) {
+        hashdir << '/';
+        hashdir << std::hex << setw(2) << setfill('0');
+        hashdir << (unsigned int)(md5digest[i]);
+    }
+
+    return hashdir.str();
+}
+
 int 
-ifdh::copyBackOutput(string dest_dir) {
+ifdh::copyBackOutput(string dest_dir, int hash) {
     string line;
     string file;
     string filelast;
@@ -375,8 +395,15 @@ ifdh::copyBackOutput(string dest_dir) {
         }
         first = false;
         cpargs.push_back(file);
-        cpargs.push_back(dest_dir + "/" + filelast);
-        _debug && std::cerr << "adding cp of " << file << " " << dest_dir << "/" << filelast << "\n";
+        std::string tdest;
+        if (hash) {
+            tdest = dest_dir + get_hashdir(filelast, hash);
+            mkdir_p(tdest,"",hash);
+        } else {
+            tdest= dest_dir;
+        }
+        cpargs.push_back(tdest + "/" + filelast);
+        _debug && std::cerr << "adding cp of " << file << " " << tdest << "/" << filelast << "\n";
    
     }
     return cp(cpargs);
@@ -1088,4 +1115,6 @@ ifdh::locateFiles( std::vector<std::string> args) {
     return res;
 }
 
+
 }
+

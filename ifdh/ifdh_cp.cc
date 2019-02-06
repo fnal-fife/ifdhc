@@ -992,7 +992,7 @@ ifdh::retry_system(const char *cmd_str, int error_expected, cpn_lock &locker, if
         if (0 != getenv("IFDH_CP_MAXRETRIES")) {
             maxtries = atoi(getenv("IFDH_CP_MAXRETRIES")) + 1;
         } else {
-            maxtries = 8;
+            maxtries = 9;
         }
     }
 
@@ -1038,7 +1038,7 @@ ifdh::retry_system(const char *cmd_str, int error_expected, cpn_lock &locker, if
                 rm(unlink_on_error);
                 unlink_on_error = "";
             } else {
-                delay = random() % (55 << tries);
+                delay = random() % (27 << tries);
                 stringstream logmsg;
                 logmsg << "delaying " << delay << " ...\n";
                 log(logmsg.str());

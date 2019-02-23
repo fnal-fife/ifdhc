@@ -66,7 +66,7 @@ test_encode() {
 //   so that it can be fetched directly
 
 WebAPI::parsed_url 
-WebAPI::parseurl(std::string url) {
+WebAPI::parseurl(std::string url, std::string http_proxy) {
      int i, j;                // string indexes
      WebAPI::parsed_url res;  // resulting pieces
      std::string part;        // partial url
@@ -80,18 +80,34 @@ WebAPI::parseurl(std::string url) {
      if (res.type != "http" && res.type != "https" ) {
         throw(WebAPIException(url,"BadURL: only http: and https: supported"));
      }
-     part = url.substr(i+3);
-     i = part.find_first_of(':');
-     j = part.find_first_of('/');
-     if( i < 0 || i > j) {
-	 // no port number listed, dedault to 80 or 443
-         res.host = part.substr(0,j);
-         res.port = (res.type == "http") ?  80 : 443;
+     if (res.type == "http" && http_proxy != "") {
+        // if we have a proxy, we connect to the proxy server, and
+        // give the whole url for the path..
+        res.path = url;
+        i = http_proxy.find_first_of(':');
+        if ( i < 0 ) {
+             res.host = http_proxy;
+             res.port = 8080;
+        } else {
+             res.host = http_proxy.substr(0,i);
+             res.port = atol(http_proxy.substr(i+1,http_proxy.length()).c_str());
+        }
      } else {
-	 res.host = part.substr(0,i);
-         res.port = atol(part.substr(i+1,j-i).c_str());
+         part = url.substr(i+3);
+         i = part.find_first_of(':');
+         j = part.find_first_of('/');
+         if( i < 0 || i > j) {
+             // no port number listed, dedault to 80 or 443
+             res.host = part.substr(0,j);
+             res.port = (res.type == "http") ?  80 : 443;
+         } else {
+             res.host = part.substr(0,i);
+             res.port = atol(part.substr(i+1,j-i).c_str());
+        }
+        res.path = part.substr(j);
     }
-    res.path = part.substr(j);
+    _debug && std::cerr << "parseurl: host " << res.host << " port: " << res.port << " path " << res.path << std::endl;
+    _debug && std::cerr.flush();
     return res;
 }
 
@@ -134,6 +150,7 @@ WebAPI::sockattach( std::fstream &fstr,  int &sitefd, int s, std::fstream::openm
          }
          fdnext = dup(s);
          if (fdnext == -1) {
+             close(fdhack);
              std::cerr << "fdnext: " << fdnext << "\n";
              throw(WebAPIException("Error:","sockattach: Couldn't plumb file descriptors"));
          }
@@ -167,7 +184,7 @@ WebAPI::sockattach( std::fstream &fstr,  int &sitefd, int s, std::fstream::openm
 // the network connection, rather than saving he data
 // in a file and returning that.
 
-WebAPI::WebAPI(std::string url, int postflag, std::string postdata, int maxretries, int timeout)  {
+WebAPI::WebAPI(std::string url, int postflag, std::string postdata, int maxretries, int timeout, std::string http_proxy)  {
      int s = -1;		// unix socket file descriptor
      WebAPI::parsed_url pu;     // parsed url.
      // struct sockaddr_storage server; // connection address struct
@@ -207,7 +224,7 @@ WebAPI::WebAPI(std::string url, int postflag, std::string postdata, int maxretri
 	     throw(WebAPIException(url,"FetchError: Retry count exceeded"));
 	 }
 
-         pu = parseurl(url);
+         pu = parseurl(url, http_proxy);
 
          if (pu.type == "http") {
              struct addrinfo hints; 
@@ -246,6 +263,7 @@ WebAPI::WebAPI(std::string url, int postflag, std::string postdata, int maxretri
 		 if (connect(s, addrp->ai_addr,addrp->ai_addrlen) < 0) {
                      _debug && std::cerr << "connect failed: errno = " << errno << "\n";
 		     addrp = addrp->ai_next;
+                     close(s);
 		 } else {
                      _debug && std::cerr << "connect succeeded\n";
 		     connected = 1;
@@ -511,6 +529,17 @@ test_WebAPI_fetchurl() {
    }
    std::cout << "ds.data().eof() is " << ds.data().eof() << std::endl;
    ds.data().close();
+
+   WebAPI dsp("http://home.fnal.gov/~mengel/Ascii_Chart.html", 0, "", 10, -1, "squid.fnal.gov:3128");
+
+    std::cout << "ds.data().eof() is " << ds.data().eof() << std::endl;
+    while(!dsp.data().eof()) {
+        getline(dsp.data(), line);
+
+        std::cout << "got line: " << line << std::endl;;
+   }
+   std::cout << "dsp.data().eof() is " << dsp.data().eof() << std::endl;
+   dsp.data().close();
 
    WebAPI ds2("http://home.fnal.gov/~mengel/Ascii_Chart.html");
 

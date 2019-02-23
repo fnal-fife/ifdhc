@@ -76,7 +76,7 @@ class ifdh {
 	int addOutputFile(std::string filename);
 
 	// copy output file set to destination with cpn or srmcp
-	int copyBackOutput(std::string dest_dir);
+	int copyBackOutput(std::string dest_dir, int hash = 0);
 
 	// logging
 	int log( std::string message );

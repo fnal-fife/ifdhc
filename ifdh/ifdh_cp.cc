@@ -195,7 +195,7 @@ ifdh::lookup_loc(std::string url) {
             return res;
         }
     }
-    throw( std::logic_error("Path " + res.path +  " did not match in configuration"));
+    throw( std::logic_error("Path " + url +  " did not match in configuration"));
 }
 
 
@@ -822,7 +822,13 @@ get_pnfs_uri(std::string door_url,  std::string door_proto, std::vector<std::str
         nodes.clear();
         ifdh::_debug && cerr << "finding " << door_proto << " dcache doors...[ "; 
         try {
-        WebAPI wa(door_url, 0, "", 1, 5000);  // pass in maxretries of 1, web timeout of 5000ms == 5 sec
+        std::string http_proxy = "";
+        if (getenv("OSG_SQUID_LOCATION")) {
+            http_proxy = getenv("OSG_SQUID_LOCATION");
+            ifdh::_debug && cerr << "saw OSG_SQUID_LOCATION " << http_proxy << "\n";
+        }
+
+        WebAPI wa(door_url, 0, "", 1, 5000, http_proxy);  // pass in maxretries of 1, web timeout of 5000ms == 5 sec, use the OSG_SQUID_PROXY..
 	while (!wa.data().eof() && !wa.data().fail()) {
 	    getline(wa.data(), line);
             // ifdh::_debug && cerr << "got: " << line << "\n";
@@ -986,7 +992,7 @@ ifdh::retry_system(const char *cmd_str, int error_expected, cpn_lock &locker, if
         if (0 != getenv("IFDH_CP_MAXRETRIES")) {
             maxtries = atoi(getenv("IFDH_CP_MAXRETRIES")) + 1;
         } else {
-            maxtries = 8;
+            maxtries = 9;
         }
     }
 
@@ -1032,7 +1038,7 @@ ifdh::retry_system(const char *cmd_str, int error_expected, cpn_lock &locker, if
                 rm(unlink_on_error);
                 unlink_on_error = "";
             } else {
-                delay = random() % (55 << tries);
+                delay = random() % (27 << tries);
                 stringstream logmsg;
                 logmsg << "delaying " << delay << " ...\n";
                 log(logmsg.str());

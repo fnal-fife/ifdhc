@@ -57,7 +57,7 @@ Qualifiers=c7:p372:debug
 
   Action = ExtraSetup
     setupRequired( python v3_7_2 )
-    setupRequired( clang v6_0_1 )
+    setupRequired( clang v7_0_0 )
 
 Flavor=ANY
 Qualifiers=c7:p372:prof
@@ -67,7 +67,7 @@ Qualifiers=c7:p372:prof
 
   Action = ExtraSetup
     setupRequired( python v3_7_2 )
-    setupRequired( clang v6_0_1 )
+    setupRequired( clang v7_0_0 )
 
 Flavor=ANY
 Qualifiers=c2:p372:debug
@@ -98,7 +98,7 @@ Qualifiers=c7:p2715a:debug
 
   Action = ExtraSetup
     setupRequired( python v2_7_15a )
-    setupRequired( clang v6_0_1 )
+    setupRequired( clang v7_0_0 )
 
 Flavor=ANY
 Qualifiers=c7:p2715a:prof
@@ -108,7 +108,7 @@ Qualifiers=c7:p2715a:prof
 
   Action = ExtraSetup
     setupRequired( python v2_7_15a )
-    setupRequired( clang v6_0_1 )
+    setupRequired( clang v7_0_0 )
 
 Flavor=ANY
 Qualifiers=c2:p2715a:debug

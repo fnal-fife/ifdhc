@@ -19,7 +19,7 @@ regmatch::regmatch(const regmatch &r) :   _nslots(r._nslots), _against(r._agains
 }
 
 regmatch::~regmatch() {
-   delete _data;
+   delete [] _data;
 }
 
 regmatch_t *

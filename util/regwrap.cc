@@ -13,13 +13,13 @@ regmatch::regmatch(int n, std::string &s) :  _nslots(n), _against(s){
 }
 
 regmatch::regmatch(const regmatch &r) :   _nslots(r._nslots), _against(r._against){
-   _data = new regmatch_t[r._nslots];
+   _data = new regmatch_t[r._nslots+2];
    memcpy(_data, r._data, sizeof(regmatch_t) * (r._nslots + 2));
    //std::cerr << "in regmatch constructor with nslots =" << _nslots << "and against of: " << _against << "\n";
 }
 
 regmatch::~regmatch() {
-   delete _data;
+   delete [] _data;
 }
 
 regmatch_t *

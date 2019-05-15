@@ -154,6 +154,7 @@ class SAMCases(unittest.TestCase):
         cpurl = self.ifdh_handle.findProject(SAMCases.curproject,'')
         uri = self.ifdh_handle.getNextFile(cpurl, SAMCases.curconsumer)
         print "got uri:" , uri
+        self.assertNotEqual(uri,"", self._testMethodName)
         path = self.ifdh_handle.fetchInput(uri)
         print "got path:" , path
         res = os.access(path,os.R_OK)

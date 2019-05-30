@@ -1227,7 +1227,7 @@ ifdh::do_cp(CpPair &cpp, bool intermed_file_flag, bool recursive, cpn_lock &cpn,
         }
         std::string unlink_this_on_error = "";
         if (getenv( "IFDH_CP_UNLINK_ON_ERROR") && atoi(getenv( "IFDH_CP_UNLINK_ON_ERROR"))) {
-            unlink_this_on_error = cpp.dst.path; 
+            unlink_this_on_error = dstpath(cpp); 
         }
         
         return retry_system(cp_cmd.c_str(), err_expected, cpn, mbuf, -1, unlink_this_on_error);

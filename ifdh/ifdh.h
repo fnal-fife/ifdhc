@@ -3,8 +3,8 @@
 #define IFDH_H
 #include <string>
 #include <vector>
-#include "../util/WebAPI.h"
-#include "../util/WimpyConfigParser.h"
+#include "WebAPI.h"
+#include "WimpyConfigParser.h"
 #include <stdlib.h>
 #include <map>
 #include <utility>

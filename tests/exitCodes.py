@@ -49,7 +49,7 @@ class exitcodecases(unittest.TestCase):
             raise
 
     def setUp(self):
-        self.forceMethods=["", "--force=gsiftp","--force=srm","--force=root"]
+        self.forceMethods=["", "--force=gsiftp","--force=root","--force=srm",]
         sys.stdout.flush()
         sys.stderr.flush()
         print "starting setUp"

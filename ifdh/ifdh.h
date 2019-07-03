@@ -191,6 +191,7 @@ class ifdh {
         std::vector<std::string> do_url_lst(int postflag,...);
         int addFileLocation(std::string filename, std::string location);
 };
+
 }
 
 

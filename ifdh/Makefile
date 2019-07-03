@@ -58,10 +58,18 @@ ifdh: libifdh.$(SHLIB) ifdh_main.o
 	${CXX} $(ARCH) -o $@ ifdh_main.o $(ALL_OBJS) $(LDLIBS)
 	./ifdh --help | perl -pe 's{\033\[.*?m}{}g; s{\tifdh ([^ ]*) *(.*?) *$$}{* *ifdh* *$$1* _$$2_}; s{\t--}{** }' > ifdh.textile
 
+ifdh_pybindgen.cc: ifdh_pybindgen.py
+	python $< > $@
+
+ifdh_pybindgen.o: ifdh_pybindgen.cc
+	${CXX} -c -o $@  $(SWIGCXXFLAGS) $< 
+
+python/ifdh.so: ifdh_pybindgen.o
+	${CXX} --shared $(ARCH) -o  $@ $< $${PYTHON_LIB:-/usr/lib64}/libpython*[asd]* $(LDLIBS) || ${CXX} --shared $(ARCH) -o  $@ $<  $${PYTHON_LIB:-/usr/lib}/libpython*[asd]* $(LDLIBS)
+
 python/_ifdh.$(SHLIB): $(PYMOD_OBJS)
 	test -d python || mkdir python 
 	${CXX} --shared $(ARCH) -o  $@ $(PYMOD_OBJS) $${PYTHON_LIB:-/usr/lib64}/libpython*[asd]* $(LDLIBS) || ${CXX} --shared $(ARCH) -o  $@ $(PYMOD_OBJS) $${PYTHON_LIB:-/usr/lib}/libpython*[asd]* $(LDLIBS)
-
 
 libifdh.$(SHLIB): $(ALL_OBJS)
 	${CXX} --shared $(ARCH) $(CPPFLAGS)  -o $@ $(ALL_OBJS) $(LDLIBS)

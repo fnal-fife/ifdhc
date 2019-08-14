@@ -175,6 +175,7 @@ class ifdh {
 	std::string takeSnapshot( std::string name);
         // check if project is alive
         std::string projectStatus(std::string projecturi);
+        int addFileLocation(std::string filename, std::string location);
     private:
         IFile lookup_loc(std::string url) ;
         std::string locpath(IFile loc, std::string proto) ;
@@ -190,7 +191,6 @@ class ifdh {
         int do_url_int(int postflag, ...);
         std::string do_url_str(int postflag,...);
         std::vector<std::string> do_url_lst(int postflag,...);
-        int addFileLocation(std::string filename, std::string location);
 };
 
 }

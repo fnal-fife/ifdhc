@@ -59,46 +59,17 @@ klass.add_method('lss',retval('std::vector<ifdh_lss_pair>'),[param('std::string'
 klass.add_method('findMatchingFiles',retval('std::vector<ifdh_lss_pair>'),[param('std::string','path'), param('std::string','glob')])
 klass.add_method('fetchSharedFiles',retval('std::vector<ifdh_lss_pair>'),[param('std::vector<ifdh_lss_pair>','list'),param('std::string','schema',default_value='""')])
 klass.add_method('locateFiles',retval('std::map<std::string,std::vector<std::string> >'),[param('std::vector<std::string>','args')])
+klass.add_method('checksum',retval('std::string'),[param('std::string','loc')])
+klass.add_method('mkdir_p',retval('int'),[param('std::string','loc'), param('std::string', 'force',default_value='""'),param('int','depth',default_value='-1')])
+klass.add_method('getProxy',retval('std::string'),[])
+klass.add_method('declareFile',retval('int'),[param('std::string','json_metadata')])
+klass.add_method('modifyMetadata',retval('int'),[param('std::string','file'),param('std::string','json_metadata')])
+klass.add_method('apply',retval('int'),[param('std::vector<std::string>','args')])
+klass.add_method('getUrl',retval('std::string'),[param('std::string','loc'), param('std::string', 'force',default_value='""')])
+klass.add_method('getErrorText',retval('std::string'),[])
+klass.add_method('takeSnapshot',retval('std::string'),[param('std::string','name')])
+klass.add_method('projectStatus',retval('std::string'),[param('std::string','projecturi')])
+klass.add_method('addFileLocation',retval('int'),[param('std::string','filename'),param('std::string','location')])
 
-'''
-std::string checksum(std::string loc);
-// make a directory with intervening directories
-int mkdir_p(std::string loc, std::string force = "", int depth = -1);
-// get a grid proxy for the current experiment if needed, 
-// return the path
-std::string getProxy();
-// declare file metadata
-int declareFile( std::string json_metadata);
-// modify file metadata
-int modifyMetadata(std::string file,  std::string json_metadata);
-// apply an ifdh command to all files under a directory 
-// (recursively), matching a pattern
-int apply(std::vector<std::string> args);
-std::string getUrl(std::string loc, std::string force);
-std::string getErrorText();
-// generate snapshot of a named dataset definition
-std::string takeSnapshot( std::string name);
-// check if project is alive
-std::string projectStatus(std::string projecturi);
-private:
-IFile lookup_loc(std::string url) ;
-std::string locpath(IFile loc, std::string proto) ;
-int retry_system(const char *cmd_str, int error_expected,  cpn_lock &locker, ifdh_op_msg &mbuf, int maxtries = -1, std::string unlink_on_error = "") ;
-std::string srcpath(CpPair &cpp) ;
-std::string dstpath(CpPair &cpp) ;
-int do_cp_bg(CpPair &cpp, bool intermed_file_flag, bool recursive, cpn_lock &cpn,  ifdh_op_msg &mbuf);
-int do_cp(CpPair &cpp,  bool intermed_file_flag, bool recursive, cpn_lock &cpn, ifdh_op_msg &mbuf) ;
-void pick_proto(CpPair &p, std::string force) ;
-std::vector<CpPair> handle_args( std::vector<std::string> args, std::vector<std::string>::size_type curarg, bool dest_is_dir,  size_t &lock_low, size_t &lock_hi, std::string &force);
-bool have_stage_subdirs(std::string uri);
-void pick_proto_path(std::string loc, std::string force, std::string &proto, std::string &fullurl, std::string &lookup_proto );
-int do_url_int(int postflag, ...);
-std::string do_url_str(int postflag,...);
-std::vector<std::string> do_url_lst(int postflag,...);
-int addFileLocation(std::string filename, std::string location);
-};
-
-}
-'''
 
 mod.generate(sys.stdout)

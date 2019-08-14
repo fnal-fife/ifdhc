@@ -30,6 +30,7 @@ public:
 
 class ifdh;
 
+typedef std::pair<std::string,long> ifdh_lss_pair;
 class ifdh_op_msg;
 class ifdh {
         std::string _baseuri;
@@ -147,11 +148,11 @@ class ifdh {
         int ll( std::string loc, int recursion_depth, std::string force = "");
         // list files with sizes
         // use recursion_depth== 0 to check directory without contents
-        std::vector<std::pair<std::string,long> > lss( std::string loc, int recursion_depth, std::string force = "");
+        std::vector<ifdh_lss_pair> lss( std::string loc, int recursion_depth, std::string force = "");
         // find filenames and sizes matching pattern
-        std::vector<std::pair<std::string,long> > findMatchingFiles( std::string path, std::string glob); 
+        std::vector<ifdh_lss_pair> findMatchingFiles( std::string path, std::string glob); 
         // filenames and sizes matching pattern moved locally enough to be seen
-        std::vector<std::pair<std::string,long> > fetchSharedFiles( std::vector<std::pair<std::string,long> > list, std::string schema = ""); 
+        std::vector<ifdh_lss_pair> fetchSharedFiles( std::vector<ifdh_lss_pair> list, std::string schema = ""); 
         // locate multiple files
         std::map<std::string,std::vector<std::string> > locateFiles( std::vector<std::string> args );
         // cheksum file

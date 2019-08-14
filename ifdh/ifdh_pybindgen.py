@@ -6,7 +6,13 @@ from pybindgen import Module, retval, param
 mod=pybindgen.Module("ifdh",cpp_namespace="ifdh_ns")
 mod.add_include('"ifdh.h"')
 
+pair = mod.add_struct('ifdh_lss_pair')
+pair.add_instance_attribute('first','std::string')
+pair.add_instance_attribute('second','long')
+
+mod.add_container('std::vector<ifdh_lss_pair>','ifdh_lss_pair','list')
 mod.add_container('std::vector<std::string>','std::string','list')
+mod.add_container('std::map<std::string,std::vector<std::string> >',(retval('std::string'),retval('std::vector<std::string>')),'map')
 
 klass = mod.add_class("ifdh")
 klass.add_constructor([param('std::string','baseuri',default_value='""')])
@@ -41,38 +47,20 @@ klass.add_method('setStatus',retval('int'),[param('std::string','projecturi'),pa
 klass.add_method('cleanup',retval('int'),[])
 klass.add_method('renameOutput',retval('int'),[param('std::string','how')])
 klass.add_method('mv',retval('int'),[param('std::vector<std::string>','args')])
+klass.add_method('ls',retval('std::vector<std::string>'),[param('std::string','loc'), param('int','recursion_depth'), param('std::string','force',default_value='""')])
+klass.add_method('mkdir',retval('int'),[param('std::string','loc'), param('std::string', 'force',default_value='""')])
+klass.add_method('rm',retval('int'),[param('std::string','loc'), param('std::string', 'force',default_value='""')])
+klass.add_method('rmdir',retval('int'),[param('std::string','loc'), param('std::string', 'force',default_value='""')])
+klass.add_method('more',retval('int'),[param('std::string','loc')])
+klass.add_method('chmod',retval('int'),[param('std::string','mode'),param('std::string','loc'), param('std::string', 'force',default_value='""')])
+klass.add_method('rename',retval('int'),[param('std::string','loc'),param('std::string','loc2'), param('std::string', 'force',default_value='""')])
+klass.add_method('ll',retval('std::vector<std::string>'),[param('std::string','loc'), param('int','recursion_depth'), param('std::string','force',default_value='""')])
+klass.add_method('lss',retval('std::vector<ifdh_lss_pair>'),[param('std::string','loc'), param('int','recursion_depth'), param('std::string','force',default_value='""')])
+klass.add_method('findMatchingFiles',retval('std::vector<ifdh_lss_pair>'),[param('std::string','path'), param('std::string','glob')])
+klass.add_method('fetchSharedFiles',retval('std::vector<ifdh_lss_pair>'),[param('std::vector<ifdh_lss_pair>','list'),param('std::string','schema',default_value='""')])
+klass.add_method('locateFiles',retval('std::map<std::string,std::vector<std::string> >'),[param('std::vector<std::string>','args')])
 
 '''
-// general file rename using mvn or srmcp
-int mv(std::vector<std::string> args);
-// Get a list of directory contents, or check existence of files
-// use recursion_depth== 0 to check directory without contents
-std::vector<std::string> ls( std::string loc, int recursion_depth, std::string force = "");
-// make a directory (i.e. for file destination)
-int mkdir(std::string loc, std::string force = "");
-// remove files
-int rm(std::string loc, std::string force = "");
-// remove directories
-int rmdir(std::string loc, std::string force = "");
-// view text files
-int more(std::string loc);
-// change file permissions
-int chmod(std::string mode, std::string loc, std::string force = "");
-// atomic rename items in same directory/fs
-int rename(std::string loc, std::string loc2,  std::string force = "");
-// list files with long listing
-// use recursion_depth== 0 to check directory without contents
-int ll( std::string loc, int recursion_depth, std::string force = "");
-// list files with sizes
-// use recursion_depth== 0 to check directory without contents
-std::vector<std::pair<std::string,long> > lss( std::string loc, int recursion_depth, std::string force = "");
-// find filenames and sizes matching pattern
-std::vector<std::pair<std::string,long> > findMatchingFiles( std::string path, std::string glob); 
-// filenames and sizes matching pattern moved locally enough to be seen
-std::vector<std::pair<std::string,long> > fetchSharedFiles( std::vector<std::pair<std::string,long> > list, std::string schema = ""); 
-// locate multiple files
-std::map<std::string,std::vector<std::string> > locateFiles( std::vector<std::string> args );
-// cheksum file
 std::string checksum(std::string loc);
 // make a directory with intervening directories
 int mkdir_p(std::string loc, std::string force = "", int depth = -1);

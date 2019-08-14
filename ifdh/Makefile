@@ -21,16 +21,16 @@ SWIGCXXFLAGS=-fPIC -I../util -I../numsg -I../../util -I../../numsg -I../../ifdh 
 CXXFLAGS=-pedantic-errors -Wall -Wextra -Werror -fPIC -I../../util -I../util -I ../../numsg -I../numsg -g  $(ARCH) -I$(SRCDIR)
 OBJ=ifdh.o ifdh_cp.o
 ALL_OBJS=$(OBJ) ../util/WebAPI.o ../numsg/numsg.o ../util/SyslogAPI.o ../util/utils.o ../util/regwrap.o ../util/Checksum.o ../util/md5.o ../util/WimpyConfigParser.o
-genOBJ=ifdh_main.o ifdh_wrap.o python/_ifdh.$(SHLIB)
+genOBJ=ifdh_main.o ifdh_wrap.o python/ifdh.$(SHLIB)
 genSRC=ifdh_wrap.cxx ifdh_main.cc
-PYMOD_OBJS=$(ALL_OBJS) ifdh_wrap.o
+PYMOD_OBJS=$(ALL_OBJS) ifdh_pybindgen.o
 ifeq ($(UNAME),Darwin)
 LDLIBS=-lz
 else
 LDLIBS=-lz -luuid
 endif
 DIRS=python
-ALL=ifdh python/_ifdh.$(SHLIB) libifdh.$(SHLIB) libifdh.a
+ALL=ifdh python/ifdh.$(SHLIB) libifdh.$(SHLIB) libifdh.a
 
 all: $(DIRS) $(ALL) 
 
@@ -40,8 +40,8 @@ install:
 	cp ifdh   ../bin
 	cp $(LIB) ../lib
 	cp $(HDR) ../include
-	cp python/_ifdh.$(SHLIB) ../lib/python
-	cp python/ifdh.py ../lib/python
+	cp python/ifdh.$(SHLIB) ../lib/python
+	#cp python/ifdh.py ../lib/python
 	cp www_cp.sh xrdwrap.sh ../bin
 
 clean: 
@@ -64,12 +64,12 @@ ifdh_pybindgen.cc: ifdh_pybindgen.py
 ifdh_pybindgen.o: ifdh_pybindgen.cc
 	${CXX} -c -o $@  $(SWIGCXXFLAGS) $< 
 
-python/ifdh.so: ifdh_pybindgen.o
-	${CXX} --shared $(ARCH) -o  $@ $< $${PYTHON_LIB:-/usr/lib64}/libpython*[asd]* $(LDLIBS) || ${CXX} --shared $(ARCH) -o  $@ $<  $${PYTHON_LIB:-/usr/lib}/libpython*[asd]* $(LDLIBS)
+python/ifdh.$(SHLIB): $(PYMOD_OBJS)
+	${CXX} --shared $(ARCH) -o  $@ $(PYMOD_OBJS) $${PYTHON_LIB:-/usr/lib64}/libpython*[asd]* $(LDLIBS) || ${CXX} --shared $(ARCH) -o  $@ $(PYMOD_OBJS)  $${PYTHON_LIB:-/usr/lib}/libpython*[asd]* $(LDLIBS)
 
-python/_ifdh.$(SHLIB): $(PYMOD_OBJS)
-	test -d python || mkdir python 
-	${CXX} --shared $(ARCH) -o  $@ $(PYMOD_OBJS) $${PYTHON_LIB:-/usr/lib64}/libpython*[asd]* $(LDLIBS) || ${CXX} --shared $(ARCH) -o  $@ $(PYMOD_OBJS) $${PYTHON_LIB:-/usr/lib}/libpython*[asd]* $(LDLIBS)
+#python/_ifdh.$(SHLIB): $(PYMOD_OBJS)
+#	test -d python || mkdir python 
+#	${CXX} --shared $(ARCH) -o  $@ $(PYMOD_OBJS) $${PYTHON_LIB:-/usr/lib64}/libpython*[asd]* $(LDLIBS) || ${CXX} --shared $(ARCH) -o  $@ $(PYMOD_OBJS) $${PYTHON_LIB:-/usr/lib}/libpython*[asd]* $(LDLIBS)
 
 libifdh.$(SHLIB): $(ALL_OBJS)
 	${CXX} --shared $(ARCH) $(CPPFLAGS)  -o $@ $(ALL_OBJS) $(LDLIBS)

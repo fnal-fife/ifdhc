@@ -121,8 +121,8 @@ class SAMCases(unittest.TestCase):
         print "got: ", res
         self.assertNotEqual(res.has_key(SAMCases.test_file), 0,self._testMethodName)
         self.assertNotEqual(res.has_key(SAMCases.test_file2), 0,self._testMethodName)
-        self.assertNotEqual(len(res[SAMCases.test_file]), 0,self._testMethodName)
-        self.assertNotEqual(len(res[SAMCases.test_file2]), 0,self._testMethodName)
+        self.assertNotEqual(len(list(res[SAMCases.test_file])), 0,self._testMethodName)
+        self.assertNotEqual(len(list(res[SAMCases.test_file2])), 0,self._testMethodName)
 
     def test_3_describe_found(self):
         self.log(self._testMethodName)

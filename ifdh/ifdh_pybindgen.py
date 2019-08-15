@@ -3,6 +3,11 @@ import pybindgen
 import sys
 from pybindgen import Module, retval, param
 
+#
+# Note -- this currently requires my fork of pybindgen, which
+#   supportst the auto_convert option to add_container...
+#
+
 mod=pybindgen.Module("ifdh",cpp_namespace="ifdh_ns")
 mod.add_include('"ifdh.h"')
 

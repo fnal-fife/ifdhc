@@ -1469,7 +1469,6 @@ _wrap_PyIfdh_nsIfdh_locateFiles(PyIfdh_nsIfdh *self, PyObject *args, PyObject *k
     py_std__map__lt__std__string_std__vector__lt__std__string__gt_____gt__ = PyObject_New(Pystd__map__lt__std__string_std__vector__lt__std__string__gt_____gt__, &Pystd__map__lt__std__string_std__vector__lt__std__string__gt_____gt___Type);
     py_std__map__lt__std__string_std__vector__lt__std__string__gt_____gt__->obj = new std::map<std::string,std::vector<std::string> >(retval);
     py_retval = Py_BuildValue((char *) "N", py_std__map__lt__std__string_std__vector__lt__std__string__gt_____gt__);
-    py_retval = PyType_Type.tp_call((PyObject*)&PyDict_Type,Py_BuildValue("(O)",py_retval),Py_BuildValue("{}"));
     return py_retval;
 }
 
@@ -1955,12 +1954,22 @@ int _wrap_convert_py2c__std__vector__lt___ifdh_lss_pair___gt__(PyObject *arg, st
 {
     if (PyObject_IsInstance(arg, (PyObject*) &Pystd__vector__lt__ifdh_lss_pair__gt___Type)) {
         *container = *((Pystd__vector__lt__ifdh_lss_pair__gt__*)arg)->obj;
-    } else if (PyList_Check(arg)||PyTuple_Check(arg)) {
+    } else if (PyList_Check(arg)) {
         container->clear();
         Py_ssize_t size = PyList_Size(arg);
         for (Py_ssize_t i = 0; i < size; i++) {
             ifdh_lss_pair item;
             if (!_wrap_convert_py2c__ifdh_lss_pair(PyList_GET_ITEM(arg, i), &item)) {
+                return 0;
+            }
+            container->push_back(item);
+        }
+    } else if (PyTuple_Check(arg)) {
+        container->clear();
+        Py_ssize_t size = PyTuple_Size(arg);
+        for (Py_ssize_t i = 0; i < size; i++) {
+            ifdh_lss_pair item;
+            if (!_wrap_convert_py2c__ifdh_lss_pair(PyTuple_GET_ITEM(arg, i), &item)) {
                 return 0;
             }
             container->push_back(item);
@@ -2200,12 +2209,22 @@ int _wrap_convert_py2c__std__vector__lt___std__string___gt__(PyObject *arg, std:
 {
     if (PyObject_IsInstance(arg, (PyObject*) &Pystd__vector__lt__std__string__gt___Type)) {
         *container = *((Pystd__vector__lt__std__string__gt__*)arg)->obj;
-    } else if (PyList_Check(arg)||PyTuple_Check(arg)) {
+    } else if (PyList_Check(arg)) {
         container->clear();
         Py_ssize_t size = PyList_Size(arg);
         for (Py_ssize_t i = 0; i < size; i++) {
             std::string item;
             if (!_wrap_convert_py2c__std__string(PyList_GET_ITEM(arg, i), &item)) {
+                return 0;
+            }
+            container->push_back(item);
+        }
+    } else if (PyTuple_Check(arg)) {
+        container->clear();
+        Py_ssize_t size = PyTuple_Size(arg);
+        for (Py_ssize_t i = 0; i < size; i++) {
+            std::string item;
+            if (!_wrap_convert_py2c__std__string(PyTuple_GET_ITEM(arg, i), &item)) {
                 return 0;
             }
             container->push_back(item);
@@ -2424,8 +2443,7 @@ static PyObject* _wrap_Pystd__map__lt__std__string_std__vector__lt__std__string_
     ++(*self->iterator);
     py_std__vector__lt__std__string__gt__ = PyObject_New(Pystd__vector__lt__std__string__gt__, &Pystd__vector__lt__std__string__gt___Type);
     py_std__vector__lt__std__string__gt__->obj = new std::vector<std::string>(iter->second);
-    py_retval = Py_BuildValue((char *) "s#N", (iter->first).c_str(), (iter->first).size(), py_std__vector__lt__std__string__gt__);
-    py_retval = PyType_Type.tp_call((PyObject*)&PyTuple_Type,Py_BuildValue("(O)",py_retval),Py_BuildValue("{}"));
+    py_retval = Py_BuildValue((char *) "(s#,N)", (iter->first).c_str(), (iter->first).size(), py_std__vector__lt__std__string__gt__);
     return py_retval;
 }
 
@@ -2433,11 +2451,29 @@ int _wrap_convert_py2c__std__map__lt___std__string__std__vector__lt___std__strin
 {
     if (PyObject_IsInstance(arg, (PyObject*) &Pystd__map__lt__std__string_std__vector__lt__std__string__gt_____gt___Type)) {
         *container = *((Pystd__map__lt__std__string_std__vector__lt__std__string__gt_____gt__*)arg)->obj;
-    } else if (PyList_Check(arg)||PyTuple_Check(arg)) {
+    } else if (PyList_Check(arg)) {
         container->clear();
         Py_ssize_t size = PyList_Size(arg);
         for (Py_ssize_t i = 0; i < size; i++) {
             PyObject *tup = PyList_GET_ITEM(arg, i);
+            if (!PyTuple_Check(tup) || PyTuple_Size(tup) != 2) {
+                PyErr_SetString(PyExc_TypeError, "items must be tuples with two elements");
+                return 0;
+            }
+            std::pair< std::string, std::vector< std::string > > item;
+            if (!_wrap_convert_py2c__std__string(PyTuple_GET_ITEM(tup, 0), &item.first)) {
+                return 0;
+            }
+            if (!_wrap_convert_py2c__std__vector__lt___std__string___gt__(PyTuple_GET_ITEM(tup, 1), &item.second)) {
+                return 0;
+            }
+            container->insert(item);
+        }
+    } else if (PyTuple_Check(arg)) {
+        container->clear();
+        Py_ssize_t size = PyTuple_Size(arg);
+        for (Py_ssize_t i = 0; i < size; i++) {
+            PyObject *tup = PyTuple_GET_ITEM(arg, i);
             if (!PyTuple_Check(tup) || PyTuple_Size(tup) != 2) {
                 PyErr_SetString(PyExc_TypeError, "items must be tuples with two elements");
                 return 0;

@@ -19,7 +19,7 @@ pair.add_instance_attribute('second','long')
 
 mod.add_container('std::vector<ifdh_lss_pair>','ifdh_lss_pair','vector',auto_convert="PyList_Type")
 mod.add_container('std::vector<std::string>','std::string','vector',auto_convert="PyTuple_Type")
-mod.add_container('std::map<std::string,std::vector<std::string> >',(retval('std::string'),retval('std::vector<std::string>')),'map',auto_convert="PyDict_Type")
+mod.add_container('std::map<std::string,std::vector<std::string> >',['std::string','std::vector<std::string>'],'map')
 
 klass = mod.add_class("ifdh")
 klass.add_constructor([param('std::string','baseuri',default_value='""')])

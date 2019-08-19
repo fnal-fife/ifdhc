@@ -1955,7 +1955,7 @@ int _wrap_convert_py2c__std__vector__lt___ifdh_lss_pair___gt__(PyObject *arg, st
 {
     if (PyObject_IsInstance(arg, (PyObject*) &Pystd__vector__lt__ifdh_lss_pair__gt___Type)) {
         *container = *((Pystd__vector__lt__ifdh_lss_pair__gt__*)arg)->obj;
-    } else if (PyList_Check(arg)) {
+    } else if (PyList_Check(arg)||PyTuple_Check(arg)) {
         container->clear();
         Py_ssize_t size = PyList_Size(arg);
         for (Py_ssize_t i = 0; i < size; i++) {
@@ -2200,7 +2200,7 @@ int _wrap_convert_py2c__std__vector__lt___std__string___gt__(PyObject *arg, std:
 {
     if (PyObject_IsInstance(arg, (PyObject*) &Pystd__vector__lt__std__string__gt___Type)) {
         *container = *((Pystd__vector__lt__std__string__gt__*)arg)->obj;
-    } else if (PyList_Check(arg)) {
+    } else if (PyList_Check(arg)||PyTuple_Check(arg)) {
         container->clear();
         Py_ssize_t size = PyList_Size(arg);
         for (Py_ssize_t i = 0; i < size; i++) {
@@ -2433,7 +2433,7 @@ int _wrap_convert_py2c__std__map__lt___std__string__std__vector__lt___std__strin
 {
     if (PyObject_IsInstance(arg, (PyObject*) &Pystd__map__lt__std__string_std__vector__lt__std__string__gt_____gt___Type)) {
         *container = *((Pystd__map__lt__std__string_std__vector__lt__std__string__gt_____gt__*)arg)->obj;
-    } else if (PyList_Check(arg)) {
+    } else if (PyList_Check(arg)||PyTuple_Check(arg)) {
         container->clear();
         Py_ssize_t size = PyList_Size(arg);
         for (Py_ssize_t i = 0; i < size; i++) {

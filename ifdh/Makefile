@@ -58,8 +58,11 @@ ifdh: libifdh.$(SHLIB) ifdh_main.o
 	${CXX} $(ARCH) -o $@ ifdh_main.o $(ALL_OBJS) $(LDLIBS)
 	./ifdh --help | perl -pe 's{\033\[.*?m}{}g; s{\tifdh ([^ ]*) *(.*?) *$$}{* *ifdh* *$$1* _$$2_}; s{\t--}{** }' > ifdh.textile
 
-ifdh_pybindgen.cc: ifdh_pybindgen.py
-	python $< > $@
+# at the moment, you need a custom pybindgen, so I am leaving this rule
+# out and pretending ifdh_pybindgen.cc is just plain generated source.
+# ifdh_pybindgen.cc: ifdh_pybindgen.py
+#	python $< > $@
+#	patch < ifdh_pybindgen.patch
 
 ifdh_pybindgen.o: ifdh_pybindgen.cc
 	${CXX} -c -o $@  $(SWIGCXXFLAGS) $< 

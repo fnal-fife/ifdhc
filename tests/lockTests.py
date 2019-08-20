@@ -35,7 +35,7 @@ class ifdh_lock_cases(unittest.TestCase):
         self.lockgroup = 'ifmon'
         self.lock = '%s/%s/LOCK' % (self.lockbase, self.lockgroup)
         # put CPN_DIR back if cpTests hid it...
-        if os.environ.has_key('SAVE_CPN_DIR'):
+        if 'SAVE_CPN_DIR' in os.environ:
             os.environ['CPN_DIR'] = os.environ['SAVE_CPN_DIR']
         #os.environ['CPN_DIR'] = '/no/such/dir'
         os.environ['CPN_LOCK_BASE'] = self.lockbase
@@ -54,7 +54,10 @@ class ifdh_lock_cases(unittest.TestCase):
     def start_copy(self, source="/dev/null"):
 
         if source == "/dev/null":
-            dest = "/nova/data/mengel/.empty"
+            if (os.access('/nova/data/mengel',os.R_OK)):
+                dest = "/nova/data/mengel/.empty"
+            else:
+                dest = "/tmp/.empty"
         else:
             dest = "/dev/null"
 
@@ -63,10 +66,10 @@ class ifdh_lock_cases(unittest.TestCase):
 
     def get_lock_line(self):
         s = self.cp_p.readline()
-        print "\nread line: ", s
+        print("\nread line: ", s)
         while s != ""  and (not ("LOCK -" in s) or ("already in progress" in s)):
             s = self.cp_p.readline()
-            print "\nread line: ", s
+            print("\nread line: ", s)
         return s
 
  
@@ -77,19 +80,19 @@ class ifdh_lock_cases(unittest.TestCase):
             return False
 
         t1 = sb[stat.ST_MTIME]
-        print "time before: " , t1
+        print("time before: " , t1)
         for i in range(0,7):
             sys.stdout.write(".")
             sys.stdout.flush()
             time.sleep(60)
-        print ""
+        print("")
         try:
             sb = os.stat(qf)
         except OSError:
             return False
  
         t2 = sb[stat.ST_MTIME]
-        print "time after: " , t2
+        print("time after: " , t2)
         return t1 != t2
 
     def wakeup(self):
@@ -97,21 +100,21 @@ class ifdh_lock_cases(unittest.TestCase):
         portnum = self.cp_s.pid  + 2000
     
         #os.system("ps --forest ");
-        #print "trying port ", portnum
+        #print("trying port ", portnum)
 
         command = "echo wakeup > /dev/udp/`hostname`/%d" % portnum
-        #print "trying: ", command
+        #print("trying: ", command)
         os.system( command )
 
     def expect_lock_line(self,  what, what2 = None, what3 = None ):
-        print "checking for '%s' ..." % what
+        print("checking for '%s' ..." % what)
         s = self.get_lock_line()
-        print "...in '%s'" %  s
+        print("...in '%s'" %  s)
         if what2:
             while what2 in s or what3 in s:
-                print "skipping because of %s, %s" % (what2, what3)
+                print("skipping because of %s, %s" % (what2, what3))
                 s = self.get_lock_line()
-	        print "...in '%s'" %  s
+	        print("...in '%s'" %  s)
         self.assertTrue(what in s)
         return s
 
@@ -141,7 +144,7 @@ class ifdh_lock_cases(unittest.TestCase):
 
         # make sure queue file exists, and has time updated
         p = s.find("queue")
-        print "checking queue..."
+        print("checking queue...")
         qf = "%s/QUEUE/%s" % ( self.lock , s[p+6:-1])
 
         self.assertTrue(self.check_heartbeat(qf))
@@ -168,7 +171,7 @@ class ifdh_lock_cases(unittest.TestCase):
         
         # make sure queue file exists, and has time updated
         p = s.find("queue")
-        print "checking queue..."
+        print("checking queue...")
         qf = "%s/QUEUE/%s" % ( self.lock , s[p+6:-1])
 
         self.assertFalse(self.check_heartbeat(qf))
@@ -178,6 +181,8 @@ class ifdh_lock_cases(unittest.TestCase):
     def test_04_interrupted_copy(self):
 
         # start a copy which will sleep
+        if( not os.access("/nova/data/mengel/ifmon/CPNTEST/FILES/20G",os.R_OK):
+            return
         self.start_copy("/nova/data/mengel/ifmon/CPNTEST/FILES/20G")
         s = self.expect_lock_line(" lock ")
 
@@ -185,12 +190,14 @@ class ifdh_lock_cases(unittest.TestCase):
         os.killpg( self.cp_s.pid, 15)
 
         lockf = s[s.rfind(" ")+1:-1]
-        print "checking lock file: '%s'" % lockf
+        print("checking lock file: '%s'" % lockf)
         
         self.assertFalse(self.check_heartbeat(lockf))
         
     def test_05_interrupted_just_cp(self):
 
+        if( not os.access("/nova/data/mengel/ifmon/CPNTEST/FILES/20G",os.R_OK):
+            return
         # start a copy which will sleep
         self.start_copy("/nova/data/mengel/ifmon/CPNTEST/FILES/20G")
         s = self.expect_lock_line(" lock ")
@@ -198,12 +205,12 @@ class ifdh_lock_cases(unittest.TestCase):
         # kill off just the underlying cp...
         time.sleep(1)
         cmd = "ps -ef | grep -v grep | grep ' %d ' | egrep ' cp /| dd.*if./' " % self.cp_s.pid 
-        print "looking with: " , cmd
+        print("looking with: " , cmd)
         f = os.popen(cmd , "r")
         pids = f.read()
         f.close()
-        print "found pid: ", pids
-        print "trimmed pid: ", pids[7:14]
+        print("found pid: ", pids)
+        print("trimmed pid: ", pids[7:14])
 
         os.kill( int(pids[7:14]), 9)
 
@@ -211,7 +218,7 @@ class ifdh_lock_cases(unittest.TestCase):
         time.sleep(65)
 
         lockf = s[s.rfind(" ")+1:-1]
-        print "checking lock file: '%s'" % lockf
+        print("checking lock file: '%s'" % lockf)
         
         self.assertFalse(self.check_heartbeat(lockf))
         

@@ -16,11 +16,11 @@ class argparsecases(unittest.TestCase):
 
     def log(self,msg):
         try:
-            #print msg
+            #print(msg)
             self.ifdh_handle.log(msg)
         except:
-            print "error trying to log %s" % msg
-            print "%s - continuing"%sys.exc_info()[1]
+            print("error trying to log %s" % msg)
+            print("%s - continuing"%sys.exc_info()[1])
             pass
 
 

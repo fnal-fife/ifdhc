@@ -190,7 +190,7 @@ do
 	printf "}\n"
 	xlate=false;
         ;;
-    std::vector*std::pair*)
+    std::vector*pair*)
         pfunc="dvpsl"
         docall=true;
         ;;

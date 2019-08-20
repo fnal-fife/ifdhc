@@ -21,11 +21,11 @@ class aux_file_cases(unittest.TestCase):
 
     def log(self,msg):
         try:
-            print msg
+            print(msg)
             self.ifdh_handle.log(msg)
         except:
-            print "error trying to log %s" % msg
-            print "%s - continuing"%sys.exc_info()[1]
+            print("error trying to log %s" % msg)
+            print("%s - continuing"%sys.exc_info()[1])
             pass
 
     def mk_remote_dir(self,dir,opts=''):
@@ -56,8 +56,8 @@ class aux_file_cases(unittest.TestCase):
         self.ifdh_handle = ifdh.ifdh(base_uri_fmt % aux_file_cases.experiment)
         self.hostname = socket.gethostname()
         self.work="%s/work%d" % (os.environ.get('TMPDIR','/tmp'),os.getpid())
-	self.data_dir_root="/grid/data/%s/%s" % (os.environ.get('TEST_USER', os.environ['USER']), self.hostname)
-	self.data_dir="/grid/data/%s/%s/%s" % (os.environ.get('TEST_USER', os.environ['USER']), self.hostname,os.getpid())
+        self.data_dir_root="/grid/data/%s/%s" % (os.environ.get('TEST_USER', os.environ['USER']), self.hostname)
+        self.data_dir="/grid/data/%s/%s/%s" % (os.environ.get('TEST_USER', os.environ['USER']), self.hostname,os.getpid())
         
         # setup test directory tree..
         count = 0

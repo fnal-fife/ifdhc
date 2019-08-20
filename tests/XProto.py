@@ -21,11 +21,11 @@ class xproto_cases(unittest.TestCase):
 
     def log(self,msg):
         try:
-            print msg
+            print(msg)
             self.ifdh_handle.log(msg)
         except:
-            print "error trying to log %s" % msg
-            print "%s - continuing"%sys.exc_info()[1]
+            print("error trying to log %s" % msg)
+            print("%s - continuing"%sys.exc_info()[1])
             pass
 
     def setUp(self):
@@ -55,7 +55,7 @@ class xproto_cases(unittest.TestCase):
         self.ifdh_handle.cp([self.local,self.s3loc ])
         self.ifdh_handle.cp([self.s3loc, self.gridftploc ])
         res = self.ifdh_handle.ls(self.gridftploc,1,'')
-        print "saw:" , res
+        print("saw:" , res)
         self.assertEqual(len(res),1,self._testMethodName)
 
     def test_xproto_gs(self):
@@ -63,7 +63,7 @@ class xproto_cases(unittest.TestCase):
         self.ifdh_handle.cp([self.local,self.gridftploc ])
         self.ifdh_handle.cp([self.gridftploc, self.s3loc ])
         res = self.ifdh_handle.ls(self.s3loc,1,'')
-        print "saw:" , res
+        print("saw:" , res)
         self.assertEqual(len(res),1,self._testMethodName)
 
     def test_xproto_hg(self):
@@ -71,7 +71,7 @@ class xproto_cases(unittest.TestCase):
         self.ifdh_handle.cp([self.local,self.httploc ])
         self.ifdh_handle.cp([self.httploc, self.gridftploc ])
         res = self.ifdh_handle.ls(self.gridftploc,1,'')
-        print "saw:" , res
+        print("saw:" , res)
         self.assertEqual(len(res),1,self._testMethodName)
 
     def test_xproto_gh(self):
@@ -79,7 +79,7 @@ class xproto_cases(unittest.TestCase):
         self.ifdh_handle.cp([self.local,self.gridftploc ])
         self.ifdh_handle.cp([self.gridftploc, self.httploc ])
         res = self.ifdh_handle.ls(self.httploc,1,'')
-        print "saw:" , res
+        print("saw:" , res)
         self.assertEqual(len(res),1,self._testMethodName)
          
 def suite():

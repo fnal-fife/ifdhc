@@ -32,11 +32,11 @@ class ifdh_cp_cases(unittest.TestCase):
 
     def log(self,msg):
         try:
-            print msg
+            print(msg)
             self.ifdh_handle.log(msg)
         except:
-            print "error trying to log %s" % msg
-            print "%s - continuing"%sys.exc_info()[1]
+            print("error trying to log %s" % msg)
+            print("%s - continuing"%sys.exc_info()[1])
             pass
 
     def mk_remote_dir(self,dir,opts=''):
@@ -45,7 +45,7 @@ class ifdh_cp_cases(unittest.TestCase):
         except:
             pass
         try:
-            self.ifdh_handle.chmod(0777, dir)
+            self.ifdh_handle.chmod(0o777, dir)
         except:
             pass
 
@@ -69,14 +69,14 @@ class ifdh_cp_cases(unittest.TestCase):
 
 
     def check_data_f1_f2(self, char="f"):
-        print "check_data"
-        print "=========="
+        print("check_data")
+        print("==========")
         count = 0
         for l in self.ifdh_handle.ls(self.data_dir,1,''):
-            print l
+            print(l)
             if l.endswith("/%s1" % char) or l.endswith("/%s2" % char):
                 count = count + 1
-        print "=========="
+        print("==========")
         return count > 1
 
     def clean_dest(self):
@@ -84,7 +84,7 @@ class ifdh_cp_cases(unittest.TestCase):
             full = '%s/%s' % ( self.data_dir, f )
             try:
                self.ifdh_handle.ls(full,1,'')
-	       self.ifdh_handle.rm(full,'')
+               self.ifdh_handle.rm(full,'')
             except:
                pass
 
@@ -98,7 +98,7 @@ class ifdh_cp_cases(unittest.TestCase):
         os.system('chmod 775 %s/test.txt'%self.work)
 
     def make_remote_test_txt(self):
-        out = NamedTemporaryFile(delete=False)
+        out = NamedTemporaryFile(mode='w',delete=False)
         out.write("testing testing %d \n" % ifdh_cp_cases.tc)
         out.close()
         self.ifdh_handle.cp([out.name, self.data_dir + '/test.txt'])
@@ -106,11 +106,11 @@ class ifdh_cp_cases(unittest.TestCase):
             self.ifdh_handle.chmod("775", self.data_dir + '/test.txt')
         except:
             pass
-        out.unlink(out.name)
+        os.unlink(out.name)
 
     def check_writable(self,apath):
         try:
-	    self.ifdh_handle.chmod("775",  apath)
+            self.ifdh_handle.chmod("775",  apath)
         except:
             pass
 
@@ -130,18 +130,18 @@ class ifdh_cp_cases(unittest.TestCase):
         self.ifdh_handle = ifdh.ifdh(base_uri_fmt % ifdh_cp_cases.experiment)
         self.hostname = socket.gethostname()
         self.work="%s/work%d" % (os.environ.get('TMPDIR','/tmp'),os.getpid())
-	self.data_dir_root="/pnfs/fnal.gov/usr/%s/scratch/users/%s/%s" % (ifdh_cp_cases.experiment, os.environ.get('TEST_USER', os.environ['USER']), self.hostname)
-	self.blue_data_dir_root="/%s/data/users/%s/%s" % (ifdh_cp_cases.experiment, os.environ.get('TEST_USER', os.environ['USER']), self.hostname)
-	self.data_dir="%s/%s" % (self.data_dir_root, os.getpid())
-	self.blue_data_dir="%s/%s" % (self.blue_data_dir_root, os.getpid())
+        self.data_dir_root="/pnfs/fnal.gov/usr/%s/scratch/users/%s/%s" % (ifdh_cp_cases.experiment, os.environ.get('TEST_USER', os.environ['USER']), self.hostname)
+        self.blue_data_dir_root="/%s/data/users/%s/%s" % (ifdh_cp_cases.experiment, os.environ.get('TEST_USER', os.environ['USER']), self.hostname)
+        self.data_dir="%s/%s" % (self.data_dir_root, os.getpid())
+        self.blue_data_dir="%s/%s" % (self.blue_data_dir_root, os.getpid())
         for d in [self.data_dir_root, self.data_dir, '%s/started'% (self.data_dir), '/pnfs/nova/scratch/ifdh_stage/test', self.blue_data_dir]:
-	    try:
-                # print "trying to mkdir: ", d, "... ",
-		self.ifdh_handle.mkdir(d,'')
-                #print "made it."
-	    except:
-                print "exception."
-		pass
+            try:
+                # print("trying to mkdir: ", d, "... ",)
+                self.ifdh_handle.mkdir(d,'')
+                #print("made it.")
+            except:
+                print("exception.")
+                pass
         self.ifdh_handle.chmod('0775', self.data_dir,'')
         self.ifdh_handle.chmod('0775', '%s/started'% (self.data_dir),'')
         # setup test directory tree..
@@ -156,12 +156,12 @@ class ifdh_cp_cases(unittest.TestCase):
                 f.close()
         os.system("ls -R %s" % self.work)
         time.sleep(1) # wait for NFS
-        print "Setup complete."
+        print("Setup complete.")
 
     def tearDown(self):
         os.system("rm -rf %s" % self.work)
         self.mk_remote_dir('%s/finished'% (self.data_dir),'')
-        print "tearDown complete."
+        print("tearDown complete.")
         pass
 
     def test_00_fetchinput_fail(self):
@@ -258,7 +258,7 @@ class ifdh_cp_cases(unittest.TestCase):
         self.ifdh_handle.cp(['--force=expftp', '-D', '%s/a/f1' % self.work, '%s/a/f2' % self.work, self.data_dir])
         if (os.access("%s/f1" % self.data_dir, os.R_OK)) :
             statinfo = os.stat("%s/f1" % self.data_dir)
-    	    self.assertEqual(statinfo.st_mode & 040000, 0, self._testMethodName)
+            self.assertEqual(statinfo.st_mode & 0o40000, 0, self._testMethodName)
         else:
             self.assertEqual(True,True, self._testMethodName)
 
@@ -270,7 +270,7 @@ class ifdh_cp_cases(unittest.TestCase):
         self.check_writable( "%s/test.txt" % self.data_dir)
         self.ifdh_handle.ll(self.data_dir, 1,"")
         li = self.ifdh_handle.ls("%s/test.txt" % self.data_dir, 1,"")
-        print "got li: " , li
+        print("got li: " , li)
         self.assertEqual(len(li),1, self._testMethodName)  
 
     def test_gsiftp_in(self):
@@ -286,7 +286,7 @@ class ifdh_cp_cases(unittest.TestCase):
         self.check_writable( "%s/test.txt" % self.data_dir)
         self.ifdh_handle.ll(self.data_dir, 1,"")
         l1 = self.ifdh_handle.ls("%s/test.txt" % self.data_dir, 1,"")
-        print "got li: " , l1
+        print("got li: " , l1)
         self.assertEqual(len(l1),1, self._testMethodName)  
 
     def test_xrootd_in(self):
@@ -364,7 +364,7 @@ class ifdh_cp_cases(unittest.TestCase):
         # li1 = self.ifdh_handle.ls(self.data_dir,1,"")
         time.sleep(1)
         l = self.ifdh_handle.ls( dest, 0, "")
-        print "got li: " , l
+        print("got li: " , l)
         # some utilities give the directory *and* the file, so
         # prune the first item if it's a directory
         if len(l) > 0 and l[0][-1] == '/' and len(l) > 1:
@@ -388,7 +388,7 @@ class ifdh_cp_cases(unittest.TestCase):
         # shouldn't need this one, but we seem to?
         li1 = self.ifdh_handle.ls(self.data_dir,1,"")
         l2 = self.ifdh_handle.ls("%s/test.txt" % self.data_dir, 1,"")
-        print "got li: ", l2
+        print("got li: ", l2)
         self.assertEqual(len(l2),1, self._testMethodName)  # not sure how to verify if it is remote..
 
     def test_01_default_in(self):
@@ -613,7 +613,7 @@ class ifdh_cp_cases(unittest.TestCase):
          self.ifdh_handle.mkdir(dir,'')
          self.ifdh_handle.cp( ['-D','%s/a/f1' % self.work, dir])
          li = self.ifdh_handle.ls(dir + '/f1' , 1, "")
-         print "list is:", li
+         print("list is:", li)
          self.ifdh_handle.rm(dir + '/f1','')
          self.ifdh_handle.rmdir(dir,'')
          self.assertEqual(len(li) > 0, True, self._testMethodName)
@@ -624,7 +624,7 @@ class ifdh_cp_cases(unittest.TestCase):
          self.ifdh_handle.mkdir(dir, '--force=expgridftp')
          self.ifdh_handle.cp( ['--force=expgridftp', '-D','%s/a/f1' % self.work, dir])
          l1 = self.ifdh_handle.ls(dir + '/f1' , 1, "--force=expgridftp")
-         print "list is:", l1
+         print("list is:", l1)
          self.ifdh_handle.rm(dir + '/f1','--force=expgridftp')
          self.ifdh_handle.rmdir(dir,'--force=expgridftp')
          self.assertEqual(len(l1) > 0, True, self._testMethodName)
@@ -635,7 +635,7 @@ class ifdh_cp_cases(unittest.TestCase):
          self.ifdh_handle.mkdir(dir, '--force=gridftp')
          self.ifdh_handle.cp( ['--force=gridftp', '-D','%s/a/f1' % self.work, dir])
          l1 = self.ifdh_handle.ls(dir + '/f1' , 1, "--force=gridftp")
-         print "list is:", l1
+         print("list is:", l1)
          self.ifdh_handle.rm(dir + '/f1','--force=gridftp')
          self.ifdh_handle.rmdir(dir,'--force=gridftp')
          self.assertEqual(len(l1) > 0, True, self._testMethodName)
@@ -651,8 +651,8 @@ class ifdh_cp_cases(unittest.TestCase):
          except:
              pass
          f =open("%s/foo.txt" % self.work,"w") 
- 	 f.write("foo")
-	 f.close()
+         f.write("foo")
+         f.close()
          self.ifdh_handle.cp(["%s/foo.txt" % self.work, "/pnfs/nova/scratch/users/mengel/foo.txt"])
          res = self.ifdh_handle.cp(["/pnfs/nova/scratch/users/mengel/foo.txt", "%s/foo.txt" % self.data_dir])
          self.assertEqual(res == 0, True, self._testMethodName)
@@ -670,8 +670,8 @@ class ifdh_cp_cases(unittest.TestCase):
          except:
              pass
          f =open("%s/foo.txt" % self.work,"w") 
- 	 f.write("foo")
-	 f.close()
+         f.write("foo")
+         f.close()
          self.ifdh_handle.cp(["%s/foo.txt" % self.work, "%s/foo.txt" % self.data_dir])
          res = self.ifdh_handle.cp(["%s/foo.txt" % self.data_dir, "/pnfs/nova/scratch/users/mengel/foo.txt"])
          self.assertEqual(res == 0, True, self._testMethodName)
@@ -718,8 +718,8 @@ class ifdh_cp_cases(unittest.TestCase):
         # copying them to bluearc should get and free one lock
         # ...if we enable locking again:
         os.environ['CPN_DIR'] = os.environ['SAVE_CPN_DIR']
-        print "CPN_DIR is " , os.environ['CPN_DIR']
-        print "dest is", self.blue_data_dir
+        print("CPN_DIR is " , os.environ['CPN_DIR'])
+        print("dest is", self.blue_data_dir)
         self.ifdh_handle.mkdir_p(self.blue_data_dir)
         os.system("CPN_LOCK_GROUP=gpcf ifdh cp -D %s %s >out 2>err" % ( ' '.join(args), self.blue_data_dir))
         os.system("echo '==== out ======';cat out;echo '============='")
@@ -728,15 +728,15 @@ class ifdh_cp_cases(unittest.TestCase):
         frees = 0
         for line in f:
             fields = line.split(' ')
-            print line
-            print fields
+            print(line)
+            print(fields)
             if fields[0] == 'LOCK':
                 if fields[8] == 'lock':
                     locks = locks + 1
                 if fields[8] == 'freed':
                     frees = frees + 1
         f.close()
-        print "counts: locks ", locks, " frees ", frees
+        print("counts: locks ", locks, " frees ", frees)
         self.assertEqual( locks, 1)
         self.assertEqual( frees, 1)
          

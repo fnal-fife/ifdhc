@@ -16,11 +16,11 @@ class exitcodecases(unittest.TestCase):
 
     def log(self,msg):
         try:
-            #print msg
+            #print(msg)
             self.ifdh_handle.log(msg)
         except:
-            print "error trying to log %s" % msg
-            print "%s - continuing"%sys.exc_info()[1]
+            print("error trying to log %s" % msg)
+            print("%s - continuing"%sys.exc_info()[1])
             pass
 
 
@@ -49,10 +49,10 @@ class exitcodecases(unittest.TestCase):
             raise
 
     def setUp(self):
-        self.forceMethods=["", "--force=gsiftp","--force=srm","--force=root"]
+        self.forceMethods=["", "--force=gsiftp","--force=root","--force=srm",]
         sys.stdout.flush()
         sys.stderr.flush()
-        print "starting setUp"
+        print("starting setUp")
         sys.stdout.flush()
         self.ifdh_handle = ifdh.ifdh()
         os.environ['IFDH_CP_MAXRETRIES'] = "0"
@@ -77,24 +77,24 @@ class exitcodecases(unittest.TestCase):
         res = self.ifdh_handle.mkdir(self.goodRemoteDir,"")
         del os.environ["IFDH_GRIDFTP_EXTRA"]
         if (res != 0):
-            print "setUp: couldn't make ", self.goodRemoteDir
+            print("setUp: couldn't make ", self.goodRemoteDir)
         res = self.ifdh_handle.cp([self.goodLocalFile, self.goodRemoteFile])
         if (res != 0):
-            print "setUp: couldn't create ", self.goodRemoteFile
+            print("setUp: couldn't create ", self.goodRemoteFile)
         res = self.ifdh_handle.ls(self.goodRemoteDir,1,"")
         if len(res) == 0:
-            print "setUp: couldn't create ", self.goodRemoteFile
-        print "goodRemoteDir ls gives:" , res
+            print("setUp: couldn't create ", self.goodRemoteFile)
+        print("goodRemoteDir ls gives:" , res)
           
         sys.stdout.flush()
         sys.stderr.flush()
-        print "finished setUp"
+        print("finished setUp")
         sys.stdout.flush()
 
     def tearDown(self):
         sys.stdout.flush()
         sys.stderr.flush()
-        print "starting tearDown"
+        print("starting tearDown")
         sys.stdout.flush()
         
         res = os.system("EXPERIMENT=%s ifdh rm %s "% (self.experiment, self.goodLocalFile))
@@ -102,7 +102,7 @@ class exitcodecases(unittest.TestCase):
         for fname in self.ifdh_handle.ls(self.goodRemoteDir,1,''):
             if (fname == self.goodRemoteDir) :
                 continue
-            print "cleaning up unexpected: " , fname
+            print("cleaning up unexpected: " , fname)
             if fname[-1] == "/":
                 res = os.system("EXPERIMENT=%s ifdh rmdir  %s "% (self.experiment, fname))
             else:
@@ -110,7 +110,7 @@ class exitcodecases(unittest.TestCase):
         res = os.system("EXPERIMENT=%s ifdh rmdir %s "% (self.experiment, self.goodRemoteDir))
         sys.stdout.flush()
         sys.stderr.flush()
-        print "finished tearDown"
+        print("finished tearDown")
         sys.stdout.flush()
 
 ## ll ## uses force
@@ -325,7 +325,7 @@ class exitcodecases(unittest.TestCase):
         src=self.goodRemoteDir+"/foo"
         for force in self.forceMethods:
             sys.stderr.flush()
-            print "trying with %s" % force
+            print("trying with %s" % force)
             sys.stdout.flush()
             #cmd = "EXPERIMENT=%s ifdh mkdir %s %s  > /dev/null 2>&1" %\
             cmd = "EXPERIMENT=%s ifdh mkdir %s %s  " %\

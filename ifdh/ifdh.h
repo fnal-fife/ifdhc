@@ -3,8 +3,8 @@
 #define IFDH_H
 #include <string>
 #include <vector>
-#include "../util/WebAPI.h"
-#include "../util/WimpyConfigParser.h"
+#include "WebAPI.h"
+#include "WimpyConfigParser.h"
 #include <stdlib.h>
 #include <map>
 #include <utility>
@@ -30,6 +30,7 @@ public:
 
 class ifdh;
 
+typedef std::pair<std::string,long> ifdh_lss_pair;
 class ifdh_op_msg;
 class ifdh {
         std::string _baseuri;
@@ -147,11 +148,11 @@ class ifdh {
         int ll( std::string loc, int recursion_depth, std::string force = "");
         // list files with sizes
         // use recursion_depth== 0 to check directory without contents
-        std::vector<std::pair<std::string,long> > lss( std::string loc, int recursion_depth, std::string force = "");
+        std::vector<ifdh_lss_pair> lss( std::string loc, int recursion_depth, std::string force = "");
         // find filenames and sizes matching pattern
-        std::vector<std::pair<std::string,long> > findMatchingFiles( std::string path, std::string glob); 
+        std::vector<ifdh_lss_pair> findMatchingFiles( std::string path, std::string glob); 
         // filenames and sizes matching pattern moved locally enough to be seen
-        std::vector<std::pair<std::string,long> > fetchSharedFiles( std::vector<std::pair<std::string,long> > list, std::string schema = ""); 
+        std::vector<ifdh_lss_pair> fetchSharedFiles( std::vector<ifdh_lss_pair> list, std::string schema = ""); 
         // locate multiple files
         std::map<std::string,std::vector<std::string> > locateFiles( std::vector<std::string> args );
         // cheksum file
@@ -174,6 +175,7 @@ class ifdh {
 	std::string takeSnapshot( std::string name);
         // check if project is alive
         std::string projectStatus(std::string projecturi);
+        int addFileLocation(std::string filename, std::string location);
     private:
         IFile lookup_loc(std::string url) ;
         std::string locpath(IFile loc, std::string proto) ;
@@ -189,8 +191,8 @@ class ifdh {
         int do_url_int(int postflag, ...);
         std::string do_url_str(int postflag,...);
         std::vector<std::string> do_url_lst(int postflag,...);
-        int addFileLocation(std::string filename, std::string location);
 };
+
 }
 
 

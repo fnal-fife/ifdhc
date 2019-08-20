@@ -9,7 +9,7 @@ curlopts="-f -L --silent "
 while :
 do
 case "x$1" in
-x--ls*|x--mv*|x--rmdir*|x--mkdir*|x--chmod*) break;;
+x--ll*|x--ls*|x--mv*|x--rmdir*|x--mkdir*|x--chmod*) break;;
 x-*)  curlopts="$curlopts $1"; shift;;
 x*)   break;;
 esac
@@ -37,6 +37,19 @@ ucondb_convert() {
        sed -e "s;^ucondb:/*\\(.*\\)/\\(.*\\)/\\(.*\\);$ucondb_loc/\\1_ucon_prod/app/data/\\2/\\3;"
 }
 
+wll() {
+    curl $curlopts -o - -X PROPFIND "$1" --upload-file - -H "Depth: 1" <<EOF  
+<?xml version="1.0"?>
+<a:propfind xmlns:a="DAV:">
+ <a:allprop/>
+</a:propfind>
+EOF
+}
+
+wls() {
+  wll "$1"  | perl -pe 's/>/>\n/go;'  |  egrep '</d:href>|</d:getcontentlength>|<d:getcontentlength/>'  | perl -pe 'if (/d:href/) { chomp();} s{<d:getcontentlength/>}{0 }; s{<[^>]*>}{ }go;'
+}
+
 dst=`ucondb_convert "$dst"`
 src=`ucondb_convert "$src"`
 
@@ -54,17 +67,13 @@ http*://*\;http*://*)
     ;;
 --ls*) 
   
-    curl $curlopts -o - -X PROPFIND "$dst" --upload-file - -H "Depth: 1" <<EOF  | perl -pe 's/>/>\n/go;'  |  egrep '</d:href>|</d:getcontentlength>|<d:getcontentlength/>'  | perl -pe 'if (/d:href/) { chomp();} s{<d:getcontentlength/>}{0 }; s{<[^>]*>}{ }go;'
-<?xml version="1.0"?>
-<a:propfind xmlns:a="DAV:">
- <a:prop><a:resourcetype/><a:getcontentlength/></a:prop>
-</a:propfind>
-EOF
+    wls "$dst"
+    ;;
+--ll*)
 
-# <a:allprop>
-# <a:prop><a:resourcetype/><a:getcontentlength/></a:prop>
-# <a:prop><a:resourcetype/></a:prop>
-     ;;
+    wll "$dst"
+    ;;
+
 --ls*|--mv*|--rmdir*|--mkdir*|--chmod*)
     echo "Not yet implemented" >&2
     exit 1

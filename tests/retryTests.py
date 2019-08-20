@@ -16,11 +16,11 @@ class retrycases(unittest.TestCase):
 
     def log(self,msg):
         try:
-            #print msg
+            #print(msg)
             self.ifdh_handle.log(msg)
         except:
-            print "error trying to log %s" % msg
-            print "%s - continuing"%sys.exc_info()[1]
+            print("error trying to log %s" % msg)
+            print("%s - continuing"%sys.exc_info()[1])
             pass
 
 
@@ -70,11 +70,11 @@ class retrycases(unittest.TestCase):
             for line in f:
                 if line == 'retrying...\n':
                      found = True
-                     print "saw: ", line, "bad: should not have retried"
+                     print("saw: ", line, "bad: should not have retried")
                 if line[:4] == 'real':
                      toolong = line[5:9] != '0m0.'
                      if toolong:
-                         print "saw: ", line, "bad: too long!"
+                         print("saw: ", line, "bad: too long!")
         self.assertEqual(found, False)
         self.assertEqual(toolong, False)
 

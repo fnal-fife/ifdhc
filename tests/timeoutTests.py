@@ -33,7 +33,7 @@ class TimeoutCases(unittest.TestCase):
 
     def log(self,msg):
         self.ifdh_handle.log(msg)
-        print msg
+        print(msg)
 
     def assertEqual(self,a,b,test=None):
         try:
@@ -66,7 +66,7 @@ class TimeoutCases(unittest.TestCase):
         res = self.ifdh_handle.locateFile("nosuchfile")
         t3 = time.time()
            
-        print "try 1", t2 - t1, "try 2" , t3 - t2
+        print("try 1", t2 - t1, "try 2" , t3 - t2)
         self.assertEqual(int(t2 -t1), 10, "test2-1")
         self.assertEqual(int(t3 -t2), 5, "test2-2")
 

@@ -10,6 +10,13 @@ Product=ifdhc
 Group:
 
   Flavor=ANY
+  Qualifiers=python36
+
+  Action=DefineFQ
+    EnvSet(IFDHC_FQ_DIR, ${UPS_PROD_DIR} )
+
+     Action=ExtraSetup
+  Flavor=ANY
   Qualifiers=python27
 
   Action=DefineFQ

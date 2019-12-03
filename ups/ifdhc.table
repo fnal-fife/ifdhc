@@ -298,5 +298,7 @@ Common:
     SetupOptional(ifdh_platform_pkgs) 
     # get the Amazon S3 client if possible
     SetupOptional(awscli)  
+    # for cmake
+    envPrepend(CMAKE_PREFIX_PATH, ${IFDHC_FQ_DIR} )
 
 End:

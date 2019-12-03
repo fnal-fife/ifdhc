@@ -2281,18 +2281,26 @@ ifdh::findMatchingFiles( string path, string glob) {
    string prefix;
    size_t globslice = 0;
    string sep;
+   bool isproto;
 
    prefix = "";
    dlist1 = split(path,':',false);
-
+   plist = split(_config.get("general","protocols"), ' ', false);
 
    // splitting on colons breaks urls, so put them back
    for (size_t i = 0; i < dlist1.size(); ++i) {
-       if (dlist1[i] == "srm" || dlist1[i] == "gsiftp" || dlist1[i] == "http"|| dlist1[i] == "s3" || dlist1[i] == "i") {
-            prefix = dlist1[i] + ':';
+       isproto = false;
+       for (size_t j = 0; j < plist.size(); ++j) {
+           if (plist[j] == "")
+              continue;
+           if (dlist1[i] == plist[j])
+               isproto = true;
+       }
+       if (isproto) {
+           prefix = dlist1[i] + ':';
        } else {
-	    dlist.push_back(prefix + dlist1[i]);
-            prefix = "";
+	   dlist.push_back(prefix + dlist1[i]);
+           prefix = "";
        }
    }
 

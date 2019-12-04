@@ -10,6 +10,13 @@ Product=ifdhc
 Group:
 
   Flavor=ANY
+  Qualifiers=python36
+
+  Action=DefineFQ
+    EnvSet(IFDHC_FQ_DIR, ${UPS_PROD_DIR} )
+
+     Action=ExtraSetup
+  Flavor=ANY
   Qualifiers=python27
 
   Action=DefineFQ
@@ -291,5 +298,7 @@ Common:
     SetupOptional(ifdh_platform_pkgs) 
     # get the Amazon S3 client if possible
     SetupOptional(awscli)  
+    # for cmake
+    envPrepend(CMAKE_PREFIX_PATH, ${IFDHC_FQ_DIR} )
 
 End:

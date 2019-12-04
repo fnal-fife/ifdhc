@@ -1,6 +1,7 @@
 
 #include <stdlib.h>
 #include <fcntl.h>
+#include <ctype.h>
 #include "ifdh.h"
 #include "ifdh_mbuf.h"
 #include "utils.h"
@@ -2281,19 +2282,33 @@ ifdh::findMatchingFiles( string path, string glob) {
    string prefix;
    size_t globslice = 0;
    string sep;
+   bool is_proto, prev_is_proto;
 
    prefix = "";
    dlist1 = split(path,':',false);
-
+   plist = split(_config.get("general","protocols"), ' ', false);
+   prev_is_proto = false;
 
    // splitting on colons breaks urls, so put them back
    for (size_t i = 0; i < dlist1.size(); ++i) {
-       if (dlist1[i] == "srm" || dlist1[i] == "gsiftp" || dlist1[i] == "http"|| dlist1[i] == "s3" || dlist1[i] == "i") {
-            prefix = dlist1[i] + ':';
-       } else {
-	    dlist.push_back(prefix + dlist1[i]);
-            prefix = "";
+       is_proto = false;
+       for (size_t j = 0; j < plist.size(); ++j) {
+           if (plist[j] == "")
+              continue;
+           if (dlist1[i]+':' == plist[j])
+               is_proto = true;
        }
+
+       // it could be http://host:port/...
+       if (prev_is_proto && dlist1.size()>i+1 && isdigit(dlist1[i+1][0]) && isdigit(dlist1[i+1][2])) {
+          prefix = prefix + dlist1[i] + ':';
+       } else if (is_proto) {
+           prefix = dlist1[i] + ':';
+       } else {
+	   dlist.push_back(prefix + dlist1[i]);
+           prefix = "";
+       }
+       prev_is_proto = is_proto;
    }
 
    //

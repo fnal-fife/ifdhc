@@ -292,6 +292,15 @@ WebAPI::WebAPI(std::string url, int postflag, std::string postdata, int maxretri
 
             // XXX How do we detect/retry https fails?
 
+            // make sure we have openssl
+            if (access("/usr/bin/openssl",X_OK) != 0) {
+               // okay so its not in /usr/bin, is it anywhere in PATH?
+               res = system("openssl version > /dev/null");
+               if ( !(WIFEXITED(res) && 0 == WEXITSTATUS(res)) ) {
+                   throw(WebAPIException(url,"No openssl executable, cannot do https: calls in this environment"));
+               }
+            }
+
             int inp[2], outp[2], pid;
             pipe(inp);
             pipe(outp);
@@ -318,8 +327,10 @@ WebAPI::WebAPI(std::string url, int postflag, std::string postdata, int maxretri
                 // send stderr to /dev/null -- get rid of annoying
                 // validation messages.  Might lose some real errors,
                 // but...
-                close(2);
-                open("/dev/null",O_RDONLY);
+                if ( !_debug ) { 
+                   close(2);
+                   open("/dev/null",O_RDONLY);
+                }
 
                 close(inp[0]); close(inp[1]); 
                 close(outp[0]);close(outp[1]);
@@ -330,6 +341,8 @@ WebAPI::WebAPI(std::string url, int postflag, std::string postdata, int maxretri
                 } else {
                     execlp("openssl", "s_client", "-CApath", "/etc/grid-security/certificates/", "-connect", hostport.str().c_str(),  "-quiet",  (char *)0);
                 }
+                close(0);
+                close(1);
                 exit(-1);
             } else {
                 // parent, fix up pipes, make streams

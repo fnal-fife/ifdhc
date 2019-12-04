@@ -1,1 +1,1 @@
-#define IFDH_VERSION "v2_5_1-4-ge524774"
+#define IFDH_VERSION "v2_5_2"

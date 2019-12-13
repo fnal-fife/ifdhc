@@ -51,6 +51,7 @@ class ifdhBuild(build):
 
 class ifdhInstall(install):
     def initialize_options(self):
+        print("ifdhINstall.initialize_options..")
         install.initialize_options(self)
         self.build_scripts = None
 
@@ -59,11 +60,13 @@ class ifdhInstall(install):
         self.set_undefined_options('build', ('build_scripts', 'build_scripts'))
 
     def run(self):
-
         # install ifdh executables
+        print( "Installing from %s to %s" % (self.build_lib, self.install_lib))
         self.copy_tree(self.build_lib, self.install_lib)
+
         print( "install/run self has: ", self.__dict__.keys())
 
+        print( "Installing from %s to %s" % (self.build_lib + "/../bin", self.install_lib + "/../bin"))
         self.copy_tree(self.build_lib + '/../bin', self.install_base + '/bin')
 
         # move where headers go for virtualenvs
@@ -100,5 +103,6 @@ setup(
         'build': ifdhBuild,
         'install': ifdhInstall,
         'install-headers': None
-    }
+    },
+    data_files=[('etc',['ifdh.cfg'])]
 )

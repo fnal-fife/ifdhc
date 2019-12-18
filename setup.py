@@ -67,7 +67,7 @@ setup(
         'Topic :: Scientific/Engineering :: Information Analysis',
     ],
 
-    headers= ['inc/ifdh.h', 'inc/WimpyConfigParser.h','inc/utils.h'],
+    headers= ['ifdh/ifdh.h', 'util/WimpyConfigParser.h','util/utils.h'],
     cmdclass={
         'build_ext': ifdhBuild,
     },

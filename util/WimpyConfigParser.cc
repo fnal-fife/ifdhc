@@ -24,7 +24,7 @@ getdefault( const char *ccffile, const char *ccffile1, const char *ccffile2, int
     } else if ( (ccffile2) && (std::ifstream((std::string(ccffile2) + "/ifdh.cfg").c_str())) ) {
         cffile = std::string(ccffile2); 
         std::cerr << "ifdh: notice: getting config file from IFDHC_FQ_DIR --  no IFDHC_CONFIG_DIR?!?\n";
-    } else if (getenv("VIRTUALENV") && (std::ifstream((std::string(getenv("VIRTUALENV"))+"/etc/ifdh.cfg").c_str()))) {
+    } else if (getenv("VIRTUAL_ENV") && (std::ifstream((std::string(getenv("VIRTUAL_ENV"))+"/etc/ifdh.cfg").c_str()))) {
         cffile = std::string(getenv("VIRTUALENV")); 
         _debug && std::cerr << "ifdh: notice: getting config file from VIRTUALENV \n";
     } else {

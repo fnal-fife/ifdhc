@@ -25,8 +25,8 @@ getdefault( const char *ccffile, const char *ccffile1, const char *ccffile2, int
         cffile = std::string(ccffile2); 
         std::cerr << "ifdh: notice: getting config file from IFDHC_FQ_DIR --  no IFDHC_CONFIG_DIR?!?\n";
     } else if (getenv("VIRTUAL_ENV") && (std::ifstream((std::string(getenv("VIRTUAL_ENV"))+"/etc/ifdh.cfg").c_str()))) {
-        cffile = std::string(getenv("VIRTUALENV")); 
-        _debug && std::cerr << "ifdh: notice: getting config file from VIRTUALENV \n";
+        cffile = std::string(getenv("VIRTUAL_ENV")); 
+        _debug && std::cerr << "ifdh: notice: getting config file from VIRTUAL_ENV \n";
     } else {
 	throw( std::logic_error("no ifdhc config file environment variables found"));
     }

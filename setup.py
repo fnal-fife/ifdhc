@@ -33,7 +33,7 @@ class ifdhBuild(build_ext):
 
         cmd = [
             'make',
-            'DESTDIR=%s/' % build_path,
+            'DESTDIR=%s/ifdhc/' % build_path,
             'clean',
             'all',
             'install',
@@ -41,6 +41,9 @@ class ifdhBuild(build_ext):
 
         def compile():
             call(cmd)
+            build_path = os.path.abspath(
+               os.path.dirname(self.get_ext_fullpath(ext.name)))
+            call(['mv', '%s/ifdhc/lib/python/ifdh.so' % build_path, '%s/ifdh.so' % build_path])
 
         self.execute(compile, [], 'Compiling ifdhc')
 
@@ -51,8 +54,8 @@ def read(fname):
     return open(os.path.join(os.path.dirname(__file__), fname)).read()
 
 setup(
-    name='ifdh',
-    version='v2_0_5',
+    name='ifdhc',
+    version='v2_5_3',
     description='Intensity Frontier Data Handling',
     maintainer='Marc Mengel',
     maintainer_email='mengel@fnal.gov',
@@ -67,7 +70,7 @@ setup(
         'Topic :: Scientific/Engineering :: Information Analysis',
     ],
 
-    headers= ['inc/ifdh.h', 'inc/WimpyConfigParser.h','inc/utils.h'],
+    headers= ['ifdh/ifdh.h', 'util/WimpyConfigParser.h','util/utils.h'],
     cmdclass={
         'build_ext': ifdhBuild,
     },

@@ -30,7 +30,7 @@ getdefault( const char *ccffile, const char *ccffile1, const char *ccffile2, int
     } else {
 	throw( std::logic_error("no ifdhc config file environment variables found"));
     }
-    _debug && std::cerr << "ifdh: using config file: "<< ccffile << "/ifdh.cfg\n";
+    _debug && std::cerr << "ifdh: using config file: "<< cffile << "/ifdh.cfg\n";
 
     //_debug && std::cerr << "ifdh: getting config file " << cffile << "/ifdh.cfg\n";
     read(cffile + "/ifdh.cfg");

@@ -33,7 +33,7 @@ class ifdhBuild(build_ext):
 
         cmd = [
             'make',
-            'DESTDIR=%s/' % build_path,
+            'DESTDIR=%s/ifdhc/' % build_path,
             'clean',
             'all',
             'install',

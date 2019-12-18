@@ -54,8 +54,8 @@ def read(fname):
     return open(os.path.join(os.path.dirname(__file__), fname)).read()
 
 setup(
-    name='ifdh',
-    version='v2_0_5',
+    name='ifdhc',
+    version='v2_5_3',
     description='Intensity Frontier Data Handling',
     maintainer='Marc Mengel',
     maintainer_email='mengel@fnal.gov',

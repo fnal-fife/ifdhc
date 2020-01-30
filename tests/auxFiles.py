@@ -78,11 +78,13 @@ class aux_file_cases(unittest.TestCase):
     def test_0_matching(self):
         self.log(self._testMethodName)
         l = self.ifdh_handle.findMatchingFiles("%s/a/b:%s/a/c" % (self.work,self.work),"f*")
+        print("len:", len(l))
         self.assertEqual(len(l),40, self._testMethodName)
 
     def test_1_fetch(self):
         l = self.ifdh_handle.findMatchingFiles("%s/a/b:%s/a/c" % (self.work,self.work),"f*")
         l2 = self.ifdh_handle.fetchSharedFiles(l, "")
+        print("fetched: %s" % repr(l2))
         self.ifdh_handle.cleanup()
         self.assertEqual(len(l2),40, self._testMethodName)
          

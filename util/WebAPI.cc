@@ -532,7 +532,7 @@ test_WebAPI_fetchurl() {
    std::string line;
 
 
-   WebAPI ds("http://home.fnal.gov/~mengel/Ascii_Chart.html");
+   WebAPI ds("https://home.fnal.gov/~mengel/Ascii_Chart.html");
 
     std::cout << "ds.data().eof() is " << ds.data().eof() << std::endl;
     while(!ds.data().eof()) {
@@ -542,6 +542,8 @@ test_WebAPI_fetchurl() {
    }
    std::cout << "ds.data().eof() is " << ds.data().eof() << std::endl;
    ds.data().close();
+   
+   return;
 
    WebAPI dsp("http://home.fnal.gov/~mengel/Ascii_Chart.html", 0, "", 10, -1, "squid.fnal.gov:3128");
 

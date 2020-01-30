@@ -106,7 +106,11 @@ class ifdh_cp_cases(unittest.TestCase):
             self.ifdh_handle.chmod("775", self.data_dir + '/test.txt')
         except:
             pass
-        os.unlink(out.name)
+
+        try:
+            os.unlink(out.name)
+        except:
+            pass
 
     def check_writable(self,apath):
         try:

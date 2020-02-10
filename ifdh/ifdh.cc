@@ -881,7 +881,7 @@ ifdh::renameOutput(std::string how) {
                 outfile = outfile.substr(0,m.data()[0].rm_so) + outfile.substr(m.data()[0].rm_eo);
             }
 
-            spos = outfile.find('.');
+            spos = outfile.rfind('.');
             if (spos == string::npos) {
                spos = outfile.size();
             }

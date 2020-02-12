@@ -12,9 +12,9 @@ import sys
 do_dev_sam = False
 
 if do_dev_sam:
-    base_uri_fmt = "http://samweb.fnal.gov:8480/sam/%s/dev/api"
+    base_uri_fmt = "https://samweb.fnal.gov:8483/sam/%s/dev/api"
 else:
-    base_uri_fmt = "http://samweb.fnal.gov:8480/sam/%s/api"
+    base_uri_fmt = "https://samweb.fnal.gov:8483/sam/%s/api"
 
 
 class SAMCases(unittest.TestCase):

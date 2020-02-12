@@ -143,17 +143,13 @@ check_env() {
 string cpn_loc  = "cpn";  // just use the one in the PATH -- its a product now
 string fermi_gsiftp  = "gsiftp://fg-bestman1.fnal.gov:2811";
 string bestmanuri = "srm://fg-bestman1.fnal.gov:10443/srm/v2/server?SFN=";
-std::string ifdh::_default_base_uri = "http://samweb.fnal.gov:8480/sam/";
+
 std::string ifdh::_default_base_ssl_uri = "https://samweb.fnal.gov:8483/sam/";
+std::string ifdh::_default_base_uri =  ifdh::_default_base_ssl_uri;
 
 string ssl_uri(string s) {
-   if (s.find(ifdh::_default_base_uri) == 0) {
-      return ifdh::_default_base_ssl_uri + s.substr(ifdh::_default_base_uri.length());
-   } else {
-      if (getenv("IFDH_BASE_URI") && getenv("IFDH_BASE_SSL_URI") && s.find(getenv("IFDH_BASE_URI")) == 0)
-          return getenv("IFDH_BASE_SSL_URI") + s.substr(strlen(getenv("IFDH_BASE_URI")));
-      return s;
-   }
+   // it is all ssl now...
+   return s;
 }
 
 string datadir() {

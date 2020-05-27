@@ -57,6 +57,66 @@ Group:
      Action=ExtraSetup
 
 Flavor=ANY
+Qualifiers=e20:p383:debug
+
+  Action=DefineFQ
+    EnvSet(IFDHC_FQ_DIR, ${UPS_PROD_DIR}/${UPS_PROD_FLAVOR}-e20-p383-debug )
+
+  Action = ExtraSetup
+    setupRequired( python v3_8_3 )
+    setupRequired( gcc v9_3_0 )
+
+Flavor=ANY
+Qualifiers=e20:p383:prof
+
+  Action=DefineFQ
+    EnvSet(IFDHC_FQ_DIR, ${UPS_PROD_DIR}/${UPS_PROD_FLAVOR}-e20-p383-prof )
+
+  Action = ExtraSetup
+    setupRequired( python v3_8_3 )
+    setupRequired( gcc v9_3_0 )
+
+Flavor=ANY
+Qualifiers=e19:p383:debug
+
+  Action=DefineFQ
+    EnvSet(IFDHC_FQ_DIR, ${UPS_PROD_DIR}/${UPS_PROD_FLAVOR}-e19-p383-debug )
+
+  Action = ExtraSetup
+    setupRequired( python v3_8_3 )
+    setupRequired( gcc v8_2_0 )
+
+Flavor=ANY
+Qualifiers=e19:p383:prof
+
+  Action=DefineFQ
+    EnvSet(IFDHC_FQ_DIR, ${UPS_PROD_DIR}/${UPS_PROD_FLAVOR}-e19-p383-prof )
+
+  Action = ExtraSetup
+    setupRequired( python v3_8_3 )
+    setupRequired( gcc v8_2_0 )
+
+Flavor=ANY
+Qualifiers=c7:p383:debug
+
+  Action=DefineFQ
+    EnvSet(IFDHC_FQ_DIR, ${UPS_PROD_DIR}/${UPS_PROD_FLAVOR}-c7-p383-debug )
+
+  Action = ExtraSetup
+    setupRequired( python v3_8_3 )
+    setupRequired( clang v7_0_0 )
+
+Flavor=ANY
+Qualifiers=c7:p383:prof
+
+  Action=DefineFQ
+    EnvSet(IFDHC_FQ_DIR, ${UPS_PROD_DIR}/${UPS_PROD_FLAVOR}-c7-p383-prof )
+
+  Action = ExtraSetup
+    setupRequired( python v3_8_3 )
+    setupRequired( clang v7_0_0 )
+
+Flavor=ANY
 Qualifiers=c7:p372:debug
 
   Action=DefineFQ
@@ -95,7 +155,6 @@ Qualifiers=c2:p372:prof
   Action = ExtraSetup
     setupRequired( python v3_7_2 )
     setupRequired( clang v5_0_1 )
-
 
 Flavor=ANY
 Qualifiers=c7:p2715a:debug

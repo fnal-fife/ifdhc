@@ -69,7 +69,7 @@ ifdh_pybindgen.o: ifdh_pybindgen.cc
 	${CXX} -c -o $@  $(SWIGCXXFLAGS) $< 
 
 python/ifdh.$(SHLIB): $(PYMOD_OBJS)
-	${CXX} --shared $(ARCH) -o  $@ $(PYMOD_OBJS) $${PYTHON_LIB:-/usr/lib64}/libpython*[asd]* $(LDLIBS) || ${CXX} --shared $(ARCH) -o  $@ $(PYMOD_OBJS)  $${PYTHON_LIB:-/usr/lib}/libpython*[asd]* $(LDLIBS)
+	${CXX} --shared $(ARCH) -o  $@ $(PYMOD_OBJS) `ls $${PYTHON_LIB:-/usr/lib64}/libpython*[asd]* | head -1` $(LDLIBS) || ${CXX} --shared $(ARCH) -o  $@ $(PYMOD_OBJS)  `ls $${PYTHON_LIB:-/usr/lib}/libpython*[asd]* | head -1` $(LDLIBS)
 
 #python/_ifdh.$(SHLIB): $(PYMOD_OBJS)
 #	test -d python || mkdir python 

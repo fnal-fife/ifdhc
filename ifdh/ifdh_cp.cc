@@ -984,7 +984,7 @@ my_system(const char *cmd, std::string &errortxt) {
 }
 
 int
-ifdh::retry_system(const char *cmd_str, int error_expected, cpn_lock &locker, ifdh_op_msg &mbuf, int maxtries, std::string unlink_on_error) {
+ifdh::retry_system(const char *cmd_str, int error_expected, cpn_lock &locker, ifdh_op_msg &mbuf, int maxtries, std::string unlink_on_error, bool dash_d_warning) {
     int res = 1;
     int tries = 0;
     int delay;
@@ -1025,6 +1025,11 @@ ifdh::retry_system(const char *cmd_str, int error_expected, cpn_lock &locker, if
             std::cerr << logmsg.str();
             exit(-1);
         }
+
+        if (dash_d_warning && res !=0 && (_errortxt.find("directory") != std::string::npos || _errortxt.find("exists") != std::string::npos)) {
+           std::cerr << "Perhaps you forgot a -D to indicate destination is a directory? \n";
+        }
+
 
         if (res != 0 && error_expected) {
            return res;
@@ -1233,7 +1238,7 @@ ifdh::do_cp(CpPair &cpp, bool intermed_file_flag, bool recursive, cpn_lock &cpn,
             unlink_this_on_error = dstpath(cpp); 
         }
         
-        return retry_system(cp_cmd.c_str(), err_expected, cpn, mbuf, -1, unlink_this_on_error);
+        return retry_system(cp_cmd.c_str(), err_expected, cpn, mbuf, -1, unlink_this_on_error, true);
     }
 }
 

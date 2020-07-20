@@ -39,7 +39,7 @@ class xproto_cases(unittest.TestCase):
         self.s3loc = 's3://ifdh-stage/test.txt'
         self.username = os.environ.get('TEST_USER',os.environ.get('USER','nobody'))
         self.gridftploc = 'gsiftp://fndca1.fnal.gov/pnfs/fnal.gov/usr/nova/scratch/users/%s/test.txt'% self.username
-        self.httploc = 'https://fndca4a.fnal.gov:2880/pnfs/fnal.gov/usr/nova/scratch/users/%s/httptest.txt'% self.username
+        self.httploc = 'https://fndca1.fnal.gov:2880/pnfs/fnal.gov/usr/nova/scratch/users/%s/httptest.txt'% self.username
         fh = open(self.local,'w')
         fh.write('testing testing 1 2 3')
         os.system('echo "setUp" >> /tmp/rm.out')

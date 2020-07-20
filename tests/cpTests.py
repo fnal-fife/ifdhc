@@ -19,7 +19,7 @@ base_uri_fmt = "http://samweb.fnal.gov:8480/sam/%s/api"
 cp = ConfigParser.ConfigParser()
 cp.read(os.environ["IFDHC_CONFIG_DIR"]+"/ifdh.cfg")
 dcache_host = cp.get('location dcache_stken', 'prefix_srm').replace("srm://","").replace("/pnfs/fnal.gov/usr/","")
-dcache_host = "fndca4a.fnal.gov"
+dcache_host = "fndca1.fnal.gov"
 
 
 class Skipped(EnvironmentError):

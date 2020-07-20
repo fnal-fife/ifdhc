@@ -2,32 +2,38 @@
 
 import os
 from sys import platform
-from setuptools import setup
+from setuptools import setup,Extension
 from setuptools.command.install import install
-from distutils.command.build import build
+from distutils.command.build_ext import build_ext
 from subprocess import call
 from multiprocessing import cpu_count
 
 BASEPATH = os.path.dirname(os.path.abspath(__file__))
 
-class ifdhBuild(build):
+class MakeExtension(Extension):
 
-    def run(self):
-        # run original build code
-        build.run(self)
+    def __init__(self, name, sourcedir=''):
+        Extension.__init__(self, name, sources=[])
+        self.sourcedir = os.path.abspath(sourcedir)
 
+class ifdhBuild(build_ext):
+
+    def build_extension(self, ext):
+            
         # build ifdh
-        build_path = os.path.abspath(self.build_temp)
+        build_path = os.path.abspath(
+            os.path.dirname(self.get_ext_fullpath(ext.name)))
 
-        print("build_path = %s" % build_path)
+        print("build_temp = %s" % build_path)
 
-        self.mkpath(self.build_lib)
+        self.mkpath(self.build_temp)
         bindir = self.build_lib + '/../bin'
         self.mkpath(bindir)
+        self.mkpath(self.build_temp)
 
         cmd = [
             'make',
-            'DESTDIR=%s/' % build_path,
+            'DESTDIR=%s/ifdhc/' % build_path,
             'clean',
             'all',
             'install',
@@ -35,52 +41,21 @@ class ifdhBuild(build):
 
         def compile():
             call(cmd)
+            build_path = os.path.abspath(
+               os.path.dirname(self.get_ext_fullpath(ext.name)))
+            call(['mv', '%s/ifdhc/lib/python/ifdh.so' % build_path, '%s/ifdh.so' % build_path])
 
         self.execute(compile, [], 'Compiling ifdhc')
 
         # copy resulting tool to library build folder
 
-        #target_files=('lib/python/_ifdh.so', 'lib/python/ifdh.py')
-        #bin_target_files=('bin/ifdh',)
-
-        #if not self.dry_run:
-        #    for target in target_files:
-        #        self.copy_file('%s/%s' %(build_path, target), self.build_lib)
-        #    for target in bin_target_files:
-        #        self.copy_file('%s/%s' %(build_path, target), bindir)
-
-class ifdhInstall(install):
-    def initialize_options(self):
-        install.initialize_options(self)
-        self.build_scripts = None
-
-    def finalize_options(self):
-        install.finalize_options(self)
-        self.set_undefined_options('build', ('build_scripts', 'build_scripts'))
-
-    def run(self):
-
-        # install ifdh executables
-        self.copy_tree(self.build_lib, self.install_lib)
-        print( "install/run self has: ", self.__dict__.keys())
-
-        self.copy_tree(self.build_lib + '/../bin', self.install_base + '/bin')
-
-        # move where headers go for virtualenvs
-
-        self.install_headers = self.install_base + '/localinclude'
-
-        # run original install code
-        install.run(self)
-
 
 def read(fname):
     return open(os.path.join(os.path.dirname(__file__), fname)).read()
 
-
 setup(
-    name='ifdh',
-    version='v2_0_5',
+    name='ifdhc',
+    version='v2_5_3',
     description='Intensity Frontier Data Handling',
     maintainer='Marc Mengel',
     maintainer_email='mengel@fnal.gov',
@@ -95,10 +70,13 @@ setup(
         'Topic :: Scientific/Engineering :: Information Analysis',
     ],
 
-    headers= ['inc/ifdh.h', 'inc/WimpyConfigParser.h','inc/utils.h'],
+    headers= ['ifdh/ifdh.h', 'util/WimpyConfigParser.h','util/utils.h'],
     cmdclass={
-        'build': ifdhBuild,
-        'install': ifdhInstall,
-        'install-headers': None
-    }
+        'build_ext': ifdhBuild,
+    },
+    ext_modules=[MakeExtension('ifdh')],
+    scripts=[ 'ifdh/demo.sh', 'ifdh/ifdh_copyback.sh', 'ifdh/www_cp.sh', 'ifdh/xrdwrap.sh'],
+    data_files=[
+        ('etc',['ifdh.cfg']),
+      ],
 )

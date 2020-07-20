@@ -21,16 +21,17 @@ SWIGCXXFLAGS=-fPIC -I../util -I../numsg -I../../util -I../../numsg -I../../ifdh 
 CXXFLAGS=-pedantic-errors -Wall -Wextra -Werror -fPIC -I../../util -I../util -I ../../numsg -I../numsg -g  $(ARCH) -I$(SRCDIR)
 OBJ=ifdh.o ifdh_cp.o
 ALL_OBJS=$(OBJ) ../util/WebAPI.o ../numsg/numsg.o ../util/SyslogAPI.o ../util/utils.o ../util/regwrap.o ../util/Checksum.o ../util/md5.o ../util/WimpyConfigParser.o
-genOBJ=ifdh_main.o ifdh_wrap.o python/_ifdh.$(SHLIB)
-genSRC=ifdh_wrap.cxx ifdh_main.cc
-PYMOD_OBJS=$(ALL_OBJS) ifdh_wrap.o
+genOBJ=ifdh_main.o ifdh_pybindgen.o python/ifdh.$(SHLIB)
+genSRC=ifdh_main.cc
+#genSRC=ifdh_pybindgen.cc ifdh_main.cc
+PYMOD_OBJS=$(ALL_OBJS) ifdh_pybindgen.o
 ifeq ($(UNAME),Darwin)
 LDLIBS=-lz
 else
 LDLIBS=-lz -luuid
 endif
 DIRS=python
-ALL=ifdh python/_ifdh.$(SHLIB) libifdh.$(SHLIB) libifdh.a
+ALL=ifdh python/ifdh.$(SHLIB) libifdh.$(SHLIB) libifdh.a
 
 all: $(DIRS) $(ALL) 
 
@@ -40,8 +41,8 @@ install:
 	cp ifdh   ../bin
 	cp $(LIB) ../lib
 	cp $(HDR) ../include
-	cp python/_ifdh.$(SHLIB) ../lib/python
-	cp python/ifdh.py ../lib/python
+	cp python/ifdh.$(SHLIB) ../lib/python
+	#cp python/ifdh.py ../lib/python
 	cp www_cp.sh xrdwrap.sh ../bin
 
 clean: 
@@ -58,10 +59,21 @@ ifdh: libifdh.$(SHLIB) ifdh_main.o
 	${CXX} $(ARCH) -o $@ ifdh_main.o $(ALL_OBJS) $(LDLIBS)
 	./ifdh --help | perl -pe 's{\033\[.*?m}{}g; s{\tifdh ([^ ]*) *(.*?) *$$}{* *ifdh* *$$1* _$$2_}; s{\t--}{** }' > ifdh.textile
 
-python/_ifdh.$(SHLIB): $(PYMOD_OBJS)
-	test -d python || mkdir python 
-	${CXX} --shared $(ARCH) -o  $@ $(PYMOD_OBJS) $${PYTHON_LIB:-/usr/lib64}/libpython*[asd]* $(LDLIBS) || ${CXX} --shared $(ARCH) -o  $@ $(PYMOD_OBJS) $${PYTHON_LIB:-/usr/lib}/libpython*[asd]* $(LDLIBS)
+# at the moment, you need a custom pybindgen, so I am leaving this rule
+# out and pretending ifdh_pybindgen.cc is just plain generated source.
+# ifdh_pybindgen.cc: ifdh_pybindgen.py
+#	python $< > $@
+#	patch < ifdh_pybindgen.patch
 
+ifdh_pybindgen.o: ifdh_pybindgen.cc
+	${CXX} -c -o $@  $(SWIGCXXFLAGS) $< 
+
+python/ifdh.$(SHLIB): $(PYMOD_OBJS)
+	${CXX} --shared $(ARCH) -o  $@ $(PYMOD_OBJS) `ls $${PYTHON_LIB:-/usr/lib64}/libpython*[asd]* | head -1` $(LDLIBS) || ${CXX} --shared $(ARCH) -o  $@ $(PYMOD_OBJS)  `ls $${PYTHON_LIB:-/usr/lib}/libpython*[asd]* | head -1` $(LDLIBS)
+
+#python/_ifdh.$(SHLIB): $(PYMOD_OBJS)
+#	test -d python || mkdir python 
+#	${CXX} --shared $(ARCH) -o  $@ $(PYMOD_OBJS) $${PYTHON_LIB:-/usr/lib64}/libpython*[asd]* $(LDLIBS) || ${CXX} --shared $(ARCH) -o  $@ $(PYMOD_OBJS) $${PYTHON_LIB:-/usr/lib}/libpython*[asd]* $(LDLIBS)
 
 libifdh.$(SHLIB): $(ALL_OBJS)
 	${CXX} --shared $(ARCH) $(CPPFLAGS)  -o $@ $(ALL_OBJS) $(LDLIBS)
@@ -71,17 +83,6 @@ libifdh.a: $(ALL_OBJS)
 	ar qv $@ $(ALL_OBJS)
 	ranlib $@ 
 
-ifdh_wrap.cxx: ifdh.h 
-
-ifdh_wrap.cxx: ifdh.i 
-	test -d python || mkdir python
-	swig $(SWIGOPTS) -python -c++ -o ifdh_wrap.cxx $< || (cp ifdh_wrap.cxx.$(FALLBACK) ifdh_wrap.cxx && cp ifdh.py.fallback ifdh.py)
-	set -x ; python -V 2>&1 | grep ' 2.[67]' > /dev/null && rpm -qf /usr/bin/swig | grep 1.3.[42][90] && (patch -p0 < ifdh_wrap.patch ||  patch -p0 < ../../ifdh/ifdh_wrap.patch) || true
-	mv ifdh.py python/ifdh.py
-
-ifdh_wrap.o: ifdh_wrap.cxx
-	set -x ; ${CXX} $(SWIGCXXFLAGS) $(ARCH) -c -o $@ $<
-        
 ifdh.o: ifdh.h
 
 ifdh.o: ifdh.cc 

@@ -302,6 +302,28 @@ vector_cdr(std::vector<std::string> &vec) {
     return res;
 }
 
+std::string
+basename(std::string s) {
+   size_t pos, slen, sslen;
+   slen = s.length();
+   pos = s.rfind('/', slen-2)+1;
+   sslen = slen - pos - (s[slen-1] == '/');
+
+   return s.substr(pos, sslen);
+}
+
+std::string
+dirname(std::string s) {
+   size_t pos, slen;
+   slen = s.length();
+   pos = s.rfind('/', slen-2);
+          
+   if( pos == std::string::npos )
+       return "";
+   return s.substr(0,pos);
+}
+
+
 }
 
 #ifdef UNITTEST

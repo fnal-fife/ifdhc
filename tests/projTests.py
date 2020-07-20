@@ -12,9 +12,9 @@ import sys
 do_dev_sam = False
 
 if do_dev_sam:
-    base_uri_fmt = "http://samweb.fnal.gov:8480/sam/%s/dev/api"
+    base_uri_fmt = "https://samweb.fnal.gov:8483/sam/%s/dev/api"
 else:
-    base_uri_fmt = "http://samweb.fnal.gov:8480/sam/%s/api"
+    base_uri_fmt = "https://samweb.fnal.gov:8483/sam/%s/api"
 
 
 class SAMCases(unittest.TestCase):
@@ -44,7 +44,7 @@ class SAMCases(unittest.TestCase):
 
     def log(self,msg):
         self.ifdh_handle.log(msg)
-        print msg
+        print(msg)
 
     def assertEqual(self,a,b,test=None):
         try:
@@ -91,7 +91,7 @@ class SAMCases(unittest.TestCase):
         try:
             res = self.ifdh_handle.locateFiles(["nosuchfile","nosuchfile2"])
             res = dict(res)
-            print "got:", res
+            print("got:", res)
         except RuntimeError:
             self.log("PASS %s"%self._testMethodName)
             pass
@@ -118,11 +118,11 @@ class SAMCases(unittest.TestCase):
         self.log(self._testMethodName)
         res = self.ifdh_handle.locateFiles([SAMCases.test_file, SAMCases.test_file2])
         res = dict(res)
-        print "got: ", res
-        self.assertNotEqual(res.has_key(SAMCases.test_file), 0,self._testMethodName)
-        self.assertNotEqual(res.has_key(SAMCases.test_file2), 0,self._testMethodName)
-        self.assertNotEqual(len(res[SAMCases.test_file]), 0,self._testMethodName)
-        self.assertNotEqual(len(res[SAMCases.test_file2]), 0,self._testMethodName)
+        print("got: ", res)
+        self.assertNotEqual(SAMCases.test_file in res, False,self._testMethodName)
+        self.assertNotEqual(SAMCases.test_file2 in res, False,self._testMethodName)
+        self.assertNotEqual(len(list(res[SAMCases.test_file])), 0,self._testMethodName)
+        self.assertNotEqual(len(list(res[SAMCases.test_file2])), 0,self._testMethodName)
 
     def test_3_describe_found(self):
         self.log(self._testMethodName)
@@ -145,7 +145,7 @@ class SAMCases(unittest.TestCase):
         self.log(self._testMethodName)
         cpurl = self.ifdh_handle.findProject(SAMCases.curproject,'')
         res = self.ifdh_handle.dumpProject(cpurl)
-        print "got: ", res
+        print("got: ", res)
         self.assertEqual(1,1,self._testMethodName)
 
     def test_6_getFetchNextFile(self):
@@ -153,10 +153,10 @@ class SAMCases(unittest.TestCase):
         time.sleep(1)
         cpurl = self.ifdh_handle.findProject(SAMCases.curproject,'')
         uri = self.ifdh_handle.getNextFile(cpurl, SAMCases.curconsumer)
-        print "got uri:" , uri
+        print("got uri:" , uri)
         self.assertNotEqual(uri,"", self._testMethodName)
         path = self.ifdh_handle.fetchInput(uri)
-        print "got path:" , path
+        print("got path:" , path)
         res = os.access(path,os.R_OK)
         self.ifdh_handle.updateFileStatus(cpurl, SAMCases.curconsumer, uri, 'transferred')
         time.sleep(1)

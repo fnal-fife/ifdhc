@@ -199,6 +199,7 @@ WebAPI::WebAPI(std::string url, int postflag, std::string postdata, int maxretri
      int hcount;
      int connected;
      int totaltime = 0;
+     std::string loc;
      _timeout = timeout;
 
      _timeout != -1 && _debug && std::cerr << "timeout: " << _timeout << "\n";
@@ -292,6 +293,15 @@ WebAPI::WebAPI(std::string url, int postflag, std::string postdata, int maxretri
 
             // XXX How do we detect/retry https fails?
 
+            // make sure we have openssl
+            if (access("/usr/bin/openssl",X_OK) != 0) {
+               // okay so its not in /usr/bin, is it anywhere in PATH?
+               res = system("openssl version > /dev/null");
+               if ( !(WIFEXITED(res) && 0 == WEXITSTATUS(res)) ) {
+                   throw(WebAPIException(url,"No openssl executable, cannot do https: calls in this environment"));
+               }
+            }
+
             int inp[2], outp[2], pid;
             pipe(inp);
             pipe(outp);
@@ -318,8 +328,10 @@ WebAPI::WebAPI(std::string url, int postflag, std::string postdata, int maxretri
                 // send stderr to /dev/null -- get rid of annoying
                 // validation messages.  Might lose some real errors,
                 // but...
-                close(2);
-                open("/dev/null",O_RDONLY);
+                if ( !_debug ) { 
+                   close(2);
+                   open("/dev/null",O_RDONLY);
+                }
 
                 close(inp[0]); close(inp[1]); 
                 close(outp[0]);close(outp[1]);
@@ -330,6 +342,8 @@ WebAPI::WebAPI(std::string url, int postflag, std::string postdata, int maxretri
                 } else {
                     execlp("openssl", "s_client", "-CApath", "/etc/grid-security/certificates/", "-connect", hostport.str().c_str(),  "-quiet",  (char *)0);
                 }
+                close(0);
+                close(1);
                 exit(-1);
             } else {
                 // parent, fix up pipes, make streams
@@ -441,10 +455,22 @@ WebAPI::WebAPI(std::string url, int postflag, std::string postdata, int maxretri
             }
 
 	    if (strncmp(buf, "Location: ", 10) == 0) {
-		if (buf[strlen(buf)-1] == '\r') {
-		    buf[strlen(buf)-1] = 0;
-		}
-		url = buf + 10;
+	        _debug && std::cerr << "reading full Location header...\n";
+                loc = "";
+                loc += buf;
+                while (buf[strlen(buf)-1] != '\r' && strlen(buf) && !_fromsite.eof() ) {
+	            _fromsite.getline(buf, 512);
+	            _debug && std::cerr << "no end of line yet loc: ..." << loc << "\n";
+	            _debug && std::cerr << "buf: " << buf << "\n";
+
+                    loc += buf;
+                }
+
+                if (buf[strlen(buf)-1] == '\r' )
+                    loc = loc.substr(0,loc.size()-1);
+
+		url = loc.c_str() + 10;
+	        _debug && std::cerr << "Location header: url: " << url <<  "\n";
 	    }
 
 	 } while (_fromsite.gcount() > 2 || hcount < 3); // end of headers is a blank line
@@ -519,7 +545,7 @@ test_WebAPI_fetchurl() {
    std::string line;
 
 
-   WebAPI ds("http://home.fnal.gov/~mengel/Ascii_Chart.html");
+   WebAPI ds("https://home.fnal.gov/~mengel/Ascii_Chart.html");
 
     std::cout << "ds.data().eof() is " << ds.data().eof() << std::endl;
     while(!ds.data().eof()) {
@@ -529,8 +555,20 @@ test_WebAPI_fetchurl() {
    }
    std::cout << "ds.data().eof() is " << ds.data().eof() << std::endl;
    ds.data().close();
+   
+   try {
+      WebAPI ds3("http://samweb.fnal.gov:8480/sam/samdev/api/files/list?dims=defname%3Agen_cfg+++minus+++file_name+++c47fe3af-8fdb-4a5a-a110-3f3d52f3cfea-a.fcl+++minus++++file_name+++a9d1b4da-73ad-4c4f-8d72-c9e6507531b8-d.fcl&format=plain");
+      while(!ds3.data().eof()) {
+	    getline(ds3.data(), line);
 
-   WebAPI dsp("http://home.fnal.gov/~mengel/Ascii_Chart.html", 0, "", 10, -1, "squid.fnal.gov:3128");
+	    std::cout << "got line: " << line << std::endl;;
+      }
+   } catch (WebAPIException &we) {
+      std::cout << "WebAPIException: " << we.what() << std::endl;
+   }
+   return;
+
+   WebAPI dsp("https://home.fnal.gov/~mengel/Ascii_Chart.html", 0, "", 10, -1, "squid.fnal.gov:3128");
 
     std::cout << "ds.data().eof() is " << ds.data().eof() << std::endl;
     while(!dsp.data().eof()) {
@@ -541,7 +579,7 @@ test_WebAPI_fetchurl() {
    std::cout << "dsp.data().eof() is " << dsp.data().eof() << std::endl;
    dsp.data().close();
 
-   WebAPI ds2("http://home.fnal.gov/~mengel/Ascii_Chart.html");
+   WebAPI ds2("https://home.fnal.gov/~mengel/Ascii_Chart.html");
 
     while(!ds2.data().eof()) {
         getline(ds2.data(), line);
@@ -591,7 +629,7 @@ test_WebAPI_fetchurl() {
    }
    try {
       // try a webpage that takes 10 seconds with a 5 second timeout..
-      WebAPI ds7("http://deelay.me/10000/http://home.fnal.gov/~mengel/AsciiChart.html", 0, "", 10, 5);
+      WebAPI ds7("http://deelay.me/10000/https://home.fnal.gov/~mengel/AsciiChart.html", 0, "", 10, 5);
    } catch (WebAPIException &we) {
       std::cout << "WebAPIException: " << we.what() << std::endl;
    }
@@ -602,7 +640,7 @@ test_WebAPI_leakcheck() {
    std::string line;
 
    for(int  i=0; i< 2048; i++) {
-       WebAPI ds("http://home.fnal.gov/~mengel/Ascii_Chart.html");
+       WebAPI ds("https://home.fnal.gov/~mengel/Ascii_Chart.html");
        while(!ds.data().eof()) {
             getline(ds.data(), line);
        }
@@ -617,7 +655,7 @@ main() {
    ifdh_util_ns::WebAPI::_debug = 1;
    test_encode();
    test_WebAPI_fetchurl();
-   test_WebAPI_leakcheck();
+   // test_WebAPI_leakcheck();
    return 0;
 }
 #endif

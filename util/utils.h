@@ -20,6 +20,8 @@ int flushdir(const char *dir);
 std::string parent_dir(std::string path);
 std::string mount_dir(std::string path);
 extern int host_matches(std::string glob);
+extern std::string basename(std::string s);
+extern std::string dirname(std::string s);
 
 }
 using namespace ifdh_util_ns;

@@ -1,6 +1,7 @@
 
 #include <stdlib.h>
 #include <fcntl.h>
+#include <ctype.h>
 #include "ifdh.h"
 #include "ifdh_mbuf.h"
 #include "utils.h"
@@ -828,8 +829,9 @@ get_pnfs_uri(std::string door_url,  std::string door_proto, std::vector<std::str
             ifdh::_debug && cerr << "saw OSG_SQUID_LOCATION " << http_proxy << "\n";
         }
 
-        WebAPI wa(door_url, 0, "", 1, 5000, http_proxy);  // pass in maxretries of 1, web timeout of 5000ms == 5 sec, use the OSG_SQUID_PROXY..
-	while (!wa.data().eof() && !wa.data().fail()) {
+        if (!door_url.empty()) {
+          WebAPI wa(door_url, 0, "", 1, 5000, http_proxy);  // pass in maxretries of 1, web timeout of 5000ms == 5 sec, use the OSG_SQUID_PROXY..
+	  while (!wa.data().eof() && !wa.data().fail()) {
 	    getline(wa.data(), line);
             // ifdh::_debug && cerr << "got: " << line << "\n";
 	    if (line.find("<door") != string::npos) {
@@ -857,7 +859,8 @@ get_pnfs_uri(std::string door_url,  std::string door_proto, std::vector<std::str
 	       nodes.push_back(node);
                ifdh::_debug && cerr << node << ", ";
 	    }
-	}
+	  }
+        }
         }  catch( exception &e ) {
         ;
         }
@@ -981,7 +984,7 @@ my_system(const char *cmd, std::string &errortxt) {
 }
 
 int
-ifdh::retry_system(const char *cmd_str, int error_expected, cpn_lock &locker, ifdh_op_msg &mbuf, int maxtries, std::string unlink_on_error) {
+ifdh::retry_system(const char *cmd_str, int error_expected, cpn_lock &locker, ifdh_op_msg &mbuf, int maxtries, std::string unlink_on_error, bool dash_d_warning) {
     int res = 1;
     int tries = 0;
     int delay;
@@ -1022,6 +1025,11 @@ ifdh::retry_system(const char *cmd_str, int error_expected, cpn_lock &locker, if
             std::cerr << logmsg.str();
             exit(-1);
         }
+
+        if (dash_d_warning && res !=0 && (_errortxt.find("directory") != std::string::npos || _errortxt.find("exists") != std::string::npos)) {
+           std::cerr << "Perhaps you forgot a -D to indicate destination is a directory? \n";
+        }
+
 
         if (res != 0 && error_expected) {
            return res;
@@ -1230,7 +1238,7 @@ ifdh::do_cp(CpPair &cpp, bool intermed_file_flag, bool recursive, cpn_lock &cpn,
             unlink_this_on_error = dstpath(cpp); 
         }
         
-        return retry_system(cp_cmd.c_str(), err_expected, cpn, mbuf, -1, unlink_this_on_error);
+        return retry_system(cp_cmd.c_str(), err_expected, cpn, mbuf, -1, unlink_this_on_error, true);
     }
 }
 
@@ -1652,6 +1660,7 @@ ifdh::pick_proto_path(std::string loc, std::string force, std::string &proto, st
         get_grid_credentials_if_needed();
     }
 }
+
 int
 ifdh::ll( std::string loc, int recursion_depth, std::string force) {
 
@@ -1724,7 +1733,8 @@ std::vector<std::pair<std::string,long> >
 ifdh::lss( std::string loc, int recursion_depth, std::string force) {
 
     ifdh_op_msg mbuf("lss", *this);
-    std::vector<std::pair<std::string,long> >  res;
+    std::vector<std::pair<std::string,long> >  res, res2;
+    std::vector<std::pair<std::string,long> >::iterator p;
 
     // save original location before messing with it to get full url
     string origloc(loc);
@@ -1746,6 +1756,7 @@ ifdh::lss( std::string loc, int recursion_depth, std::string force) {
 
     std::string lss_cmd     = _config.get(lookup_proto, "lss_cmd");
     std::string lss_re1_str = _config.get(lookup_proto, "lss_re1");
+    int lss_cmd_lists_dir       = _config.getint(lookup_proto, "lss_cmd_lists_dir");
 
     if (lss_cmd.size() == 0 || lss_re1_str.size() == 0) {
         std::cerr << (time(&gt)?ctime(&gt):"") << " ";
@@ -1796,7 +1807,6 @@ ifdh::lss( std::string loc, int recursion_depth, std::string force) {
     }
     static char buf[512];
     std::string size, dir, file, dirflag;
-    bool firstpass = true;
     std::string dirrepl = origloc + "/";
     // use flags to pick regex submatch numbers for parsing
     int nsize, ndir, nfile, ndirflag;
@@ -1859,46 +1869,71 @@ ifdh::lss( std::string loc, int recursion_depth, std::string force) {
                   _debug && std::cerr << "skipping blank...\n";
                   continue;
                }
-               if (firstpass) {
-                   // if the list doesn't start with the thing we asked for
-                   // (i.e it's a directory and shows contents but not dir)
-                   // stick the dir on the front.
-                   firstpass = false;
-                   std::string basename = origloc.substr(origloc.rfind("/",origloc.size()-2)+1);
-                   if ('/' == basename[basename.size()-1] ) {
-                      basename = basename.substr(0,basename.size()-1);
-                   }
-                   _debug && std::cerr << "basename: |" <<  basename << "| file |" << file << "|\n";
-                   if (file != basename) {
-                       dirrepl = origloc + "/";
-                   } else {
-                       dirrepl = origloc.substr(0,origloc.rfind("/", origloc.size()-1)+1);
-                       if (dirrepl == "") {
-                          dirrepl = dir;
-                       }
-                   }
-		   if ("//" == dirrepl.substr(dirrepl.size()-2) ) {
-		      dirrepl = dirrepl.substr(0,dirrepl.size()-1);
-                   }
-                   if (file != basename && file != "") {
-                       res.push_back( pair<string,long>(dirrepl,  0L));
-                   }
-               }
 
-               if (dir == "") {
-                   dir = dirrepl;
-               }
+               // okay so here's the drill. Look at these two cases:
+               //   1) /a/b/c/x is a file
+               //   2) /a/b/c/x/x is a file
+               // in both cases asking for a listing of "/a/b/c/x"
+               // gives you "-rwx... x" as the output, and you cannot
+               // distinguish unless it is the latter case and there
+               // is more than one file in the directory
+               // we used to try to handle this here, with a firstpass
+               // flag; but its smarter to collect the whole list
+               // and then look at it...
+
+               // we also want to decide whether to replace the dir component
+               // if any leading up to the file with our path -- this again
+               // we can do better by just getting the list of basenames and
+               // sizes, and patching it up afterwards
+               
                if ((dirflag == "/" || dirflag == "d") && file != "" ) {
                    file = file + "/";
                }
-               res.push_back( pair<string,long>(dir + file,  atol(size.c_str())));
+               res.push_back( pair<string,long>(file,  atol(size.c_str())));
                break;
 	    } else {
                _debug && std::cerr << "no match.\n";
             }
         }
     }
+
+    bool first = false;
+    if ((res.size() > 1) || 
+        (res.size() == 1 && res[0].first[res[0].first.length()-1] == '/') ||
+        (res.size() == 1 && basename(res[0].first) != basename(origloc))) {
+
+        // if there were multiple items, or the only item is a directory, 
+        // or the only item is a file but the basename of that first item is not the 
+        // basename of what we asked for,
+        // then what we asked for must be a directory.
+        
+        _debug && std::cerr << "Directory case:\n";
+        dirrepl = origloc;
+        if (dirrepl[dirrepl.size()-1] != '/') {
+            dirrepl += "/";
+        }
+        if (!lss_cmd_lists_dir) {
+           res2.push_back(pair<string,long>(dirrepl,0));
+        }
+        first = true;
+    } else {
+        _debug && std::cerr << "File case:\n";
+        dirrepl = dirname(origloc) + "/";
+    }
+    _debug && std::cerr << "dirrepl: " << dirrepl << "\n";
+
+    for( p = res.begin(); p != res.end(); p++) {
+       _debug && std::cerr << "adding: " << dirrepl << "+" << p->first << "\n";
+       if (first && lss_cmd_lists_dir) {
+           res2.push_back(pair<string,long>(dirrepl, p->second));
+           first = false;
+       } else {
+           res2.push_back(pair<string,long>(dirrepl + p->first, p->second));
+       }
+    }
   
+    res = res2;
+
     if (fake_popen) {
         fclose(pf);
         unlink(tmpfile.c_str());
@@ -1914,7 +1949,7 @@ ifdh::lss( std::string loc, int recursion_depth, std::string force) {
   
       _debug && std::cerr << "failed with exit status" << WEXITSTATUS(status) << "\n";
       // res.clear();
-      return res;
+      return res2;
     }
 
     if (WIFEXITED(status) && WEXITSTATUS(status) == 0 && res.size() == 0) {
@@ -2281,19 +2316,33 @@ ifdh::findMatchingFiles( string path, string glob) {
    string prefix;
    size_t globslice = 0;
    string sep;
+   bool is_proto, prev_is_proto;
 
    prefix = "";
    dlist1 = split(path,':',false);
-
+   plist = split(_config.get("general","protocols"), ' ', false);
+   prev_is_proto = false;
 
    // splitting on colons breaks urls, so put them back
    for (size_t i = 0; i < dlist1.size(); ++i) {
-       if (dlist1[i] == "srm" || dlist1[i] == "gsiftp" || dlist1[i] == "http"|| dlist1[i] == "s3" || dlist1[i] == "i") {
-            prefix = dlist1[i] + ':';
-       } else {
-	    dlist.push_back(prefix + dlist1[i]);
-            prefix = "";
+       is_proto = false;
+       for (size_t j = 0; j < plist.size(); ++j) {
+           if (plist[j] == "")
+              continue;
+           if (dlist1[i]+':' == plist[j])
+               is_proto = true;
        }
+
+       // it could be http://host:port/...
+       if (prev_is_proto && dlist1.size()>i+1 && isdigit(dlist1[i+1][0]) && isdigit(dlist1[i+1][2])) {
+          prefix = prefix + dlist1[i] + ':';
+       } else if (is_proto) {
+           prefix = dlist1[i] + ':';
+       } else {
+	   dlist.push_back(prefix + dlist1[i]);
+           prefix = "";
+       }
+       prev_is_proto = is_proto;
    }
 
    //

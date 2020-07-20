@@ -1,0 +1,12 @@
+--- ifdh_pybindgen.cc.default	2019-08-20 10:07:33.161812284 -0500
++++ ifdh_pybindgen.cc	2019-08-20 10:07:17.862150790 -0500
+@@ -2443,8 +2443,7 @@
+     ++(*self->iterator);
+     py_std__vector__lt__std__string__gt__ = PyObject_New(Pystd__vector__lt__std__string__gt__, &Pystd__vector__lt__std__string__gt___Type);
+     py_std__vector__lt__std__string__gt__->obj = new std::vector<std::string>(iter->second);
+-    py_retval = Py_BuildValue((char *) "s#N", (iter->first).c_str(), (iter->first).size(), py_std__vector__lt__std__string__gt__);
+-    py_retval = PyType_Type.tp_call((PyObject*)&PyTuple_Type,Py_BuildValue("(O)",py_retval),Py_BuildValue("{}"));
++    py_retval = Py_BuildValue((char *) "(s#,N)", (iter->first).c_str(), (iter->first).size(), py_std__vector__lt__std__string__gt__);
+     return py_retval;
+ }
+ 

@@ -634,6 +634,7 @@ get_grid_credentials_if_needed() {
     std::string experiment(getexperiment());
     std::stringstream plainproxyfile;
     std::stringstream vomsproxyfile;
+    std::stringstream tokenfile;
     int res;
 
     ifdh::_debug && std::cerr << "Checking for proxy cert..."<< endl;
@@ -655,11 +656,18 @@ get_grid_credentials_if_needed() {
     } else {
         plainproxyfile <<  "/tmp/x509up_u" << getuid();
     }
+    if ( getenv("BEARER_TOKEN_FILE") ){
+         tokenfile << getenv("BEARER_TOKEN_FILE");
+    } else {
+         // XXX check spelling vs spec
+         tokenfile <<  "/tmp/vt_token_" << getexperiment() << "_" << role << "_" << getuid();
+    }
     vomsproxyfile <<  "/tmp/x509up_voms_" << getexperiment() << "_" << role << "_" << getuid();
     if (!check_grid_credentials() && have_kerberos_creds()) {
         // if we don't have credentials, try our standard copy cache file
 	ifdh::_debug && std::cerr << "no credentials, trying " << vomsproxyfile.str() << endl;
         setenv("X509_USER_PROXY", vomsproxyfile.str().c_str(),1);
+        setenv("BEARER_TOKEN_FILE", tokenfile.str().c_str(),1);
         // for xrdcp...
         setenv("XrdSecGSIUSERCERT", vomsproxyfile.str().c_str(),1);
         setenv("XrdSecGSIUSERKEY", vomsproxyfile.str().c_str(),1);
@@ -757,6 +765,17 @@ get_grid_credentials_if_needed() {
             std::cerr << (time(&gt)?ctime(&gt):"") << " ";
             std::cerr << "Error: exit code " << res << " from voms-proxy-init... later actions will likely fail\n";
         }
+
+        cmdbuf.clear();
+        cmdbuf << "gettoken -i " << experiment ;
+	ifdh::_debug && std::cerr << "running: " << cmdbuf.str() << endl;
+	res = system(cmdbuf.str().c_str());
+
+        if ((!WIFEXITED(res) ||  0 != WEXITSTATUS(res)) && res != 256) {
+            std::cerr << (time(&gt)?ctime(&gt):"") << " ";
+            std::cerr << "Error: exit code " << res << " from voms-proxy-init... later actions will likely fail\n";
+        }
+
     } else {
         std::cerr << (time(&gt)?ctime(&gt):"") << " ";
         std::cerr << "Notice: Unable to find valid grid or kerberos credentials. Later actions will likely fail."<< endl;
@@ -770,8 +789,13 @@ ifdh::getProxy() {
    std::string res( getenv("X509_USER_PROXY")?getenv("X509_USER_PROXY"):"");
    return res;
 }
- 
 
+std::string
+ifdh::getToken() {
+   get_grid_credentials_if_needed();
+   std::string res( getenv("BEARER_TOKEN_FILE")?getenv("BEARER_TOKEN_FILE"):"");
+   return res;
+}
 
 const char *
 parse_ifdh_stage_via() {

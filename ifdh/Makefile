@@ -1,7 +1,8 @@
 SRCDIR=../../ifdh/
 VPATH=$(SRCDIR)
 
-PYVER:= $(shell python -V | sed -e 's/\..*//')
+PYTHON:=python
+PYVER:= $(shell $(PYTHON) -V | sed -e 's/\..*//')
 UNAME:= $(shell uname -s)
 ifeq ($(PYVER),Python 3) 
 SWIGOPTS=-py3

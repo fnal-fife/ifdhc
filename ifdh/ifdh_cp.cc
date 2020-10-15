@@ -766,8 +766,11 @@ get_grid_credentials_if_needed() {
             std::cerr << "Error: exit code " << res << " from voms-proxy-init... later actions will likely fail\n";
         }
 
-        cmdbuf.clear();
-        cmdbuf << "gettoken -i " << experiment ;
+        std::string vault("fermicloud346.fnal.gov");
+
+        cmdbuf.str("");
+        // cmdbuf << "htgettoken -a " << vault << " -i " << experiment ; ??
+        cmdbuf << "htgettoken -a " << vault; 
 	ifdh::_debug && std::cerr << "running: " << cmdbuf.str() << endl;
 	res = system(cmdbuf.str().c_str());
 

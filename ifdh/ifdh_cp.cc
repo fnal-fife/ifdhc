@@ -769,8 +769,12 @@ get_grid_credentials_if_needed() {
         std::string vault("fermicloud346.fnal.gov");
 
         cmdbuf.str("");
-        // cmdbuf << "htgettoken -a " << vault << " -i " << experiment ; ??
-        cmdbuf << "htgettoken -a " << vault; 
+        //
+        // this should be:
+        // cmdbuf << "htgettoken -a " << vault << " -i " << experiment ;
+        // but we don't have all those parts, yet...
+        //
+        cmdbuf << "htgettoken -a " << vault << "-i cilogon"; 
 	ifdh::_debug && std::cerr << "running: " << cmdbuf.str() << endl;
 	res = system(cmdbuf.str().c_str());
 

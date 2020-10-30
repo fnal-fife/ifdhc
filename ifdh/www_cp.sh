@@ -1,6 +1,14 @@
 #!/bin/sh
 
+
 # "cp" style utility for web locations, uses curl...
+
+if [ x$IFDH_DEBUG = x2 ]
+then
+    set -x
+    echo X509_USER_PROXY $X509_USER_PROXY >&2
+    echo BEARER_TOKEN_FILE $BEARER_TOKEN_FILE >&2
+fi
 
 curlopts="-f -L --silent "
 
@@ -28,12 +36,12 @@ fi
 #
 if [ "x${BEARER_TOKEN}" != "x" ]
 then
-    curlopts="$curlopts -H "Authorization: Bearer ${BEARER_TOKEN}"
+    curlopts="$curlopts -H 'Authorization: Bearer ${BEARER_TOKEN}'"
 fi
 
 if [ -r "${BEARER_TOKEN_FILE:=$XDG_RUNTIME_DIR/bt_u`id -u`}" ]
 then
-    curlopts="$curlopts -H "Authorization: Bearer `cat ${BEARER_TOKEN_FILE}`"
+    curlopts="$curlopts -H 'Authorization: Bearer `cat ${BEARER_TOKEN_FILE}`'"
 fi
 
 if [ x$IFDH_UCONDB_UPASS != x ]
@@ -68,7 +76,7 @@ EOF
 }
 
 wls() {
-  wll "$1"  | perl -pe 's/>/>\n/go;'  |  egrep '</d:href>|</d:getcontentlength>|<d:getcontentlength/>'  | perl -pe 'if (/d:href/) { chomp();} s{<d:getcontentlength/>}{0 }; s{<[^>]*>}{ }go;'
+  wll "$1"  | perl -pe 's;</;\n</;go; s;><;>\n<;go;' orig.xml | egrep '<d:href>|<d:getcontentlength' | perl -pe 'if(/<d:href>/){ chomp();} s{<d:getcontentlength/>}{ 0}o; s{<[^>]*>}{ }go;'
 }
 
 dst=`ucondb_convert "$dst"`

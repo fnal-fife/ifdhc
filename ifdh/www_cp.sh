@@ -66,6 +66,14 @@ wmkdir() {
    fi
 }
 
+wmkdir() {
+   curl $curlopts -o - -X DELETE "$1"
+}
+
+wmv() {
+   curl $curlopts -X MOVE --header "Destination:$2" "$1"
+}
+
 wll() {
     curl $curlopts -o -  -H "Depth: 1" -X PROPFIND "$1" <<EOF  
 <?xml version="1.0"?>
@@ -94,19 +102,26 @@ http*//*\;/*)
 http*://*\;http*://*)
     curl $curlopts -o - "$src" | curl $curlopts  -T - "$dst"
     ;;
+
 --ls*) 
-  
     wls "$dst"
     ;;
---ll*)
 
+--ll*)
     wll "$dst"
     ;;
 
 --mkdir*)
-
     wmkdir "$dst"
     ;;
+
+--rmdir*|--rm*)
+    wrm "$dst"
+    ;;
+
+--mv*)
+   wmv "$src" "$dst"
+   ;;
 
 --ls*|--mv*|--rmdir*|--mkdir*|--chmod*)
     echo "Not yet implemented" >&2

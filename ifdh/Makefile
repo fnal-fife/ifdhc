@@ -18,7 +18,7 @@ SHLIB=so
 endif
 LIB=libifdh.$(SHLIB)
 HDR=ifdh.h
-SWIGCXXFLAGS=-fPIC -I../util -I../numsg -I../../util -I../../numsg -I../../ifdh -g -Dregister= -I$${PYTHON_INCLUDE:-`echo $${VIRTUAL_ENV:-/usr}/include/python*`} $(ARCH)
+SWIGCXXFLAGS=-fPIC -I../util -I../numsg -I../../util -I../../numsg -I../../ifdh -g -Dregister= -I$${PYTHON_INCLUDE:-`echo $${VIRTUAL_ENV:-/usr}/include/python$${PYMAJOR:-}*`} $(ARCH)
 CXXFLAGS=-pedantic-errors -Wall -Wextra -Werror -fPIC -I../../util -I../util -I ../../numsg -I../numsg -g  $(ARCH) -I$(SRCDIR)
 OBJ=ifdh.o ifdh_cp.o
 ALL_OBJS=$(OBJ) ../util/WebAPI.o ../numsg/numsg.o ../util/SyslogAPI.o ../util/utils.o ../util/regwrap.o ../util/Checksum.o ../util/md5.o ../util/WimpyConfigParser.o
@@ -70,7 +70,7 @@ ifdh_pybindgen.o: ifdh_pybindgen.cc
 	${CXX} -c -o $@  $(SWIGCXXFLAGS) $< 
 
 python/ifdh.$(SHLIB): $(PYMOD_OBJS)
-	${CXX} --shared $(ARCH) -o  $@ $(PYMOD_OBJS) `ls $${PYTHON_LIB:-/usr/lib64}/libpython*[asd]* | head -1` $(LDLIBS) || ${CXX} --shared $(ARCH) -o  $@ $(PYMOD_OBJS)  `ls $${PYTHON_LIB:-/usr/lib}/libpython*[asd]* | head -1` $(LDLIBS)
+	${CXX} --shared $(ARCH) -o  $@ $(PYMOD_OBJS) `ls $${PYTHON_LIB:-/usr/lib64}/libpython$${PYMAJOR:-}*[asd]* | head -1` $(LDLIBS) || ${CXX} --shared $(ARCH) -o  $@ $(PYMOD_OBJS)  `ls $${PYTHON_LIB:-/usr/lib}/libpython$${PYMAJOR:-}*[asd]* | head -1` $(LDLIBS)
 
 #python/_ifdh.$(SHLIB): $(PYMOD_OBJS)
 #	test -d python || mkdir python 

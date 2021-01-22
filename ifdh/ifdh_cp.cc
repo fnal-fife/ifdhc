@@ -774,7 +774,7 @@ get_grid_credentials_if_needed() {
         // cmdbuf << "htgettoken -a " << vault << " -i " << experiment ;
         // but we don't have all those parts, yet...
         //
-        cmdbuf << "htgettoken -a " << vault << "-i cilogon"; 
+        cmdbuf << "htgettoken -a " << vault << " -i " << experiment; 
 	ifdh::_debug && std::cerr << "running: " << cmdbuf.str() << endl;
 	res = system(cmdbuf.str().c_str());
 

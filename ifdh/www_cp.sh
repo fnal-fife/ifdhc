@@ -3,14 +3,14 @@
 
 # "cp" style utility for web locations, uses curl...
 
+curlopts="-f -L --silent --capath ${X509_CERT_DIR:=/etc/grid-security/certificates} "
 if [ x$IFDH_DEBUG = x2 ]
 then
     set -x
     echo X509_USER_PROXY $X509_USER_PROXY >&2
     echo BEARER_TOKEN_FILE $BEARER_TOKEN_FILE >&2
+    curlopts="$curlopts --trace /tmp/curl_trace_$$"
 fi
-
-curlopts="-f -L --silent "
 
 # allow extra curl flags
 
@@ -28,7 +28,7 @@ dst="$2"
 
 if [ -r "${X509_USER_PROXY:=/tmp/x509up_u`id -u`}" ]
 then
-    curlopts="$curlopts --cert $X509_USER_PROXY --key $X509_USER_PROXY --cacert $X509_USER_PROXY --capath ${X509_CERT_DIR:=/etc/grid-security/certificates}"
+    curlopts="$curlopts --cert $X509_USER_PROXY --key $X509_USER_PROXY --cacert $X509_USER_PROXY "
 fi
 
 #
@@ -59,7 +59,7 @@ ucondb_convert() {
 }
 
 wmkdir() {
-   curl $curlopts -o - -X MKCOL "$1"
+   eval "curl $curlopts -o - -X MKCOL '$1'"
    if [ $? = 22 ]
    then
        echo "error: File exists" >&2
@@ -67,15 +67,15 @@ wmkdir() {
 }
 
 wmkdir() {
-   curl $curlopts -o - -X DELETE "$1"
+   eval "curl $curlopts -o - -X DELETE '$1'"
 }
 
 wmv() {
-   curl $curlopts -X MOVE --header "Destination:$2" "$1"
+   eval "curl $curlopts -X MOVE --header 'Destination:$2' '$1'"
 }
 
 wll() {
-    curl $curlopts -o -  -H "Depth: 1" -X PROPFIND "$1" <<EOF  
+    eval "curl $curlopts -o -  -H 'Depth: 1' -X PROPFIND '$1'" <<EOF  
 <?xml version="1.0"?>
 <a:propfind xmlns:a="DAV:">
  <a:allprop/>
@@ -84,7 +84,7 @@ EOF
 }
 
 wls() {
-  wll "$1"  | perl -pe 's;</;\n</;go; s;><;>\n<;go;' orig.xml | egrep '<d:href>|<d:getcontentlength' | perl -pe 'if(/<d:href>/){ chomp();} s{<d:getcontentlength/>}{ 0}o; s{<[^>]*>}{ }go;'
+  wll "$1"  | perl -pe 's;</;\n</;go; s;><;>\n<;go;' | egrep '<d:href>|<d:getcontentlength' | perl -pe 'if(/<d:href>/){ chomp();} s{<d:getcontentlength/>}{ 0}o; s{<[^>]*>}{ }go;'
 }
 
 dst=`ucondb_convert "$dst"`
@@ -94,13 +94,13 @@ src=`ucondb_convert "$src"`
 
 case "$src;$dst" in 
 http*//*\;/*) 
-    curl $curlopts -o "$dst" "$src" 
+    eval "curl $curlopts -o '$dst' '$src'"
     ;;
 /*\;http*://*) 
-    ( cat ) < $src | curl $curlopts -T - "$dst"
+    ( cat ) < $src | eval "curl $curlopts -T - '$dst'"
     ;;
 http*://*\;http*://*)
-    curl $curlopts -o - "$src" | curl $curlopts  -T - "$dst"
+    eval "curl $curlopts -o - '$src'" | eval "curl $curlopts  -T - '$dst'"
     ;;
 
 --ls*) 

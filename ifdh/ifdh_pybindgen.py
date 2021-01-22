@@ -69,6 +69,7 @@ klass.add_method('locateFiles',retval('std::map<std::string,std::vector<std::str
 klass.add_method('checksum',retval('std::string'),[param('std::string','loc')],throw=[std_logicerror])
 klass.add_method('mkdir_p',retval('int'),[param('std::string','loc'), param('std::string', 'force',default_value='""'),param('int','depth',default_value='-1')],throw=[std_logicerror])
 klass.add_method('getProxy',retval('std::string'),[],throw=[std_logicerror])
+klass.add_method('getToken',retval('std::string'),[],throw=[std_logicerror])
 klass.add_method('declareFile',retval('int'),[param('std::string','json_metadata')],throw=[std_logicerror])
 klass.add_method('modifyMetadata',retval('int'),[param('std::string','file'),param('std::string','json_metadata')],throw=[std_logicerror])
 klass.add_method('apply',retval('int'),[param('std::vector<std::string>','args')],throw=[std_logicerror])

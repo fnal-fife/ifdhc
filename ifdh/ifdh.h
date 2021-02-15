@@ -176,6 +176,9 @@ class ifdh {
         // check if project is alive
         std::string projectStatus(std::string projecturi);
         int addFileLocation(std::string filename, std::string location);
+        // get a Token for the current experiment if needed, 
+        // return the path
+        std::string getToken();
     private:
         IFile lookup_loc(std::string url) ;
         std::string locpath(IFile loc, std::string proto) ;

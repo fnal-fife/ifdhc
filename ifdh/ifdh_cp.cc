@@ -634,7 +634,6 @@ get_grid_credentials_if_needed() {
     std::string experiment(getexperiment());
     std::stringstream plainproxyfile;
     std::stringstream vomsproxyfile;
-    std::stringstream tokenfile;
     int res;
 
     ifdh::_debug && std::cerr << "Checking for proxy cert..."<< endl;
@@ -656,18 +655,11 @@ get_grid_credentials_if_needed() {
     } else {
         plainproxyfile <<  "/tmp/x509up_u" << getuid();
     }
-    if ( getenv("BEARER_TOKEN_FILE") ){
-         tokenfile << getenv("BEARER_TOKEN_FILE");
-    } else {
-         // XXX check spelling vs spec
-         tokenfile <<  "/tmp/vt_token_" << getexperiment() << "_" << role << "_" << getuid();
-    }
     vomsproxyfile <<  "/tmp/x509up_voms_" << getexperiment() << "_" << role << "_" << getuid();
     if (!check_grid_credentials() && have_kerberos_creds()) {
         // if we don't have credentials, try our standard copy cache file
 	ifdh::_debug && std::cerr << "no credentials, trying " << vomsproxyfile.str() << endl;
         setenv("X509_USER_PROXY", vomsproxyfile.str().c_str(),1);
-        setenv("BEARER_TOKEN_FILE", tokenfile.str().c_str(),1);
         // for xrdcp...
         setenv("XrdSecGSIUSERCERT", vomsproxyfile.str().c_str(),1);
         setenv("XrdSecGSIUSERKEY", vomsproxyfile.str().c_str(),1);
@@ -796,13 +788,8 @@ ifdh::getProxy() {
    std::string res( getenv("X509_USER_PROXY")?getenv("X509_USER_PROXY"):"");
    return res;
 }
+ 
 
-std::string
-ifdh::getToken() {
-   get_grid_credentials_if_needed();
-   std::string res( getenv("BEARER_TOKEN_FILE")?getenv("BEARER_TOKEN_FILE"):"");
-   return res;
-}
 
 const char *
 parse_ifdh_stage_via() {

@@ -407,6 +407,7 @@ Common:
     EnvSet(IFDHC_VERSION, ${UPS_PROD_VERSION})
     ExeActionRequired(DefineFQ)
     EnvSet(IFDHC_LIB,     ${IFDHC_FQ_DIR}/lib)
+    EnvSet(IFDHC_INC,     ${IFDHC_FQ_DIR}/inc)
     PathPrepend(PATH           ,${IFDHC_FQ_DIR}/bin)
     PathPrepend(PYTHONPATH     , ${IFDHC_FQ_DIR}/lib/python)
     if ( test `uname` = "Darwin" )

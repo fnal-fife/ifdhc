@@ -346,6 +346,7 @@ Common:
     EnvSet(IFDHC_VERSION, ${UPS_PROD_VERSION})
     ExeActionRequired(DefineFQ)
     EnvSet(IFDHC_LIB,     ${IFDHC_FQ_DIR}/lib)
+    EnvSet(IFDHC_INC,     ${IFDHC_FQ_DIR}/inc)
     PathPrepend(PATH           ,${IFDHC_FQ_DIR}/bin)
     PathPrepend(PYTHONPATH     , ${IFDHC_FQ_DIR}/lib/python)
     if ( test `uname` = "Darwin" )
@@ -357,6 +358,7 @@ Common:
     SetupOptional(ifdhc_config)
     SetupOptional(cpn)
     SetupOptional(ifdh_platform_pkgs) 
+    SetupOptional(kx509) 
     # get the Amazon S3 client if possible
     SetupOptional(awscli)  
     # for cmake

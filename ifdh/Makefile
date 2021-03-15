@@ -1,7 +1,13 @@
+
 SRCDIR=../../ifdh/
 VPATH=$(SRCDIR)
 
-PYVER:= $(shell python -V | sed -e 's/\..*//')
+#
+# Note: set PYTHON=python3 and PYMAJOR=3 to build a system python3 version
+#       set PYTHON_INCLUDE, PYTHON_LIB, and PYMAJOR to use non-system python.
+#
+
+PYVER:= $(shell $${PYTHON:-python} -V | sed -e 's/\..*//')
 UNAME:= $(shell uname -s)
 ifeq ($(PYVER),Python 3) 
 SWIGOPTS=-py3

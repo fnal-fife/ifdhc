@@ -32,9 +32,9 @@ genSRC=ifdh_main.cc
 #genSRC=ifdh_pybindgen.cc ifdh_main.cc
 PYMOD_OBJS=$(ALL_OBJS) ifdh_pybindgen.o
 ifeq ($(UNAME),Darwin)
-LDLIBS=-lz
+LDLIBS=-lz -lcrypto
 else
-LDLIBS=-lz -luuid
+LDLIBS=-lz -luuid -lcrypto
 endif
 DIRS=python
 ALL=ifdh python/ifdh.$(SHLIB) libifdh.$(SHLIB) libifdh.a

@@ -858,7 +858,10 @@ get_grid_credentials_if_needed() {
             // we already set BEARER_TOKEN_FILE to our default so that is
             // where htgettoken will put it...
             cmdbuf.str("");
-            cmdbuf << "htgettoken -a " << vault << " -i " << issuer; 
+            cmdbuf << "htgettoken -a " << vault << " -i " << issuer;
+            if (role != "Analysis") {
+                cmdbuf " -r " << role; 
+            }
             ifdh::_debug && std::cerr << "running: " << cmdbuf.str() << endl;
             res = system(cmdbuf.str().c_str());
 

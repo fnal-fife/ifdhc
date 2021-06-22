@@ -404,7 +404,7 @@ ifdh::copyBackOutput(string dest_dir, int hash) {
         std::string tdest;
         if (hash) {
             tdest = dest_dir + get_hashdir(filelast, hash);
-            mkdir_p(tdest,"",hash);
+            mkdir_p(tdest,"",hash+1);
         } else {
             tdest= dest_dir;
         }

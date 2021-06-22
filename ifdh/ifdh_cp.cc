@@ -860,7 +860,7 @@ get_grid_credentials_if_needed() {
             cmdbuf.str("");
             cmdbuf << "htgettoken -a " << vault << " -i " << issuer;
             if (role != "Analysis") {
-                cmdbuf " -r " << role; 
+                cmdbuf << " -r " << role; 
             }
             ifdh::_debug && std::cerr << "running: " << cmdbuf.str() << endl;
             res = system(cmdbuf.str().c_str());

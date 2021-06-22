@@ -1543,6 +1543,24 @@ _wrap_PyIfdh_nsIfdh_getProxy(PyIfdh_nsIfdh *self)
 
 
 PyObject *
+_wrap_PyIfdh_nsIfdh_getToken(PyIfdh_nsIfdh *self)
+{
+    PyObject *py_retval;
+    std::string retval;
+
+    try
+    {
+        retval = self->obj->getToken();
+    } catch (std::logic_error const &exc) {
+        PyErr_SetString((PyObject *) Pystd__logic_error_Type, exc.what());
+        return NULL;
+    }
+    py_retval = Py_BuildValue((char *) "s#", (retval).c_str(), (retval).size());
+    return py_retval;
+}
+
+
+PyObject *
 _wrap_PyIfdh_nsIfdh_declareFile(PyIfdh_nsIfdh *self, PyObject *args, PyObject *kwargs)
 {
     PyObject *py_retval;
@@ -1777,6 +1795,7 @@ static PyMethodDef PyIfdh_nsIfdh_methods[] = {
     {(char *) "checksum", (PyCFunction) _wrap_PyIfdh_nsIfdh_checksum, METH_KEYWORDS|METH_VARARGS, "checksum(loc)\n\ntype: loc: std::string" },
     {(char *) "mkdir_p", (PyCFunction) _wrap_PyIfdh_nsIfdh_mkdir_p, METH_KEYWORDS|METH_VARARGS, "mkdir_p(loc, force, depth)\n\ntype: loc: std::string\ntype: force: std::string\ntype: depth: int" },
     {(char *) "getProxy", (PyCFunction) _wrap_PyIfdh_nsIfdh_getProxy, METH_NOARGS, "getProxy()\n\n" },
+    {(char *) "getToken", (PyCFunction) _wrap_PyIfdh_nsIfdh_getToken, METH_NOARGS, "getToken()\n\n" },
     {(char *) "declareFile", (PyCFunction) _wrap_PyIfdh_nsIfdh_declareFile, METH_KEYWORDS|METH_VARARGS, "declareFile(json_metadata)\n\ntype: json_metadata: std::string" },
     {(char *) "modifyMetadata", (PyCFunction) _wrap_PyIfdh_nsIfdh_modifyMetadata, METH_KEYWORDS|METH_VARARGS, "modifyMetadata(file, json_metadata)\n\ntype: file: std::string\ntype: json_metadata: std::string" },
     {(char *) "apply", (PyCFunction) _wrap_PyIfdh_nsIfdh_apply, METH_KEYWORDS|METH_VARARGS, "apply(args)\n\ntype: args: std::vector< std::string >" },

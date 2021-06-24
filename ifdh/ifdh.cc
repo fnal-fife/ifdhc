@@ -330,12 +330,12 @@ ifdh::addOutputFile(string filename) {
 }
 
 #include "md5.h"
-#include "openssl/sha.h"
+#include "../util/sha256.h"
 
 std::string
 get_hashdir(std::string filename, int n) {
     std::stringstream hashdir;
-    unsigned char digest[256];
+    unsigned char digest[32];
 
     char *algenv = getenv("IFDH_DIR_HASH_ALG");
     if (algenv && 0 == strcmp(algenv, "sha256")) {

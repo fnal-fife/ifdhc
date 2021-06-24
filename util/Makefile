@@ -8,7 +8,7 @@ TST=$(addsuffix -test,$(basename($SRC)))
 DEFS=
 TESTDEFS=-DUNITTEST
 CXXFLAGS=-pedantic-errors -Wall -Wextra -Werror -fPIC -g $(DEFS) $(ARCH) -I../../util
-CFLAGS=-pedantic-errors -Wall -Wextra -Werror -fPIC -g $(DEFS) $(ARCH) -I../../util
+CFLAGS=-pedantic-errors -Wall -Wextra -Werror -fPIC -g $(DEFS) $(ARCH) -I../../util --std=c99
 
 
 all: $(GEN) $(OBJ) $(TST)
@@ -22,6 +22,9 @@ ifdh_version.h: FORCE
 	git describe --tags --match 'v*' 2>/dev/null && echo '#define IFDH_VERSION "'`git describe --tags --match 'v*'`'"' > $@.new && mv $@.new $@ || true
 
 FORCE:
+
+sha256-test: sha256.c
+	${CC} -o $@ $(TESTDEFS) $(CFLAGS) $< 
 
 utils-test: utils.cc WimpyConfigParser.o
 	${CXX} -o $@ $(TESTDEFS) $(CXXFLAGS) $< WimpyConfigParser.o

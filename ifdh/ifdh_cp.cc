@@ -586,7 +586,7 @@ check_grid_credentials() {
     
     if (proxies_enabled) {
         ifdh::_debug && std::cerr << "check_grid_credentials: proxies:\n";
-        FILE *pf = popen("voms-proxy-info -exists -valid 0:10 -path -fqan 2>/dev/null", "r");
+        FILE *pf = popen("voms-proxy-info -exists -valid 0:10 -path -text 2>/dev/null", "r");
 
         if (experiment == "samdev")  // use fermilab for fake samdev expt
             experiment = "fermilab";

@@ -561,6 +561,13 @@ ifdh::build_stage_list(std::vector<std::string> args, int curarg, const char *st
    return res;
 }
 
+//
+// this is only one routine for both tokens and proxies,
+// so it has to return false if either one is expired; which
+// means that during transition we may refresh proxies way
+// more often than strictly neccesary 'cause we need to
+// refresh the tokens, and we do them both in the same code...
+//
 bool 
 check_grid_credentials() {
     int res;
@@ -576,12 +583,10 @@ check_grid_credentials() {
     if ( "" == ifdh::_config.get("proxies","enabled")) {
        proxies_enabled = 1;
     }
-
-    
     
     if (proxies_enabled) {
         ifdh::_debug && std::cerr << "check_grid_credentials: proxies:\n";
-        FILE *pf = popen("voms-proxy-info -exists -valid 0:10 -path -fqan 2>/dev/null", "r");
+        FILE *pf = popen("voms-proxy-info -exists -valid 0:10 -path -text 2>/dev/null", "r");
 
         if (experiment == "samdev")  // use fermilab for fake samdev expt
             experiment = "fermilab";
@@ -642,8 +647,16 @@ check_grid_credentials() {
         }
         r1 = stat(tokenfile.str().c_str(), &sbuf);
         if (r1 == 0 && sbuf.st_size > 200) {
+            ifdh::_debug && std::cerr << "Found token file " << tokenfile << "\n";
             setenv("BEARER_TOKEN_FILE", tokenfile.str().c_str(), 1);
             found = true;
+        }
+
+        // we can't read the token, but they're only good for an hour,
+        // so if the file is (almost) an hour old, consider it expired...
+        if ((time(0) - sbuf.st_mtime) > 3590) {
+            ifdh::_debug && std::cerr << "..but its expired\n" ;
+            found = false;
         }
     }
     return found;
@@ -881,6 +894,10 @@ std::string
 ifdh::getProxy() {
    get_grid_credentials_if_needed();
    std::string res( getenv("X509_USER_PROXY")?getenv("X509_USER_PROXY"):"");
+   if (access(res.c_str(), R_OK)) {
+       // cannot access for read, so don't return it
+       res.clear();
+   }
    return res;
 }
 
@@ -888,6 +905,10 @@ std::string
 ifdh::getToken() {
    get_grid_credentials_if_needed();
    std::string res( getenv("BEARER_TOKEN_FILE")?getenv("BEARER_TOKEN_FILE"):"");
+   if (access(res.c_str(), R_OK)) {
+       // cannot access for read, so don't return it
+       res.clear();
+   }
    return res;
 }
 

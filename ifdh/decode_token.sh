@@ -1,4 +1,10 @@
 #!/bin/bash
+gnatures...
+#
+# decode_token utility
+#
+# Note that this does *not* check si
+#
 
 decode_token() {
     #

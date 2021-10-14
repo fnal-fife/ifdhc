@@ -11,7 +11,7 @@
 #include <cstring>
 #include <sstream>
 #include <fstream>
-#include <iostream>
+#include <ostream>
 #include <stdexcept>
 #include <../numsg/numsg.h>
 #include <stdarg.h>
@@ -657,7 +657,7 @@ check_grid_credentials_tokens() {
         }
         r1 = stat(tokenfile.str().c_str(), &sbuf);
         if (r1 == 0 && sbuf.st_size > 200) {
-            ifdh::_debug && std::cerr << "Found token file " << tokenfile << "\n";
+            ifdh::_debug && std::cerr << "Found token file " << tokenfile.str() << "\n";
             setenv("BEARER_TOKEN_FILE", tokenfile.str().c_str(), 1);
             found = true;
         }

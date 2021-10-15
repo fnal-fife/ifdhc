@@ -575,7 +575,6 @@ check_grid_credentials_proxies() {
     bool found = false;
     std::string experiment(getexperiment());
     std::string path;
-    int first = 1;
     int proxies_enabled = ifdh::_config.getint("proxies","enabled");
 
     // proxies_enabled should default *on* if not listed..
@@ -585,18 +584,16 @@ check_grid_credentials_proxies() {
     
     if (proxies_enabled) {
         ifdh::_debug && std::cerr << "check_grid_credentials: proxies:\n";
-        FILE *pf = popen("voms-proxy-info -exists -valid 0:10 -path -text 2>/dev/null", "r");
+        FILE *pf = popen("voms-proxy-info -exists -valid 0:10 -text 2>/dev/null", "r");
 
         if (experiment == "samdev")  // use fermilab for fake samdev expt
             experiment = "fermilab";
 
-
         while(fgets(buf,512,pf)) {
              std::string s(buf);
-             if ( first ) {
-                path = s.substr(0,s.size()-1); 
-                first = 0;
-                ifdh::_debug && std::cerr << "saw path:" << path << "\n";
+             if ( 0 == strncmp(buf,"path ", 4)) {
+                path = s.substr(12,s.size()-13); 
+                ifdh::_debug && std::cerr << "saw path:!" << path << "!\n";
              }
 
              if (std::string::npos != s.find("Role=") && std::string::npos == s.find("Role=NULL")) { 
@@ -611,8 +608,9 @@ check_grid_credentials_proxies() {
         res = pclose(pf);
         if (!(WIFEXITED(res) && 0 == WEXITSTATUS(res))) {
              found = false;
-             ifdh::_debug && std::cerr << "..but its expired\n " ;
+             ifdh::_debug && std::cerr << "exit code" << res << "..but its expired\n " ;
         } else {
+             found = true;
              ifdh::_debug && std::cerr << "... and passes voms-proxy-info -exists -valid check\n " ;
         }
 
@@ -624,6 +622,8 @@ check_grid_credentials_proxies() {
             setenv("XrdSecGSIUSERKEY", path.c_str(),1);
         }
     }
+    
+    ifdh::_debug && std::cerr << "check_credentials_proxies returning  " << found << "\n";
     return found;
 }
 
@@ -662,8 +662,12 @@ check_grid_credentials_tokens() {
             found = true;
         }
 
+        std::string cmd = "decode_token.sh -e exp ";
+        cmd += tokenfile.str();
+        ifdh::_debug && std::cerr << "running: " << cmd << "\n";
+        std::cerr.flush();
         
-        FILE *pf = popen("decode_token.sh -e exp $BEARER_TOKEN_FILE", "r");
+        FILE *pf = popen(cmd.c_str() , "r");
         fgets(buf,512,pf);
         fclose(pf);
 
@@ -673,7 +677,10 @@ check_grid_credentials_tokens() {
             // 
             ifdh::_debug && std::cerr << "..but its expired\n" ;
             found = false;
+        } else {
+            ifdh::_debug && std::cerr << "...good until " << buf << "\n" ;
         }
+            
     }
     return found;
 }
@@ -929,6 +936,8 @@ get_grid_credentials_if_needed() {
             std::cerr << (time(&gt)?ctime(&gt):"") << " ";
             std::cerr << "Error: exit code " << res << " from htgettoken... later actions will likely fail\n";
         }
+    } else { 
+        found = true;
     }
   
     if (!found) {

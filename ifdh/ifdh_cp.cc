@@ -745,7 +745,9 @@ get_grid_credentials_if_needed() {
     string user(getenv("GRID_USER")?getenv("GRID_USER"):(getenv("USER")?getenv("USER"):"unknown_user") );
     string prouser(getexperiment());
     prouser = prouser + "pro";
-    if (user == prouser ) {
+    if (getenv("IFDH_ROLE")) {
+         role = getenv("IFDH_ROLE");
+    } else if (user == prouser ) {
          role = "Production";
     } else {
          role = "Analysis";

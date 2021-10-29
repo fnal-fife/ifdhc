@@ -50,7 +50,7 @@ install-headers:
 
 install-cmake:
 	test -d $(DESTDIR)lib/ifdhc/cmake || mkdir -p $(DESTDIR)lib/ifdhc/cmake
-	cp cmake/Findifdhc.cmake $(DESTDIR)lib/ifdhc/cmake
+	cp ups/Findifdhc.cmake $(DESTDIR)lib/ifdhc/cmake
 
 32bit:
 	ARCH="-m32 $(ARCH)" make all  install

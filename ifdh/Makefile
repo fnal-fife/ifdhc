@@ -83,7 +83,7 @@ python/ifdh.$(SHLIB): $(PYMOD_OBJS)
 #	${CXX} --shared $(ARCH) -o  $@ $(PYMOD_OBJS) $${PYTHON_LIB:-/usr/lib64}/libpython*[asd]* $(LDLIBS) || ${CXX} --shared $(ARCH) -o  $@ $(PYMOD_OBJS) $${PYTHON_LIB:-/usr/lib}/libpython*[asd]* $(LDLIBS)
 
 libifdh.$(SHLIB): $(ALL_OBJS)
-	${CXX} --shared $(ARCH) $(CPPFLAGS)  -o $@ $(ALL_OBJS) $(LDLIBS)
+	${CXX} --shared $(ARCH) -Wl,-soname,libifdh.$(SHLIB) $(CPPFLAGS)  -o $@ $(ALL_OBJS) $(LDLIBS)
 
 libifdh.a: $(ALL_OBJS)
 	rm -f $@

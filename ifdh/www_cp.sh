@@ -97,7 +97,7 @@ http*//*\;/*)
     eval "curl $curlopts -o '$dst' '$src'"
     ;;
 /*\;http*://*) 
-    ( cat ) < $src | eval "curl $curlopts -T - '$dst'"
+    eval "curl $curlopts -T '$src' '$dst'"
     ;;
 http*://*\;http*://*)
     eval "curl $curlopts -o - '$src'" | eval "curl $curlopts  -T - '$dst'"

@@ -29,7 +29,7 @@ new_version:
 	git commit -am "version $(VERSION)"
 	git tag --force $(VERSION)
 
-install: install-headers install-libs install-cmake
+install: install-headers install-libs
 
 install-libs: all
 	rm -rf $(DESTDIR)lib 
@@ -46,10 +46,6 @@ install-libs: all
 install-headers:
 	rm -rf $(DESTDIR)inc
 	test -d $(DESTDIR)inc || mkdir -p $(DESTDIR)inc && cp [finu][^n]*/*.h $(DESTDIR)inc
-
-install-cmake:
-	test -d $(DESTDIR)lib/ifdhc/cmake || mkdir -p $(DESTDIR)lib/ifdhc/cmake
-	cp cmake/Findifdhc.cmake $(DESTDIR)lib/ifdhc/cmake
 
 32bit:
 	ARCH="-m32 $(ARCH)" make all  install

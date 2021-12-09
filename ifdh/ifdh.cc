@@ -619,36 +619,36 @@ ifdh::createDefinition( string name, string dims, string user, string group) {
 
 int 
 ifdh::deleteDefinition( string name) {
-  return  do_url_int(1,_baseuri.c_str(),"definitions","name", name.c_str(),"delete","","");
+  return  do_url_int(1,ssl_uri(_baseuri).c_str(),"definitions","name", name.c_str(),"delete","","");
 }
 
 string 
 ifdh::takeSnapshot( string name ) {
-  return do_url_str(0,_baseuri.c_str(),"definitions", "name", name.c_str(), "snapshot",  "","");
+  return do_url_str(0,ssl_uri(_baseuri).c_str(),"definitions", "name", name.c_str(), "snapshot",  "","");
 }
 
 string 
 ifdh::describeDefinition( string name) {
-  return do_url_str(0,_baseuri.c_str(),"definitions", "name", name.c_str(), "describe",  "","");
+  return do_url_str(0,ssl_uri(_baseuri).c_str(),"definitions", "name", name.c_str(), "describe",  "","");
 }
 
 vector<string> 
 ifdh::translateConstraints( string dims) {
-  return do_url_lst(0,_baseuri.c_str(),"files", "list", "", "dims", dims.c_str(), "","" );
+  return do_url_lst(0,ssl_uri(_baseuri).c_str(),"files", "list", "", "dims", dims.c_str(), "","" );
 }
 
 // files
 vector<string> 
 ifdh::locateFile( string name, string schema ) {
   if (schema == "" ) {
-      return do_url_lst(0,_baseuri.c_str(), "files", "name", name.c_str(), "locations", "", "" );  
+      return do_url_lst(0,ssl_uri(_baseuri).c_str(), "files", "name", name.c_str(), "locations", "", "" );  
   } else {
-      return do_url_lst(0,_baseuri.c_str(), "files", "name", name.c_str(), "locations", "url", "" , "schema", schema.c_str(), "", "");
+      return do_url_lst(0,ssl_uri(_baseuri).c_str(), "files", "name", name.c_str(), "locations", "url", "" , "schema", schema.c_str(), "", "");
   }
 }
 
 string ifdh::getMetadata( string name) {
-  return  do_url_str(0, _baseuri.c_str(),"files","name", name.c_str(), "metadata","","");
+  return  do_url_str(0, ssl_uri(_baseuri).c_str(),"files","name", name.c_str(), "metadata","","");
 }
 
 //
@@ -658,7 +658,7 @@ ifdh::dumpStation( string name, string what ) {
   if (name == "" && getenv("SAM_STATION"))
       name = getenv("SAM_STATION}");
 
-  return do_url_str(0,_baseuri.c_str(),"dumpStation", "", "station", name.c_str(), "dump", what.c_str(), "","");
+  return do_url_str(0,ssl_uri(_baseuri).c_str(),"dumpStation", "", "station", name.c_str(), "dump", what.c_str(), "","");
 }
 
 // projects

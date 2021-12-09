@@ -147,10 +147,17 @@ string bestmanuri = "srm://fg-bestman1.fnal.gov:10443/srm/v2/server?SFN=";
 std::string ifdh::_default_base_ssl_uri = "https://samweb.fnal.gov:8483/sam/";
 std::string ifdh::_default_base_uri =  ifdh::_default_base_ssl_uri;
 
+// some things still pass in the old http via IFDH_BASE_URL, so we have
+// to fix it...
+std::string old_http_base_uri = "http://samweb.fnal.gov:8480/sam/";
+
 string ssl_uri(string s) {
-   // it is all ssl now...
+   if (s.find(old_http_base_uri) == 0) {
+      return ifdh::_default_base_ssl_uri + s.substr(old_http_base_uri.length());
+   }
    return s;
 }
+
 
 string datadir() {
     stringstream dirmaker;

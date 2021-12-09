@@ -24,9 +24,10 @@ endif
 LIB=libifdh.$(SHLIB)
 HDR=ifdh.h
 SWIGCXXFLAGS=-fPIC -I../util -I../numsg -I../../util -I../../numsg -I../../ifdh -g -Dregister= -I$${PYTHON_INCLUDE:-`echo $${VIRTUAL_ENV:-/usr}/include/python$${PYMAJOR:-}*`} $(ARCH)
-CXXFLAGS=-pedantic-errors -Wall -Wextra -Werror -fPIC -I../../util -I../util -I ../../numsg -I../numsg -g  $(ARCH) -I$(SRCDIR)
+CXXFLAGS=-pedantic-errors -Wall -Wextra -Werror -fPIC -I../../util -I../util -I ../../numsg -I../numsg -g  $(ARCH) -I$(SRCDIR) -std=c++11
+CFLAGS=-pedantic-errors -Wall -Wextra -Werror -fPIC -I../../util -I../util -I ../../numsg -I../numsg -g  $(ARCH) -I$(SRCDIR) -std=c99
 OBJ=ifdh.o ifdh_cp.o
-ALL_OBJS=$(OBJ) ../util/WebAPI.o ../numsg/numsg.o ../util/SyslogAPI.o ../util/utils.o ../util/regwrap.o ../util/Checksum.o ../util/md5.o ../util/WimpyConfigParser.o
+ALL_OBJS=$(OBJ) ../util/WebAPI.o ../numsg/numsg.o ../util/SyslogAPI.o ../util/utils.o ../util/regwrap.o ../util/Checksum.o ../util/md5.o ../util/WimpyConfigParser.o ../util/sha256.o
 genOBJ=ifdh_main.o ifdh_pybindgen.o python/ifdh.$(SHLIB)
 genSRC=ifdh_main.cc
 #genSRC=ifdh_pybindgen.cc ifdh_main.cc
@@ -49,7 +50,7 @@ install:
 	cp $(HDR) ../include
 	cp python/ifdh.$(SHLIB) ../lib/python
 	#cp python/ifdh.py ../lib/python
-	cp www_cp.sh xrdwrap.sh ../bin
+	cp www_cp.sh xrdwrap.sh decode_token.sh ../bin
 
 clean: 
 	rm -f $(OBJ) $(genOBJ) $(genSRC) $(LIB) $(ALL)
@@ -82,7 +83,7 @@ python/ifdh.$(SHLIB): $(PYMOD_OBJS)
 #	${CXX} --shared $(ARCH) -o  $@ $(PYMOD_OBJS) $${PYTHON_LIB:-/usr/lib64}/libpython*[asd]* $(LDLIBS) || ${CXX} --shared $(ARCH) -o  $@ $(PYMOD_OBJS) $${PYTHON_LIB:-/usr/lib}/libpython*[asd]* $(LDLIBS)
 
 libifdh.$(SHLIB): $(ALL_OBJS)
-	${CXX} --shared $(ARCH) $(CPPFLAGS)  -o $@ $(ALL_OBJS) $(LDLIBS)
+	${CXX} --shared $(ARCH) -Wl,-soname,libifdh.$(SHLIB) $(CPPFLAGS)  -o $@ $(ALL_OBJS) $(LDLIBS)
 
 libifdh.a: $(ALL_OBJS)
 	rm -f $@
@@ -104,4 +105,4 @@ ifdh_cp.o: ifdh_cp.cc ifdh.h ../util/WebAPI.h ../util/../numsg/numsg.h ../util/.
 
 ifdh_main.o: ifdh_main.cc ifdh.h ../util/WebAPI.h 
 
-ifdh.o: ifdh.cc ifdh.h ../util/WebAPI.h ../util/../numsg/numsg.h ../util/../numsg/../util/SyslogAPI.h ifdh.h ../util/WebAPI.h 
+ifdh.o: ifdh.cc ifdh.h ../util/WebAPI.h ../util/../numsg/numsg.h ../util/../numsg/../util/SyslogAPI.h ifdh.h ../util/WebAPI.h  ../util/sha256.h

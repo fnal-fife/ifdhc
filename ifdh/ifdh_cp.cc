@@ -577,7 +577,7 @@ check_grid_credentials_proxies() {
     std::string path;
     int proxies_enabled = ifdh::_config.getint("proxies","enabled");
     if (getenv("IFDH_PROXY_ENABLE")) {
-        proxiess_enabled = atoi(getenv("IFDH_PROXY_ENABLE"));
+        proxies_enabled = atoi(getenv("IFDH_PROXY_ENABLE"));
     }
 
     // proxies_enabled should default *on* if not listed..
@@ -700,7 +700,7 @@ check_grid_credentials() {
         tokens_enabled = atoi(getenv("IFDH_TOKEN_ENABLE"));
     }
     if (getenv("IFDH_PROXY_ENABLE")) {
-        proxiess_enabled = atoi(getenv("IFDH_PROXY_ENABLE"));
+        proxies_enabled = atoi(getenv("IFDH_PROXY_ENABLE"));
     }
 
     if (tokens_enabled) {
@@ -746,7 +746,7 @@ get_grid_credentials_if_needed() {
         tokens_enabled = atoi(getenv("IFDH_TOKEN_ENABLE"));
     }
     if (getenv("IFDH_PROXY_ENABLE")) {
-        proxiess_enabled = atoi(getenv("IFDH_PROXY_ENABLE"));
+        proxies_enabled = atoi(getenv("IFDH_PROXY_ENABLE"));
     }
 
     // proxies_enabled should default *on* if not listed..

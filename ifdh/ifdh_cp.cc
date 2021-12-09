@@ -659,7 +659,7 @@ check_grid_credentials_tokens() {
            } else {
                tokenfile << "/run/user/" << getuid();
            }
-           tokenfile << "bt_" << getuid();
+           tokenfile << "/bt_" << getuid();
         }
         r1 = stat(tokenfile.str().c_str(), &sbuf);
         if (r1 == 0 && sbuf.st_size > 200) {
@@ -670,6 +670,7 @@ check_grid_credentials_tokens() {
 
         std::string cmd = "decode_token.sh -e exp ";
         cmd += tokenfile.str();
+        cmd += " 2>/dev/null";
         ifdh::_debug && std::cerr << "running: " << cmd << "\n";
         std::cerr.flush();
         
@@ -677,11 +678,11 @@ check_grid_credentials_tokens() {
         fgets(buf,512,pf);
         fclose(pf);
 
-        if ((atoi(buf) - time(0)) > 60) {
+        if (*buf >= '0' && (atol(buf) - time(0)) < 60) {
             //
             // we consider it expired if there's less than a minute left...
             // 
-            ifdh::_debug && std::cerr << "..but its expired\n" ;
+            ifdh::_debug && std::cerr << "..but its expired: "<< atol(buf) << "\n" ;
             found = false;
         } else {
             ifdh::_debug && std::cerr << "...good until " << buf << "\n" ;

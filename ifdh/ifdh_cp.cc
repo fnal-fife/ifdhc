@@ -2078,7 +2078,7 @@ ifdh::lss( std::string loc, int recursion_depth, std::string force) {
                }
 
 
-               _debug && std::cerr << "file: " << file << " dir " << dir << " size " << size << " dirflag: "  << dirflag << "\n";
+               _debug && std::cerr << "file: '" << file << "' dir " << dir << " size " << size << " dirflag: "  << dirflag << "\n";
 
                if (file == "" && dir == "" && dirflag == "") {
                   

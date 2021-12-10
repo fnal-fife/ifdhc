@@ -50,7 +50,7 @@ install:
 	cp $(HDR) ../include
 	cp python/ifdh.$(SHLIB) ../lib/python
 	#cp python/ifdh.py ../lib/python
-	cp www_cp.sh xrdwrap.sh ../bin
+	cp www_cp.sh xrdwrap.sh decode_token.sh ../bin
 
 clean: 
 	rm -f $(OBJ) $(genOBJ) $(genSRC) $(LIB) $(ALL)

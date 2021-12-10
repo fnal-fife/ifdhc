@@ -26,23 +26,21 @@ done
 src="$1"
 dst="$2"
 
-if [ -r "${X509_USER_PROXY:=/tmp/x509up_u`id -u`}" ]
-then
-    curlopts="$curlopts --cert $X509_USER_PROXY --key $X509_USER_PROXY --cacert $X509_USER_PROXY "
-fi
-
 #
 # fun with scitokens...
+#   also do tokens OR proxies, but not both.  Tokens win if present
 #
 if [ "x${BEARER_TOKEN}" != "x" ]
 then
     curlopts="$curlopts -H 'Authorization: Bearer ${BEARER_TOKEN}'"
-fi
-
-if [ -r "${BEARER_TOKEN_FILE:=$XDG_RUNTIME_DIR/bt_u`id -u`}" ]
+elif [ -r "${BEARER_TOKEN_FILE:=$XDG_RUNTIME_DIR/bt_u`id -u`}" ]
 then
     curlopts="$curlopts -H 'Authorization: Bearer `cat ${BEARER_TOKEN_FILE}`'"
+elif [ -r "${X509_USER_PROXY:=/tmp/x509up_u`id -u`}" ]
+then
+    curlopts="$curlopts --cert $X509_USER_PROXY --key $X509_USER_PROXY --cacert $X509_USER_PROXY "
 fi
+
 
 if [ x$IFDH_UCONDB_UPASS != x ]
 then
@@ -66,7 +64,7 @@ wmkdir() {
    fi
 }
 
-wmkdir() {
+wrm() {
    eval "curl $curlopts -o - -X DELETE '$1'"
 }
 
@@ -97,7 +95,7 @@ http*//*\;/*)
     eval "curl $curlopts -o '$dst' '$src'"
     ;;
 /*\;http*://*) 
-    ( cat ) < $src | eval "curl $curlopts -T - '$dst'"
+    eval "curl $curlopts -T '$src' '$dst'"
     ;;
 http*://*\;http*://*)
     eval "curl $curlopts -o - '$src'" | eval "curl $curlopts  -T - '$dst'"

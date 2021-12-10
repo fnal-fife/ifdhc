@@ -52,6 +52,42 @@ WebAPI::encode(std::string s) {
     return res;
 }	
 
+static char *get_bearer_token() {
+    static char tokenbuf[8192];
+    static int have_token;
+    int fd, res;
+
+    switch(have_token) {
+    case 1:
+        // we already got it
+        return tokenbuf;
+    case 2:
+        // we already didn't find it
+        return NULL;
+    default:
+        // haven't looked yet...
+        if (getenv("BEARER_TOKEN_FILE") != 0) {
+             
+            fd = open(getenv("BEARER_TOKEN_FILE"),O_RDONLY);
+
+            if (fd >= 0) {
+                res = read(fd, tokenbuf, 8192);
+                close(fd);
+                if (res > 512) {
+                    // BEARER_TOKEN_FILE gave us an actual file that's
+                    // a reasonable size, so go with it.
+                    
+                    have_token = 1;
+                    return tokenbuf;
+                }
+            }
+        }
+        // remember we don't have one for next time
+        have_token = 2;
+        return 0;
+    }
+}
+
 void
 test_encode() {
     std::string s="testing(again'for'me)";
@@ -199,6 +235,7 @@ WebAPI::WebAPI(std::string url, int postflag, std::string postdata, int maxretri
      int hcount;
      int connected;
      int totaltime = 0;
+     char *tok;
      std::string loc;
      _timeout = timeout;
 
@@ -399,6 +436,12 @@ WebAPI::WebAPI(std::string url, int postflag, std::string postdata, int maxretri
 	 _debug && std::cerr << "sending header: " << "From: " << ppasswd->pw_name << "@" << hostbuf << "\r\n";
 	 _tosite << "User-Agent: " << "WebAPI/" << IFDH_VERSION << "/Experiment/" << getexperiment() << "\r\n";
 	 _debug && std::cerr << "sending header: " << "User-Agent: " << "WebAPI/" << IFDH_VERSION << "/Experiment/" << getexperiment() << "\r\n";
+
+         if (0 != (tok = get_bearer_token()) && pu.type == "https") {
+              _tosite << "Authorization: BEARER " << tok << "\r\n";
+	      _debug && std::cerr << "sending header: " << "Athorization: BEARER " << tok << "\r\n";
+         }
+
          if (postflag) {
 
              if ( postflag == 1) {

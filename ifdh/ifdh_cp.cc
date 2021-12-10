@@ -562,22 +562,23 @@ ifdh::build_stage_list(std::vector<std::string> args, int curarg, const char *st
 }
 
 //
-// this is only one routine for both tokens and proxies,
-// so it has to return false if either one is expired; which
-// means that during transition we may refresh proxies way
-// more often than strictly neccesary 'cause we need to
-// refresh the tokens, and we do them both in the same code...
+// this is now split out into two routines for both tokens and proxies,
+// The combined one has to return false if either one is expired; 
+// but now the renew code calls the split ones, so we
+// only refresh the ones that need refreshing.
 //
+
 bool 
-check_grid_credentials() {
+check_grid_credentials_proxies() {
     int res;
     static char buf[512];
     bool found = false;
     std::string experiment(getexperiment());
     std::string path;
-    int first = 1;
     int proxies_enabled = ifdh::_config.getint("proxies","enabled");
-    int tokens_enabled = ifdh::_config.getint("tokens","enabled");
+    if (getenv("IFDH_PROXY_ENABLE")) {
+        proxies_enabled = atoi(getenv("IFDH_PROXY_ENABLE"));
+    }
 
     // proxies_enabled should default *on* if not listed..
     if ( "" == ifdh::_config.get("proxies","enabled")) {
@@ -586,18 +587,16 @@ check_grid_credentials() {
     
     if (proxies_enabled) {
         ifdh::_debug && std::cerr << "check_grid_credentials: proxies:\n";
-        FILE *pf = popen("voms-proxy-info -exists -valid 0:10 -path -text 2>/dev/null", "r");
+        FILE *pf = popen("voms-proxy-info -exists -valid 0:10 -text 2>/dev/null", "r");
 
         if (experiment == "samdev")  // use fermilab for fake samdev expt
             experiment = "fermilab";
 
-
         while(fgets(buf,512,pf)) {
              std::string s(buf);
-             if ( first ) {
-                path = s.substr(0,s.size()-1); 
-                first = 0;
-                ifdh::_debug && std::cerr << "saw path:" << path << "\n";
+             if ( 0 == strncmp(buf,"path ", 4)) {
+                path = s.substr(12,s.size()-13); 
+                ifdh::_debug && std::cerr << "saw path:!" << path << "!\n";
              }
 
              if (std::string::npos != s.find("Role=") && std::string::npos == s.find("Role=NULL")) { 
@@ -612,8 +611,9 @@ check_grid_credentials() {
         res = pclose(pf);
         if (!(WIFEXITED(res) && 0 == WEXITSTATUS(res))) {
              found = false;
-             ifdh::_debug && std::cerr << "..but its expired\n " ;
+             ifdh::_debug && std::cerr << "exit code" << res << "..but its expired\n " ;
         } else {
+             found = true;
              ifdh::_debug && std::cerr << "... and passes voms-proxy-info -exists -valid check\n " ;
         }
 
@@ -625,6 +625,22 @@ check_grid_credentials() {
             setenv("XrdSecGSIUSERKEY", path.c_str(),1);
         }
     }
+    
+    ifdh::_debug && std::cerr << "check_credentials_proxies returning  " << found << "\n";
+    return found;
+}
+
+bool 
+check_grid_credentials_tokens() {
+    static char buf[512];
+    bool found = false;
+    std::string experiment(getexperiment());
+    std::string path;
+    int tokens_enabled = ifdh::_config.getint("tokens","enabled");
+    if (getenv("IFDH_TOKEN_ENABLE")) {
+        tokens_enabled = atoi(getenv("IFDH_TOKEN_ENABLE"));
+    }
+
     if (tokens_enabled) {
         ifdh::_debug && std::cerr << "check_grid_credentials: tokens:\n";
         // don't currently have a system uitility to dump tokens?
@@ -643,7 +659,7 @@ check_grid_credentials() {
            } else {
                tokenfile << "/run/user/" << getuid();
            }
-           tokenfile << "bt_" << getuid();
+           tokenfile << "/bt_" << getuid();
         }
         r1 = stat(tokenfile.str().c_str(), &sbuf);
         if (r1 == 0 && sbuf.st_size > 200) {
@@ -652,14 +668,49 @@ check_grid_credentials() {
             found = true;
         }
 
-        // we can't read the token, but they're only good for an hour,
-        // so if the file is (almost) an hour old, consider it expired...
-        if ((time(0) - sbuf.st_mtime) > 3590) {
-            ifdh::_debug && std::cerr << "..but its expired\n" ;
+        std::string cmd = "decode_token.sh -e exp ";
+        cmd += tokenfile.str();
+        cmd += " 2>/dev/null";
+        ifdh::_debug && std::cerr << "running: " << cmd << "\n";
+        std::cerr.flush();
+        
+        FILE *pf = popen(cmd.c_str() , "r");
+        fgets(buf,512,pf);
+        fclose(pf);
+
+        if (*buf >= '0' && (atol(buf) - time(0)) < 60) {
+            //
+            // we consider it expired if there's less than a minute left...
+            // 
+            ifdh::_debug && std::cerr << "..but its expired: "<< atol(buf) << "\n" ;
             found = false;
+        } else {
+            ifdh::_debug && std::cerr << "...good until " << buf << "\n" ;
         }
+            
     }
     return found;
+}
+
+bool 
+check_grid_credentials() {
+    bool res = true;
+    int proxies_enabled = ifdh::_config.getint("proxies","enabled");
+    int tokens_enabled = ifdh::_config.getint("tokens","enabled");
+    if (getenv("IFDH_TOKEN_ENABLE")) {
+        tokens_enabled = atoi(getenv("IFDH_TOKEN_ENABLE"));
+    }
+    if (getenv("IFDH_PROXY_ENABLE")) {
+        proxies_enabled = atoi(getenv("IFDH_PROXY_ENABLE"));
+    }
+
+    if (tokens_enabled) {
+       res = res && check_grid_credentials_tokens();
+    }
+    if (proxies_enabled) {
+       res = res && check_grid_credentials_proxies();
+    }
+    return res;
 }
 
 //
@@ -685,12 +736,19 @@ get_grid_credentials_if_needed() {
     std::stringstream plainproxyfile;
     std::stringstream vomsproxyfile;
     std::stringstream tokenfile;
+    bool found = false;
     int res;
 
     ifdh::_debug && std::cerr << "Checking for proxy cert..."<< endl;
 
     int proxies_enabled = ifdh::_config.getint("proxies","enabled");
     int tokens_enabled = ifdh::_config.getint("tokens","enabled");
+    if (getenv("IFDH_TOKEN_ENABLE")) {
+        tokens_enabled = atoi(getenv("IFDH_TOKEN_ENABLE"));
+    }
+    if (getenv("IFDH_PROXY_ENABLE")) {
+        proxies_enabled = atoi(getenv("IFDH_PROXY_ENABLE"));
+    }
 
     // proxies_enabled should default *on* if not listed..
     if ( "" == ifdh::_config.get("proxies","enabled")) {
@@ -706,7 +764,9 @@ get_grid_credentials_if_needed() {
     string user(getenv("GRID_USER")?getenv("GRID_USER"):(getenv("USER")?getenv("USER"):"unknown_user") );
     string prouser(getexperiment());
     prouser = prouser + "pro";
-    if (user == prouser ) {
+    if (getenv("IFDH_ROLE")) {
+         role = getenv("IFDH_ROLE");
+    } else if (user == prouser ) {
          role = "Production";
     } else {
          role = "Analysis";
@@ -725,43 +785,33 @@ get_grid_credentials_if_needed() {
 
     vomsproxyfile <<  "/tmp/x509up_voms_" << getexperiment() << "_" << role << "_" << getuid();
 
-    if (!check_grid_credentials() && have_kerberos_creds() ) {
-        // if we don't have credentials, try our standard copy cache file
-        ifdh::_debug && std::cerr << "no grid credentials..." << endl;
-        if (proxies_enabled) {
-            ifdh::_debug && std::cerr << "no grid credentials, trying proxy " << vomsproxyfile.str() << endl;
-            setenv("X509_USER_PROXY", vomsproxyfile.str().c_str(),1);
-            // for xrdcp...
-            setenv("XrdSecGSIUSERCERT", vomsproxyfile.str().c_str(),1);
-            setenv("XrdSecGSIUSERKEY", vomsproxyfile.str().c_str(),1);
-            ifdh::_debug && std::cerr << "Now X509_USER_PROXY is: " << getenv("X509_USER_PROXY")<< endl;
-        }
-        if (tokens_enabled) {
-            ifdh::_debug && std::cerr << "no grid credentials: tokens:\n";
-            setenv("BEARER_TOKEN_FILE", tokenfile.str().c_str(),1);
-        }
+    if (proxies_enabled && !check_grid_credentials_proxies() && have_kerberos_creds() ) {
+        ifdh::_debug && std::cerr << "no grid credentials, trying proxy " << vomsproxyfile.str() << endl;
+        setenv("X509_USER_PROXY", vomsproxyfile.str().c_str(),1);
+        // for xrdcp...
+        setenv("XrdSecGSIUSERCERT", vomsproxyfile.str().c_str(),1);
+        setenv("XrdSecGSIUSERKEY", vomsproxyfile.str().c_str(),1);
+        ifdh::_debug && std::cerr << "Now X509_USER_PROXY is: " << getenv("X509_USER_PROXY")<< endl;
     }
-
-    if (!check_grid_credentials() ) {
+    if (proxies_enabled && !check_grid_credentials_proxies() ) {
       ifdh::_debug && std::cerr << "still no grid credentials..." << endl;
-      if (have_kerberos_creds() ) {
-        ifdh::_debug && std::cerr << "have kerberos credentials..." << endl;
-        // if we still don't have credentials, try to get some from kx509
-        // cigetcert/htgettoken
+          if (have_kerberos_creds() ) {
+            ifdh::_debug && std::cerr << "have kerberos credentials..." << endl;
+            // if we still don't have credentials, try to get some from kx509
+            // cigetcert/htgettoken
 
-	ifdh::_debug && std::cerr << "trying to kx509/voms-proxy-init...\n " ;
+            ifdh::_debug && std::cerr << "trying to kx509/voms-proxy-init...\n " ;
 
-        cmdbuf << "( kx509 -o " << plainproxyfile.str() << getpid() << "; mv " <<     plainproxyfile.str() << getpid() <<  " " <<  plainproxyfile.str();
+            cmdbuf << "( kx509 -o " << plainproxyfile.str() << getpid() << "; mv " <<     plainproxyfile.str() << getpid() <<  " " <<  plainproxyfile.str();
 
-        if (ifdh::_debug) {
-            cmdbuf << ") >&2 ";
-        } else {
-            cmdbuf << ") >/dev/null 2>&1 ";
-        }
-	ifdh::_debug && std::cerr << "running: " << cmdbuf.str() << endl;
-        system(cmdbuf.str().c_str()); 
+            if (ifdh::_debug) {
+                cmdbuf << ") >&2 ";
+            } else {
+                cmdbuf << ") >/dev/null 2>&1 ";
+            }
+            ifdh::_debug && std::cerr << "running: " << cmdbuf.str() << endl;
+            system(cmdbuf.str().c_str()); 
 
-        if (proxies_enabled) {
 
             // start new command...
             cmdbuf.str("");
@@ -832,6 +882,9 @@ get_grid_credentials_if_needed() {
                sleep(1);
                res = system(cmdbuf.str().c_str());
             }
+            if (res == 0) {
+               found = true;
+            }
 
             // when you request a long timeout and it truncates it, it exits 256
             // even though things are fine...
@@ -840,54 +893,78 @@ get_grid_credentials_if_needed() {
                 std::cerr << "Error: exit code " << res << " from voms-proxy-init... later actions will likely fail\n";
             }
         }
+    }
 
-        if (tokens_enabled) {
-            std::string vault(ifdh::_config.get("tokens","vault_server"));
-            int numrules = ifdh::_config.getint("tokens","numrules");
-            
-            std::string issuer(experiment);
-            for( int i = 1 ; i <= numrules; i++) {
-                ifdh::_debug && std::cerr << "token issuer map: " << i << " of  " << numrules << "\n";
-                stringstream numbuf;
-                numbuf << i;
-                std::string match(ifdh::_config.get("tokens", "match"+numbuf.str()));
-                std::string repl(ifdh::_config.get("tokens", "repl"+numbuf.str()));
-                regexp exre(match);
-                regmatch m1(exre(issuer));
-                if (m1) {
-                    
-                    while (has(repl,"$1")) {
-                        repl = repl.replace(repl.find("$1"),2,m1[1]);
-                    }
-                    while (has(repl,"$2")) {
-                        repl = repl.replace(repl.find("$1"),2,m1[1]);
-                    }
-                    ifdh::_debug && std::cerr << "rule " << i << ": replacing '" << issuer << "' with '" << repl << "'\n";
-                    issuer = repl;
-                    break;
-                }
-            }
+    if (tokens_enabled && !check_grid_credentials_tokens() && have_kerberos_creds() ) {
+        ifdh::_debug && std::cerr << "no grid credentials: tokens:\n";
+        setenv("BEARER_TOKEN_FILE", tokenfile.str().c_str(),1);
+        //
+        // turns out gfal utilities *only* believe 
+        // BEARER_TOKEN in the environment and do not read
+        // BEARER_TOKEN_FILE, etc... 
+        // https://dmc-docs.web.cern.ch/dmc-docs/developers/bearer-tokens.html
+        // so read the token file and set BEARER_TOKEN, as well.
+        //
+        const int maxtoken = 8192;
+        static char tokenbuf[maxtoken+1];
+        std::ifstream btf(tokenfile.str().c_str());
+        btf.read(tokenbuf, maxtoken);
+        btf.close();
+        setenv("BEARER_TOKEN", tokenbuf, 1);
+    }
+    if (tokens_enabled && !check_grid_credentials_tokens()) {
+        std::string vault(ifdh::_config.get("tokens","vault_server"));
+        int numrules = ifdh::_config.getint("tokens","numrules");
+        
+        std::string issuer(experiment);
+        for( int i = 1 ; i <= numrules; i++) {
+            ifdh::_debug && std::cerr << "token issuer map: " << i << " of  " << numrules << "\n";
+            stringstream numbuf;
+            numbuf << i;
+            std::string match(ifdh::_config.get("tokens", "match"+numbuf.str()));
+            std::string repl(ifdh::_config.get("tokens", "repl"+numbuf.str()));
+            regexp exre(match);
+            regmatch m1(exre(issuer));
+            if (m1) {
                 
-            // we already set BEARER_TOKEN_FILE to our default so that is
-            // where htgettoken will put it...
-            cmdbuf.str("");
-            cmdbuf << "htgettoken -a " << vault << " -i " << issuer;
-            if (role != "Analysis") {
-                cmdbuf << " -r " << role; 
-            }
-            ifdh::_debug && std::cerr << "running: " << cmdbuf.str() << endl;
-            res = system(cmdbuf.str().c_str());
-
-            if ((!WIFEXITED(res) ||  0 != WEXITSTATUS(res)) && res != 256) {
-                std::cerr << (time(&gt)?ctime(&gt):"") << " ";
-                std::cerr << "Error: exit code " << res << " from htgettoken... later actions will likely fail\n";
+                while (has(repl,"$1")) {
+                    repl = repl.replace(repl.find("$1"),2,m1[1]);
+                }
+                while (has(repl,"$2")) {
+                    repl = repl.replace(repl.find("$1"),2,m1[1]);
+                }
+                ifdh::_debug && std::cerr << "rule " << i << ": replacing '" << issuer << "' with '" << repl << "'\n";
+                issuer = repl;
+                break;
             }
         }
-    } else {
+            
+        // we already set BEARER_TOKEN_FILE to our default so that is
+        // where htgettoken will put it...
+        cmdbuf.str("");
+        cmdbuf << "htgettoken -a " << vault << " -i " << issuer;
+        if (role != "Analysis") {
+            cmdbuf << " -r " << role; 
+        }
+        ifdh::_debug && std::cerr << "running: " << cmdbuf.str() << endl;
+        res = system(cmdbuf.str().c_str());
+
+        if (res == 0) {
+           found = true;
+        }
+
+        if ((!WIFEXITED(res) ||  0 != WEXITSTATUS(res)) && res != 256) {
+            std::cerr << (time(&gt)?ctime(&gt):"") << " ";
+            std::cerr << "Error: exit code " << res << " from htgettoken... later actions will likely fail\n";
+        }
+    } else { 
+        found = true;
+    }
+  
+    if (!found) {
         std::cerr << (time(&gt)?ctime(&gt):"") << " ";
         std::cerr << "Notice: Unable to find valid grid or kerberos credentials. Later actions will likely fail."<< endl;
     }
-  }
 }
 
 std::string
@@ -2001,7 +2078,7 @@ ifdh::lss( std::string loc, int recursion_depth, std::string force) {
                }
 
 
-               _debug && std::cerr << "file: " << file << " dir " << dir << " size " << size << " dirflag: "  << dirflag << "\n";
+               _debug && std::cerr << "file: '" << file << "' dir " << dir << " size " << size << " dirflag: "  << dirflag << "\n";
 
                if (file == "" && dir == "" && dirflag == "") {
                   

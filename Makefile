@@ -29,7 +29,7 @@ new_version:
 	git commit -am "version $(VERSION)"
 	git tag --force $(VERSION)
 
-install: install-headers install-libs
+install: install-headers install-libs install-cmake
 
 install-libs: all
 	rm -rf $(DESTDIR)lib 
@@ -42,10 +42,15 @@ install-libs: all
 	[ -r ifdh/ifdh_copyback.sh ] && cp ifdh/ifdh_copyback.sh $(DESTDIR)bin || cp ../ifdh/ifdh_copyback.sh $(DESTDIR)bin
 	[ -r ifdh/www_cp.sh ] && cp ifdh/www_cp.sh $(DESTDIR)bin || cp ../ifdh/www_cp.sh $(DESTDIR)bin
 	[ -r ifdh/xrdwrap.sh ] && cp ifdh/xrdwrap.sh $(DESTDIR)bin || cp ../ifdh/xrdwrap.sh $(DESTDIR)bin
+	[ -r ifdh/decode_token.sh ] && cp ifdh/decode_token.sh $(DESTDIR)bin || cp ../ifdh/decode_token.sh $(DESTDIR)bin
 
 install-headers:
 	rm -rf $(DESTDIR)inc
 	test -d $(DESTDIR)inc || mkdir -p $(DESTDIR)inc && cp [finu][^n]*/*.h $(DESTDIR)inc
+
+install-cmake:
+	test -d $(DESTDIR)lib/ifdhc/cmake || mkdir -p $(DESTDIR)lib/ifdhc/cmake
+	cp ups/Findifdhc.cmake $(DESTDIR)lib/ifdhc/cmake
 
 32bit:
 	ARCH="-m32 $(ARCH)" make all  install

@@ -64,7 +64,7 @@ wmkdir() {
    fi
 }
 
-wmkdir() {
+wrm() {
    eval "curl $curlopts -o - -X DELETE '$1'"
 }
 

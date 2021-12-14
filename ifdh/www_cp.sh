@@ -82,7 +82,7 @@ EOF
 }
 
 wls() {
-  wll "$1"  | perl -pe 's;</;\n</;go; s;><;>\n<;go;' | egrep '<d:href>|<d:getcontentlength' | perl -pe 'if(/<d:href>/){ chomp();} s{<d:getcontentlength/>}{ 0}o; s{<[^>]*>}{ }go;'
+  wll "$1" >/dev/null && wll "$1"  | perl -pe 's;</;\n</;go; s;><;>\n<;go;' | egrep '<d:href>|<d:getcontentlength' | perl -pe 'if(/<d:href>/){ chomp();} s{<d:getcontentlength/>}{ 0}o; s{<[^>]*>}{ }go;'
 }
 
 dst=`ucondb_convert "$dst"`

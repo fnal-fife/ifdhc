@@ -30,7 +30,10 @@ dst="$2"
 # fun with scitokens...
 #   also do tokens OR proxies, but not both.  Tokens win if present
 #
-if [ "x${BEARER_TOKEN}" != "x" ]
+if expr "$src$dst" : 'dbdata[a-z0-9]*\.fnal\.gov' > /dev/null
+then
+   curlopts="$curlopts $IFDH_UCONDB_OPTS "
+elif [ "x${BEARER_TOKEN}" != "x" ]
 then
     curlopts="$curlopts -H 'Authorization: Bearer ${BEARER_TOKEN}'"
 elif [ -r "${BEARER_TOKEN_FILE:=$XDG_RUNTIME_DIR/bt_u`id -u`}" ]

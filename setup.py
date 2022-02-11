@@ -55,7 +55,7 @@ def read(fname):
 
 setup(
     name='ifdhc',
-    version='v2_5_3',
+    version='v2_6_1b',
     description='Intensity Frontier Data Handling',
     maintainer='Marc Mengel',
     maintainer_email='mengel@fnal.gov',

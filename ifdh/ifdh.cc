@@ -46,6 +46,9 @@ ifdh::_debug = 0;
 WimpyConfigParser
 ifdh::_config;
 
+std::string
+ifdh::_config_version = "unknown";
+
 
 void
 path_prepend( string s1, string s2) {
@@ -793,6 +796,10 @@ ifdh::ifdh(std::string baseuri) {
        if ( _config.get("general","protocols") == "" ||  _config.get("general","prefixes") == "") {
            throw(std::logic_error("ifdh: bad config file: no protocols or prefixes"));
        }
+       if ( _config.get("general","version") != "") {
+           _config_version = _config.get("general","version");
+       }
+       _debug && std::cerr << "ifdh: config file version is " << _config_version << "\n";
     }
 }
 

@@ -40,6 +40,7 @@ class ifdh {
         std::string _errortxt;
    public:
         static WimpyConfigParser _config;
+        static std::string _config_version;
         static int _debug;
         static std::string _default_base_uri;
         static std::string _default_base_ssl_uri;

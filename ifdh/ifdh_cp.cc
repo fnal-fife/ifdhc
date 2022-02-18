@@ -86,7 +86,8 @@ void
 ifdh_op_msg::log_common(std::stringstream &message) {
   char uuidbuf[80];
   uuid_unparse(uuid,uuidbuf);
-  message << "\"uuid\": \"" << uuidbuf << "\","; 
+  message << "\"uuid\": \"" << uuidbuf << "\",";
+  message << "\"cfg\": \"" << handle._config_version << "\",";
   if (operation.size()) { message << "\"op\": \"" << operation << "\"," ;}
   if (src.size()) { message << "\"src\": \"" << src << "\"," ;}
   if (dst.size()) { message << "\"dst\": \"" << dst << "\"," ;}

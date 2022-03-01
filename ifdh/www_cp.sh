@@ -1,24 +1,32 @@
-#!/bin/sh
+#!/usr/bin/bash
 
 
-# "cp" style utility for web locations, uses curl...
+# "cp" style utility for web locations, uses curl or gfal...
+IFDH_HTTP_CMD="${IFDH_HTTP_CMD:-gfal}"
 
 curlopts="-f -L --silent --capath ${X509_CERT_DIR:=/etc/grid-security/certificates} "
-if [ x$IFDH_DEBUG = x2 ]
-then
+gfalopts="-t 14400"
+case "x$IFDH_DEBUG" in
+x1)
+    curlopts="$curlopts -v"
+    gfalopts="$gfalopts -v"
+    ;;
+x2)
     set -x
     echo X509_USER_PROXY $X509_USER_PROXY >&2
     echo BEARER_TOKEN_FILE $BEARER_TOKEN_FILE >&2
-    curlopts="$curlopts --trace /tmp/curl_trace_$$"
-fi
+    curlopts="$curlopts --trace-ascii %"
+    gfalopts="$gfalopts -vvv"
+    ;;
+esac
 
-# allow extra curl flags
+# allow extra curl or gfal flags. Harold, your abstraction is leaking...
 
 while :
 do
 case "x$1" in
 x--ll*|x--ls*|x--mv*|x--rmdir*|x--mkdir*|x--chmod*) break;;
-x-*)  curlopts="$curlopts $1"; shift;;
+x-*)  curlopts="$curlopts $1"; gfalopts="$gfalopts $1"; shift;;
 x*)   break;;
 esac
 done
@@ -33,6 +41,7 @@ dst="$2"
 if expr "$src$dst" : 'dbdata[a-z0-9]*\.fnal\.gov' > /dev/null
 then
    curlopts="$curlopts $IFDH_UCONDB_OPTS "
+   IFDH_HTTP_CMD="curl"
 elif [ "x${BEARER_TOKEN}" != "x" ]
 then
     curlopts="$curlopts -H 'Authorization: Bearer ${BEARER_TOKEN}'"
@@ -88,44 +97,76 @@ wls() {
   wll "$1" >/dev/null && wll "$1"  | perl -pe 's;</;\n</;go; s;><;>\n<;go;' | egrep '<d:href>|<d:getcontentlength' | perl -pe 'if(/<d:href>/){ chomp();} s{<d:getcontentlength/>}{ 0}o; s{<[^>]*>}{ }go;'
 }
 
+
 dst=`ucondb_convert "$dst"`
 src=`ucondb_convert "$src"`
 
 #echo "$src;$dst"
 
-case "$src;$dst" in 
-http*//*\;/*) 
-    eval "curl $curlopts -o '$dst' '$src'"
-    ;;
-/*\;http*://*) 
-    eval "curl $curlopts -T '$src' '$dst'"
-    ;;
-http*://*\;http*://*)
-    eval "curl $curlopts -o - '$src'" | eval "curl $curlopts  -T - '$dst'"
-    ;;
+do_curl() {
+   curlopts="$1"
+   src="$2"
+   dst="$3"
+   case "$src;$dst" in
+   http*//*\;/*)
+       eval "curl $curlopts -o '$dst' '$src'"
+       ;;
+   /*\;http*://*)
+       eval "curl $curlopts -T '$src' '$dst'"
+       ;;
+   http*://*\;http*://*)
+       eval "curl $curlopts -o - '$src'" | eval "curl $curlopts  -T - '$dst'"
+       ;;
 
---ls*) 
-    wls "$dst"
-    ;;
+   --ls*)
+       wls "$dst"
+       ;;
 
---ll*)
-    wll "$dst"
-    ;;
+   --ll*)
+       wll "$dst"
+       ;;
 
---mkdir*)
-    wmkdir "$dst"
-    ;;
+   --mkdir*)
+       wmkdir "$dst"
+       ;;
 
---rmdir*|--rm*)
-    wrm "$dst"
-    ;;
+   --rmdir*|--rm*)
+       wrm "$dst"
+       ;;
 
---mv*)
-   wmv "$src" "$dst"
-   ;;
+   --mv*)
+       wmv "$src" "$dst"
+       ;;
 
---ls*|--mv*|--rmdir*|--mkdir*|--chmod*)
-    echo "Not yet implemented" >&2
-    exit 1
-    ;;
+   --ls*|--mv*|--rmdir*|--mkdir*|--chmod*)
+       echo "Not yet implemented" >&2
+       exit 1
+       ;;
+   esac
+}
+
+do_gfal() {
+   gfalopts="$1"
+   src="$2"
+   dst="$3"
+   unset PYTHONHOME; unset PYTHONPATH; unset LD_LIBRARY_PATH;
+   case "$src" in
+   --ls*) eval "gfal-ls $gfalopts '$dst'";;
+   --ll*) eval "gfal-ls -l $gfalopts '$dst'";;
+   --mkdir*) eval "gfal-mkdir $gfalopts '$dst'";;
+   --rmdir*) eval "gfal-rm -r $gfalopts '$dst'";;
+   --rm*) eval "gfal-rm $gfalopts '$dst'";;
+   --mv*|--chmod*)
+       echo "Not yet implemented" >&2
+       exit 1
+       ;;
+   *)
+       eval "gfal-copy -f --checksum adler32 $gfalopts '$src' '$dst'";;
+   esac
+}
+
+case "x$IFDH_HTTP_CMD" in
+xcurl) do_curl "$curlopts" "$src" "$dst";;
+xgfal) do_gfal "$gfalopts" "$src" "$dst";;
+x*)    echo "invalid IFDH_HTTP_CMD: $IFDH_HTTP_CMD" >&2; exit 1;;
 esac

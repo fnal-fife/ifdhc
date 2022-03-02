@@ -1,4 +1,4 @@
-#!/usr/bin/bash
+#!/bin/bash
 
 
 # "cp" style utility for web locations, uses curl or gfal...
@@ -15,7 +15,7 @@ x2)
     set -x
     echo X509_USER_PROXY $X509_USER_PROXY >&2
     echo BEARER_TOKEN_FILE $BEARER_TOKEN_FILE >&2
-    curlopts="$curlopts --trace-ascii %"
+    curlopts="$curlopts -vvv"
     gfalopts="$gfalopts -vvv"
     ;;
 esac
@@ -38,7 +38,7 @@ dst="$2"
 # fun with scitokens...
 #   also do tokens OR proxies, but not both.  Tokens win if present
 #
-if expr "$src$dst" : 'dbdata[a-z0-9]*\.fnal\.gov' > /dev/null
+if [[ "$src$dst" =~ dbdata[a-z0-9]*\.fnal\.gov ]]> /dev/null
 then
    curlopts="$curlopts $IFDH_UCONDB_OPTS "
    IFDH_HTTP_CMD="curl"

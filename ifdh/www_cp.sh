@@ -48,6 +48,8 @@ then
 elif [ -r "${BEARER_TOKEN_FILE:=$XDG_RUNTIME_DIR/bt_u`id -u`}" ]
 then
     curlopts="$curlopts -H 'Authorization: Bearer `cat ${BEARER_TOKEN_FILE}`'"
+    # gfal2 only looks at BEARER_TOKEN contents currently. See https://its.cern.ch/jira/browse/DMC-1226
+    export BEARER_TOKEN=`cat ${BEARER_TOKEN_FILE}`
 elif [ -r "${X509_USER_PROXY:=/tmp/x509up_u`id -u`}" ]
 then
     curlopts="$curlopts --cert $X509_USER_PROXY --key $X509_USER_PROXY --cacert $X509_USER_PROXY "

@@ -151,7 +151,7 @@ do_gfal() {
    gfalopts="$1"
    src="$2"
    dst="$3"
-   unset PYTHONHOME; unset PYTHONPATH; unset LD_LIBRARY_PATH;
+   unset PYTHONHOME; unset PYTHONPATH; unset LD_LIBRARY_PATH; unset GFAL_PLUGIN_DIR;
    case "$src" in
    --ls*) eval "gfal-ls $gfalopts '$dst'";;
    --ll*) eval "gfal-ls -l $gfalopts '$dst'";;

@@ -244,14 +244,18 @@ ifdh::fetchInput( string src_uri ) {
 
     if (0 == src_uri.find("xroot:") || 0 == src_uri.find("root:")) {
         char *icx = getenv("IFDH_COPY_XROOTD");
+        char *ipx = getenv("IFDH_PASS_XROOTD");
         ifdh_op_msg mbuf("cp", *this);
         // copy it anyway if IFDH_COPY_XROOTD is set or if the file
         // does *not* end in .root, as the app won't be able to stream
-        // it anyway.
-        _debug && std::cerr << "Checking for IFDH_COPY_XROOTD or suffix:" << src_uri.substr(src_uri.length()-5,5) << "\n";
+        // it anyway, unless IFDH_PASS_XROOTD is set since the user knows best.
+        _debug && std::cerr << "Checking for IFDH_COPY_XROOTD, IFDH_PASS_XROOTD, or suffix:" << src_uri.substr(src_uri.length()-5,5) << "\n";
+        if ((ipx && atoi(ipx)) && (icx && atoi(icx))) {
+            std::cerr << "Warning: found both IFDH_COPY_XROOTD and IFDH_PASS_XROOTD; you must know what you're doing, passing through\n";
+        }
         mbuf.src = src_uri;
         mbuf.dst = path;
-        if ((icx && atoi(icx)) || (src_uri.substr(src_uri.length()-5,5) != ".root")) {
+        if (!(ipx && atoi(ipx)) && ((icx && atoi(icx)) || (src_uri.substr(src_uri.length()-5,5) != ".root"))) {
              path = localPath( src_uri );
              args.push_back(src_uri);
              args.push_back(path);

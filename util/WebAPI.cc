@@ -79,7 +79,6 @@ static char *get_bearer_token() {
                     
                     have_token = 1;
                     // trim trailing newline...
-                    std::cerr << "tokenbuf[res-1]: '" << tokenbuf[res-1] << "'\n";
                     if (tokenbuf[res-1] == '\n') {
                        tokenbuf[res-1] = 0;
                     }
@@ -608,8 +607,7 @@ test_WebAPI_fetchurl() {
    }
    
    try {
-      // WebAPI ds3("https://samweb.fnal.gov:8483/sam/samdev/api/files/list?dims=defname%3Agen_cfg+++minus+++file_name+++c47fe3af-8fdb-4a5a-a110-3f3d52f3cfea-a.fcl+++minus++++file_name+++a9d1b4da-73ad-4c4f-8d72-c9e6507531b8-d.fcl&format=plain");
-      WebAPI ds3("https://fermicloud210.fnal.gov:9443/sam/samdev/api/files/list?dims=defname%3Agen_cfg&format=plain");
+      WebAPI ds3("https://samweb.fnal.gov:8483/sam/samdev/api/files/list?dims=defname%3Agen_cfg+++minus+++file_name+++c47fe3af-8fdb-4a5a-a110-3f3d52f3cfea-a.fcl+++minus++++file_name+++a9d1b4da-73ad-4c4f-8d72-c9e6507531b8-d.fcl&format=plain");
       while(!ds3.data().eof()) {
 	    getline(ds3.data(), line);
 

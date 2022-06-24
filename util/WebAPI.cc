@@ -78,6 +78,11 @@ static char *get_bearer_token() {
                     // a reasonable size, so go with it.
                     
                     have_token = 1;
+                    // trim trailing newline...
+                    std::cerr << "tokenbuf[res-1]: '" << tokenbuf[res-1] << "'\n";
+                    if (tokenbuf[res-1] == '\n') {
+                       tokenbuf[res-1] = 0;
+                    }
                     return tokenbuf;
                 }
             }
@@ -431,16 +436,17 @@ WebAPI::WebAPI(std::string url, int postflag, std::string postdata, int maxretri
 	 _tosite << method << pu.path << " HTTP/1.0\r\n";
 	 _debug && std::cerr << "sending: "<< method << pu.path << " HTTP/1.0\r\n";
 	 _tosite << "Host: " << pu.host << ":" << pu.port <<"\r\n";
-	 _debug && std::cerr << "sending header: " << "Host: " << pu.host << "\r\n";
+	 _debug && std::cerr << "sending header: " << "Host: " << pu.host << ":" << pu.port <<"\r\n";
 	 _tosite << "From: " << user << "@" << hostbuf  <<"\r\n";
 	 _debug && std::cerr << "sending header: " << "From: " << ppasswd->pw_name << "@" << hostbuf << "\r\n";
 	 _tosite << "User-Agent: " << "WebAPI/" << IFDH_VERSION << "/Experiment/" << getexperiment() << "\r\n";
 	 _debug && std::cerr << "sending header: " << "User-Agent: " << "WebAPI/" << IFDH_VERSION << "/Experiment/" << getexperiment() << "\r\n";
 
          if (0 != (tok = get_bearer_token()) && pu.type == "https") {
-              _tosite << "Authorization: BEARER " << tok << "\r\n";
-	      _debug && std::cerr << "sending header: " << "Athorization: BEARER " << tok << "\r\n";
+              _tosite << "Authorization: Bearer " << tok << "\r\n";
+	      _debug && std::cerr << "sending header: " << "Authorization: Bearer " << tok << "\r\n";
          }
+
 
          if (postflag) {
 
@@ -588,6 +594,7 @@ test_WebAPI_fetchurl() {
    std::string line;
 
 
+   if (0) {
    WebAPI ds("https://home.fnal.gov/~mengel/Ascii_Chart.html");
 
     std::cout << "ds.data().eof() is " << ds.data().eof() << std::endl;
@@ -598,9 +605,11 @@ test_WebAPI_fetchurl() {
    }
    std::cout << "ds.data().eof() is " << ds.data().eof() << std::endl;
    ds.data().close();
+   }
    
    try {
-      WebAPI ds3("http://samweb.fnal.gov:8480/sam/samdev/api/files/list?dims=defname%3Agen_cfg+++minus+++file_name+++c47fe3af-8fdb-4a5a-a110-3f3d52f3cfea-a.fcl+++minus++++file_name+++a9d1b4da-73ad-4c4f-8d72-c9e6507531b8-d.fcl&format=plain");
+      // WebAPI ds3("https://samweb.fnal.gov:8483/sam/samdev/api/files/list?dims=defname%3Agen_cfg+++minus+++file_name+++c47fe3af-8fdb-4a5a-a110-3f3d52f3cfea-a.fcl+++minus++++file_name+++a9d1b4da-73ad-4c4f-8d72-c9e6507531b8-d.fcl&format=plain");
+      WebAPI ds3("https://fermicloud210.fnal.gov:9443/sam/samdev/api/files/list?dims=defname%3Agen_cfg&format=plain");
       while(!ds3.data().eof()) {
 	    getline(ds3.data(), line);
 
@@ -613,7 +622,7 @@ test_WebAPI_fetchurl() {
 
    WebAPI dsp("https://home.fnal.gov/~mengel/Ascii_Chart.html", 0, "", 10, -1, "squid.fnal.gov:3128");
 
-    std::cout << "ds.data().eof() is " << ds.data().eof() << std::endl;
+    std::cout << "dsp.data().eof() is " << dsp.data().eof() << std::endl;
     while(!dsp.data().eof()) {
         getline(dsp.data(), line);
 

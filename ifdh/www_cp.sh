@@ -152,6 +152,7 @@ do_gfal() {
    src="$2"
    dst="$3"
    unset PYTHONHOME; unset PYTHONPATH; unset LD_LIBRARY_PATH; unset GFAL_PLUGIN_DIR;
+   PATH=/usr/bin
    case "$src" in
    --ls*) eval "gfal-ls $gfalopts '$dst'";;
    --ll*) eval "gfal-ls -l $gfalopts '$dst'";;

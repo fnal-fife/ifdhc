@@ -137,7 +137,7 @@ check_env() {
     path_ish_append("PATH","/usr/bin","");
     path_ish_append("LD_LIBRARY_PATH","/usr/lib64","");
     stringstream cvmfs_dir;
-    cvmfs_dir << "/cvmfs/oasis.opensciencegrid.org/mis/osg-wn-client/3.3/current/el" <<  slver << "-x86_64";
+    cvmfs_dir << "/cvmfs/oasis.opensciencegrid.org/mis/osg-wn-client/3.6/current/el" <<  slver << "-x86_64";
     path_ish_append("PATH",cvmfs_dir.str().c_str(),"/usr/bin");
     path_ish_append("LD_LIBRARY_PATH",cvmfs_dir.str().c_str(),"/usr/lib64");
 #endif

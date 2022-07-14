@@ -1,5 +1,6 @@
 #import unittest2 as unittest
 import unittest
+import contextlib
 import ifdh
 import socket
 import os
@@ -12,7 +13,7 @@ try:
 except:
    import ConfigParser
 
-base_uri_fmt = "http://samweb.fnal.gov:8480/sam/%s/api"
+base_uri_fmt = "https://samweb.fnal.gov:8483/sam/%s/api"
 
 # get our dcache host from the config file so we can test
 # alternate dcache instances...
@@ -21,6 +22,18 @@ cp.read(os.environ["IFDHC_CONFIG_DIR"]+"/ifdh.cfg")
 dcache_host = cp.get('location dcache_stken', 'prefix_srm').replace("srm://","").replace("/pnfs/fnal.gov/usr/","")
 dcache_host = "fndca1.fnal.gov"
 
+@contextlib.contextmanager
+def redir_stderr_fd():
+    dnfd = os.open("/dev/null", os.O_WRONLY)
+    sys.stderr.flush()
+    savestderr = os.dup(2)
+    os.dup2(dnfd, 2)
+    try:
+        yield savestderr
+    finally:
+        sys.stderr.flush()
+        os.dup2(savestderr, 2)
+        os.close(dnfd)
 
 class Skipped(EnvironmentError):
     pass
@@ -127,6 +140,10 @@ class ifdh_cp_cases(unittest.TestCase):
 
        
     def setUp(self):
+        with redir_stderr_fd() as dupedstderr:
+             self.setUp_impl()
+
+    def setUp_impl(self):
         os.environ['IFDH_CP_MAXRETRIES'] = "0"
         os.environ['EXPERIMENT'] =  ifdh_cp_cases.experiment
         os.environ['SAVE_CPN_DIR'] = os.environ.get('CPN_DIR','')

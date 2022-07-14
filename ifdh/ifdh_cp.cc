@@ -660,7 +660,7 @@ check_grid_credentials_tokens() {
            } else {
                tokenfile << "/run/user/" << getuid();
            }
-           tokenfile << "/bt_" << getuid();
+           tokenfile << "/bt_u" << getuid();
         }
         r1 = stat(tokenfile.str().c_str(), &sbuf);
         if (r1 == 0 && sbuf.st_size > 200) {

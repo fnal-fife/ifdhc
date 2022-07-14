@@ -154,7 +154,10 @@ do_gfal() {
    dst="$3"
    unset PYTHONHOME; unset PYTHONPATH; unset LD_LIBRARY_PATH; unset GFAL_PLUGIN_DIR;
    PATH=/usr/bin
-   export BEARER_TOKEN=`cat ${BEARER_TOKEN_FILE}`
+   if [ -r "${BEARER_TOKEN_FILE}" ]
+   then
+      export BEARER_TOKEN=`cat ${BEARER_TOKEN_FILE}`
+   fi
    case "$src" in
    --ls*) eval "gfal-ls $gfalopts '$dst'";;
    --ll*) eval "gfal-ls -l $gfalopts '$dst'";;

@@ -1197,6 +1197,7 @@ my_system(const char *cmd, std::string &errortxt) {
     }
     status = pclose(pF);
     close(fd);
+    ifdh::_debug && std::cerr << "my_system: " << cmd << "\n -- error text: " << errortxt << "\n";
     return status;
 }
 
@@ -2238,7 +2239,7 @@ ifdh::mkdir_p(string loc, string force, int depth) {
       if (loc.find("/tmp") <= 5) {
          depth = depth + 2;
       }
-      _debug && cerr << "mkdir_l: depth is " << depth << "\n";
+      _debug && cerr << "mkdir_p: depth is " << depth << "\n";
    }
 
    if (depth == 0) {
@@ -2248,6 +2249,7 @@ ifdh::mkdir_p(string loc, string force, int depth) {
    try {
       m = mkdir(loc, force);
    } catch (exception &e) {
+      _debug && std::cerr << "caught exception: " << e.what() << "\n";
       m = -1;
    }
 

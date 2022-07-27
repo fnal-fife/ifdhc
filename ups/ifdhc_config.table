@@ -8,4 +8,6 @@ Qualifiers=
 
 Action=setup
    proddir()
-    SetupEnv()
+   SetupEnv()
+   PathPrepend(PATH,${UPS_PROD_DIR}/bin)
+

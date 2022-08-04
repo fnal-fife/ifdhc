@@ -164,7 +164,8 @@ do_gfal() {
    --mkdir*) eval "gfal-mkdir $gfalopts '$dst'";;
    --rmdir*) eval "gfal-rm -r $gfalopts '$dst'";;
    --rm*) eval "gfal-rm $gfalopts '$dst'";;
-   --mv*|--chmod*)
+   --mv*) eval "gfal-rename $gfalopts '$src' '$dst'";;
+   --chmod*)
        echo "Not yet implemented" >&2
        exit 1
        ;;

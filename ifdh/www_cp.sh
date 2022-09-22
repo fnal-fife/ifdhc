@@ -164,12 +164,13 @@ do_gfal() {
    --mkdir*) eval "gfal-mkdir $gfalopts '$dst'";;
    --rmdir*) eval "gfal-rm -r $gfalopts '$dst'";;
    --rm*) eval "gfal-rm $gfalopts '$dst'";;
-   --mv*|--chmod*)
+   --mv*) eval "gfal-rename $gfalopts '$src' '$dst'";;
+   --chmod*)
        echo "Not yet implemented" >&2
        exit 1
        ;;
    *)
-       eval "gfal-copy -f --checksum adler32 $gfalopts '$src' '$dst'";;
+       eval "gfal-copy -f --just-copy $gfalopts '$src' '$dst'";;
    esac
 }
 

@@ -945,7 +945,10 @@ get_grid_credentials_if_needed() {
         cmdbuf.str("");
         cmdbuf << "htgettoken -a " << vault << " -i " << issuer;
         if (role != "Analysis") {
-            cmdbuf << " -r " << role; 
+            // need lowercase role for htgettoken...
+            std::string cmdrole(role);
+            cmdrole.front() = tolower(cmdrole.front());
+            cmdbuf << " -r " << cmdrole; 
         }
         ifdh::_debug && std::cerr << "running: " << cmdbuf.str() << endl;
         res = system(cmdbuf.str().c_str());

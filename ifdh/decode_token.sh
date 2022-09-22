@@ -14,6 +14,13 @@ decode_token() {
     sed -e 's/.*\.\(.*\)\..*/\1==/' "$1" | base64 -d 2>/dev/null
 }
 
+pretty_print() {
+   # sed regexps:
+   #  - break line and indent after (some) commas, 
+   #  - put braces on their own line
+   sed -e 's/[]"0-9],/&\n  /g' -e 's/[{}]/\n&\n  /g'
+}
+
 get_field() {
     #
     # filter out a field from a json block
@@ -40,4 +47,4 @@ x)   usage; exit 1;;
 *)   extractfilt="cat";;
 esac
 
-decode_token $1 | $extractfilt
+decode_token $1 | $extractfilt | pretty_print

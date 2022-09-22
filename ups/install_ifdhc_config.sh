@@ -59,6 +59,7 @@ fi
 
 package=ifdhc_config
 pkgdir=${product_dir}/${package}/${pkgver}
+pkgbin=${product_dir}/${package}/${pkgver}/bin
 pkgups=${product_dir}/${package}/${pkgver}/ups
 
 get_this_dir
@@ -75,6 +76,12 @@ then
    echo "ERROR: failed to create ${pkgdir}"
    exit 1
 fi
+mkdir -p ${pkgbin}
+if [ ! -d ${pkgbin} ]
+then
+   echo "ERROR: failed to create ${pkgbin}"
+   exit 1
+fi
 mkdir -p ${pkgups}
 if [ ! -d ${pkgups} ]
 then
@@ -86,6 +93,13 @@ fi
 cp -p ${thisdir}/../ifdh.cfg ${pkgdir}/  ||  \
       { cat 1>&2 <<EOF
 ERROR: failed to copy ${thisdir}/../ifdh.cfg to ${pkgdir}
+EOF
+        exit 1
+      }
+
+cp -p ${thisdir}/../ifdh/www_cp.sh ${pkgbin}/  ||  \
+      { cat 1>&2 <<EOF
+ERROR: failed to copy ${thisdir}/../ifdh/www_cp.sh to ${pkgbin}
 EOF
         exit 1
       }

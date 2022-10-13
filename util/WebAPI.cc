@@ -117,6 +117,9 @@ WebAPI::parseurl(std::string url, std::string http_proxy) {
      } else {
         throw(WebAPIException(url,"BadURL: has no slashes, must be full URL"));
      }
+     if (http_proxy == "" && getenv("http_proxy")) {
+         http_proxy = getenv("http_proxy");
+     }
      if (res.type != "http" && res.type != "https" ) {
         throw(WebAPIException(url,"BadURL: only http: and https: supported"));
      }
@@ -240,6 +243,7 @@ WebAPI::WebAPI(std::string url, int postflag, std::string postdata, int maxretri
      int connected;
      int totaltime = 0;
      char *tok;
+     char *https_proxy;
      std::string loc;
      _timeout = timeout;
 
@@ -354,6 +358,10 @@ WebAPI::WebAPI(std::string url, int postflag, std::string postdata, int maxretri
                 hostport << pu.host << ":" << pu.port;
 
                 _debug && std::cerr << "openssl"<< ' ' << "s_client"<< ' ' << " -CApath /etc/grid-security/certificates" << ' ' << "-connect"<< ' ' << hostport.str().c_str() << " -quiet"; 
+
+                if (0 != getenv("https_proxy")) {
+                    https_proxy = getenv("https_proxy");
+                }
                 if (proxy && _debug) {
                      // from https://wiki.nikhef.nl/grid/How_to_handle_OpenSSL_and_not_get_hurt_using_the_CLI#Using_proxy_certificates_and_s_client
 		    std::cerr << " -key " << proxy << " -cert "<< proxy << " -CAfile " << proxy ;
@@ -378,9 +386,13 @@ WebAPI::WebAPI(std::string url, int postflag, std::string postdata, int maxretri
                 close(outp[0]);close(outp[1]);
 
                 // run openssl...
-                if (proxy) {
-			    execlp("openssl", "s_client", "-CApath", "/etc/grid-security/certificates/",  "-connect", hostport.str().c_str(),  "-quiet",  "-cert", proxy, "-key", proxy, "-CAfile", proxy,  (char *)0);
-                } else {
+                if (https_proxy && proxy) {
+                    execlp("openssl", "s_client", "-CApath", "/etc/grid-security/certificates/",  "-connect", hostport.str().c_str(), "-proxy", https_proxy, "-quiet",  "-cert", proxy, "-key", proxy, "-CAfile", proxy,  (char *)0);
+                } else if (https_proxy && !proxy ){
+                    execlp("openssl", "s_client", "-CApath", "/etc/grid-security/certificates/", "-connect", hostport.str().c_str(), "-proxy", https_proxy, "-quiet",  (char *)0);
+                } else if (!https_proxy && proxy ) {
+                    execlp("openssl", "s_client", "-CApath", "/etc/grid-security/certificates/",  "-connect", hostport.str().c_str(),  "-quiet",  "-cert", proxy, "-key", proxy, "-CAfile", proxy,  (char *)0);
+                } else if (!https_proxy && !proxy) {
                     execlp("openssl", "s_client", "-CApath", "/etc/grid-security/certificates/", "-connect", hostport.str().c_str(),  "-quiet",  (char *)0);
                 }
                 close(0);

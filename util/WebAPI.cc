@@ -117,6 +117,9 @@ WebAPI::parseurl(std::string url, std::string http_proxy) {
      } else {
         throw(WebAPIException(url,"BadURL: has no slashes, must be full URL"));
      }
+     if (http_proxy == "" && getenv("http_proxy")) {
+         http_proxy = getenv("http_proxy");
+     }
      if (res.type != "http" && res.type != "https" ) {
         throw(WebAPIException(url,"BadURL: only http: and https: supported"));
      }
@@ -240,6 +243,8 @@ WebAPI::WebAPI(std::string url, int postflag, std::string postdata, int maxretri
      int connected;
      int totaltime = 0;
      char *tok;
+     char *https_proxy = 0;
+     const char *opensslcmd = 0;
      std::string loc;
      _timeout = timeout;
 
@@ -335,12 +340,22 @@ WebAPI::WebAPI(std::string url, int postflag, std::string postdata, int maxretri
             // XXX How do we detect/retry https fails?
 
             // make sure we have openssl
-            if (access("/usr/bin/openssl",X_OK) != 0) {
+            if (access("/usr/bin/openssl11",X_OK) == 0) {
+               opensslcmd = "openssl11";
+            }
+            if (access("/usr/bin/openssl",X_OK) == 0) {
+               opensslcmd = "openssl";
+            }
+            if (opensslcmd) {
                // okay so its not in /usr/bin, is it anywhere in PATH?
-               res = system("openssl version > /dev/null");
+               char cmdbuf[64];
+               sprintf(cmdbuf, "%s version > /dev/null", opensslcmd);
+               res = system(cmdbuf);
                if ( !(WIFEXITED(res) && 0 == WEXITSTATUS(res)) ) {
-                   throw(WebAPIException(url,"No openssl executable, cannot do https: calls in this environment"));
+                   throw(WebAPIException(url,"1 No openssl executable, cannot do https: calls in this environment"));
                }
+            } else {
+               throw(WebAPIException(url,"2 No openssl executable, cannot do https: calls in this environment"));
             }
 
             int inp[2], outp[2], pid;
@@ -353,7 +368,11 @@ WebAPI::WebAPI(std::string url, int postflag, std::string postdata, int maxretri
 
                 hostport << pu.host << ":" << pu.port;
 
-                _debug && std::cerr << "openssl"<< ' ' << "s_client"<< ' ' << " -CApath /etc/grid-security/certificates" << ' ' << "-connect"<< ' ' << hostport.str().c_str() << " -quiet"; 
+                _debug && std::cerr << opensslcmd << ' ' << "s_client"<< ' ' << " -CApath /etc/grid-security/certificates" << ' ' << "-connect"<< ' ' << hostport.str().c_str() << " -quiet"; 
+
+                if (0 != getenv("https_proxy")) {
+                    https_proxy = getenv("https_proxy");
+                }
                 if (proxy && _debug) {
                      // from https://wiki.nikhef.nl/grid/How_to_handle_OpenSSL_and_not_get_hurt_using_the_CLI#Using_proxy_certificates_and_s_client
 		    std::cerr << " -key " << proxy << " -cert "<< proxy << " -CAfile " << proxy ;
@@ -378,10 +397,18 @@ WebAPI::WebAPI(std::string url, int postflag, std::string postdata, int maxretri
                 close(outp[0]);close(outp[1]);
 
                 // run openssl...
-                if (proxy) {
-			    execlp("openssl", "s_client", "-CApath", "/etc/grid-security/certificates/",  "-connect", hostport.str().c_str(),  "-quiet",  "-cert", proxy, "-key", proxy, "-CAfile", proxy,  (char *)0);
-                } else {
-                    execlp("openssl", "s_client", "-CApath", "/etc/grid-security/certificates/", "-connect", hostport.str().c_str(),  "-quiet",  (char *)0);
+                if (https_proxy && proxy) {
+                    _debug && std::cout << "case 11\n";
+                    execlp(opensslcmd, "s_client", "-CApath", "/etc/grid-security/certificates/",  "-connect", hostport.str().c_str(), "-proxy", https_proxy, "-quiet",  "-cert", proxy, "-key", proxy, "-CAfile", proxy,  (char *)0);
+                } else if (https_proxy && !proxy ){
+                    _debug && std::cout << "case 10\n";
+                    execlp(opensslcmd, "s_client", "-CApath", "/etc/grid-security/certificates/", "-connect", hostport.str().c_str(), "-proxy", https_proxy, "-quiet",  (char *)0);
+                } else if (!https_proxy && proxy ) {
+                    _debug && std::cout << "case 01\n";
+                    execlp(opensslcmd, "s_client", "-CApath", "/etc/grid-security/certificates/",  "-connect", hostport.str().c_str(),  "-quiet",  "-cert", proxy, "-key", proxy, "-CAfile", proxy,  (char *)0);
+                } else if (!https_proxy && !proxy) {
+                    _debug && std::cout << "case 00\n";
+                    execlp(opensslcmd, "s_client", "-CApath", "/etc/grid-security/certificates/", "-connect", hostport.str().c_str(),  "-quiet",  (char *)0);
                 }
                 close(0);
                 close(1);

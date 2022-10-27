@@ -20,7 +20,7 @@ else:
 class SAMCases(unittest.TestCase):
     counter = 0			# overall state
     testfile = None		# filename that exists there
-    testdataset = "mwm_test_9"  # dataset that exists there with one file in it
+    testdataset = "gen_cfg"  # dataset that exists there with one file in it
     experiment = None           # experiment/station/group name
     curproject = None		# project we've started
     curconsumer = None		# consumer we've started
@@ -35,12 +35,9 @@ class SAMCases(unittest.TestCase):
 
     def doMinerva(self):
         SAMCases.experiment = "minerva"
-        if do_dev_sam:
-            SAMCases.defname = "run_798_raw_2"
-        else:
-            SAMCases.defname = "mwm_test_9" 
-        SAMCases.test_file = "MN_00000798_0002_numib_v04_0911090042_RawEvents.root"
-        SAMCases.test_file2 = "MN_00000798_0003_numib_v04_0911090141_RawEvents.root"
+        SAMCases.defname = "gen_cfg"
+        SAMCases.test_file = "a9d1b4da-74ad-4c4f-8d72-c9e6507531b8-d.fcl"
+        SAMCases.test_file2 = "e0d98f93-e5a3-41de-bf2d-207d57ea8b53-c.fcl"
 
     def log(self,msg):
         self.ifdh_handle.log(msg)
@@ -65,9 +62,9 @@ class SAMCases(unittest.TestCase):
 
     def doNova(self):
         SAMCases.experiment = "nova"
-        SAMCases.defname = "mwm_test_9"
-        SAMCases.test_file = "sim_genie_fd_nhc_fluxswap_10000_r1_38_S12.02.14_20120318_005449_reco.root"
-        SAMCases.test_file2 = "sim_genie_fd_nhc_fluxswap_10000_r1_38_S12.02.14_20120318_005449_reco.root"
+        SAMCases.defname = "gen_cfg"
+        SAMCases.test_file = "a9d1b4da-74ad-4c4f-8d72-c9e6507531b8-d.fcl"
+        SAMCases.test_file2 = "e0d98f93-e5a3-41de-bf2d-207d57ea8b53-c.fcl"
 
     def test_0_setexperiment(self):
         self.log(self._testMethodName)
@@ -138,7 +135,7 @@ class SAMCases(unittest.TestCase):
     def test_5_startclient(self):
         self.log(self._testMethodName)
         cpurl = self.ifdh_handle.findProject(SAMCases.curproject,'')
-        SAMCases.curconsumer = self.ifdh_handle.establishProcess(cpurl,"demo","1",self.hostname,os.environ.get('TEST_USER', os.environ['USER']), "","test suite job", 0)
+        SAMCases.curconsumer = self.ifdh_handle.establishProcess(cpurl,"demo","1",self.hostname,os.environ.get('TEST_USER', os.environ['USER']), "","test suite job", 1)
         self.assertNotEqual(SAMCases.curconsumer, "",self._testMethodName)
 
     def test_5a_dumpProject(self):

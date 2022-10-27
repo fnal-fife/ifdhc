@@ -756,7 +756,7 @@ get_grid_credentials_if_needed() {
        proxies_enabled = 1;
     }
 
-    if( (getenv("IFDH_NO_PROXY") && 0 == atoi(getenv("IFDH_NO_PROXY"))) || 
+    if( (getenv("IFDH_NO_PROXY") && 0 != strlen(getenv("IFDH_NO_PROXY"))) || 
            (!proxies_enabled && !tokens_enabled) )
         return;
    
@@ -1664,7 +1664,7 @@ ifdh::cp( std::vector<std::string> args ) {
     std::vector<std::string>::size_type curarg = 0;
     std::vector<CpPair> cplist;
     int res = 0, rres = 0;
-    long int srcsize = 0, dstsize = 0, xfersize=0;
+    long int xfersize=0;
     struct stat *sbp;
     size_t lock_low, lock_hi;
     cpn_lock cpn;
@@ -1719,11 +1719,9 @@ ifdh::cp( std::vector<std::string> args ) {
         res = do_cp(*cpp, intermed_file_flag, recursive, cpn, mbuf);
 
 	if (0 != (sbp =  cache_stat(locpath(cpp->src, "file:")))) {
-		srcsize += sbp->st_size;
                 xfersize = sbp->st_size;
         }
 	if (0 != (sbp =  cache_stat(locpath(cpp->dst, "file:")))) {
-		dstsize += sbp->st_size;
                 xfersize = sbp->st_size;
         }
         mbuf.count = xfersize;

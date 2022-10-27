@@ -28,8 +28,7 @@ def suite():
     basesuite6 = unittest.TestLoader().loadTestsFromTestCase(exitcodecases)
     basesuite9 = unittest.TestLoader().loadTestsFromTestCase(argparsecases)
     basesuite10 = unittest.TestLoader().loadTestsFromTestCase(retrycases)
-    #thissuite = unittest.TestSuite( [basesuite,basesuite2,basesuite3,basesuite5,basesuite6,basesuite9] )
-    thissuite = unittest.TestSuite( [basesuite3,basesuite5,basesuite6,basesuite9] )
+    thissuite = unittest.TestSuite( [basesuite,basesuite2,basesuite3,basesuite5,basesuite6,basesuite9] )
     return thissuite
 
 if __name__ == '__main__':

@@ -613,7 +613,7 @@ class ifdh_cp_cases(unittest.TestCase):
          l1 = self.ifdh_handle.ls('/pnfs/nova/scratch', 1, "")
          self.assertEqual(len(l1) > 0, True, self._testMethodName)
 
-    def test_bluearc_ls_gftp(self):
+    def defunct_test_bluearc_ls_gftp(self):
          self.log(self._testMethodName)
          l1 = self.ifdh_handle.ls(self.data_dir, 1, "--force=gridftp")
          self.assertEqual(len(l1) > 0, True, self._testMethodName)
@@ -639,7 +639,7 @@ class ifdh_cp_cases(unittest.TestCase):
          self.ifdh_handle.rmdir(dir,'')
          self.assertEqual(len(li) > 0, True, self._testMethodName)
 
-    def test_expgridftp_mkdir_add(self):
+    def defunct_test_expgridftp_mkdir_add(self):
          self.log(self._testMethodName)
          dir = "%s/%d" % (self.data_dir, os.getpid())
          self.ifdh_handle.mkdir(dir, '--force=expgridftp')
@@ -650,7 +650,7 @@ class ifdh_cp_cases(unittest.TestCase):
          self.ifdh_handle.rmdir(dir,'--force=expgridftp')
          self.assertEqual(len(l1) > 0, True, self._testMethodName)
 
-    def test_bestman_mkdir_add(self):
+    def defunct_test_bestman_mkdir_add(self):
          self.log(self._testMethodName)
          dir = '%s/%d' % (self.data_dir, os.getpid())
          self.ifdh_handle.mkdir(dir, '--force=gridftp')

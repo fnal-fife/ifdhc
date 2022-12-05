@@ -66,4 +66,7 @@ distrib:
 	[ -d Linux* ] &&  tar czvf ifbeam.tar.gz Makefile ifbeam [uf]*/*.[ch]* [iuf]*/Makefile Linux*/lib/libifb* inc/ifb* inc/[uwW]*  ups `test -r inc/IFBeam_service.h && echo inc/IFBeam_service.h Linux*/lib/*Beam*` || true
 
 
+ifdh.cfg: util/ifdh_version.h
+        # update version in ifdh.cfg from util/ifdh_version.h
+	eval set : \\`cat util/ifdh_version.h`; v="$$4"; printf "/^version=/s/=.*/=$$v/\nw\nq\n"| ed ifdh.cfg
 

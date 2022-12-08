@@ -24,9 +24,9 @@ ifdh getProxy
    do
       # check every 15 minutes
       sleep 900
-      ifdh getToken
+      ifdh getToken 
       ifdh getProxy
    done
-) &
+) > /dev/null &
 
 exit 0

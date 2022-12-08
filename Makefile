@@ -43,6 +43,7 @@ install-libs: all
 	[ -r ifdh/www_cp.sh ] && cp ifdh/www_cp.sh $(DESTDIR)bin || cp ../ifdh/www_cp.sh $(DESTDIR)bin
 	[ -r ifdh/xrdwrap.sh ] && cp ifdh/xrdwrap.sh $(DESTDIR)bin || cp ../ifdh/xrdwrap.sh $(DESTDIR)bin
 	[ -r ifdh/decode_token.sh ] && cp ifdh/decode_token.sh $(DESTDIR)bin || cp ../ifdh/decode_token.sh $(DESTDIR)bin
+	[ -r ifdh/auth_session.sh ] && cp ifdh/auth_session.sh $(DESTDIR)bin || cp ../ifdh/auth_session.sh $(DESTDIR)bin
 
 install-headers:
 	rm -rf $(DESTDIR)inc

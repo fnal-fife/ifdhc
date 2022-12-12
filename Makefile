@@ -43,6 +43,7 @@ install-libs: all
 	[ -r ifdh/www_cp.sh ] && cp ifdh/www_cp.sh $(DESTDIR)bin || cp ../ifdh/www_cp.sh $(DESTDIR)bin
 	[ -r ifdh/xrdwrap.sh ] && cp ifdh/xrdwrap.sh $(DESTDIR)bin || cp ../ifdh/xrdwrap.sh $(DESTDIR)bin
 	[ -r ifdh/decode_token.sh ] && cp ifdh/decode_token.sh $(DESTDIR)bin || cp ../ifdh/decode_token.sh $(DESTDIR)bin
+	[ -r ifdh/auth_session.sh ] && cp ifdh/auth_session.sh $(DESTDIR)bin || cp ../ifdh/auth_session.sh $(DESTDIR)bin
 
 install-headers:
 	rm -rf $(DESTDIR)inc
@@ -66,4 +67,7 @@ distrib:
 	[ -d Linux* ] &&  tar czvf ifbeam.tar.gz Makefile ifbeam [uf]*/*.[ch]* [iuf]*/Makefile Linux*/lib/libifb* inc/ifb* inc/[uwW]*  ups `test -r inc/IFBeam_service.h && echo inc/IFBeam_service.h Linux*/lib/*Beam*` || true
 
 
+ifdh.cfg: util/ifdh_version.h
+        # update version in ifdh.cfg from util/ifdh_version.h
+	eval set : \\`cat util/ifdh_version.h`; v="$$4"; printf "/^version=/s/=.*/=$$v/\nw\nq\n"| ed ifdh.cfg
 

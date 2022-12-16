@@ -43,25 +43,44 @@ public:
     };
 
     class JSONdata;
-    class JSONcmp;
 
-    typedef std::map<JSONdata, JSONdata, JSONcmp> JSONmap;
-    typedef std::vector<JSONdata> JSONvec;
+    typedef std::map<JSONdata&, JSONdata&, JSONcmp> JSONmap;
+    typedef std::vector<JSONdata&> JSONvec;
 
     class JSONdata {
          public: 
-         float floatval;
-         std::shared_ptr<const char> strvalue;
-         std::shared_ptr<JSONvec> list;
-         std::shared_ptr<JSONmap> map;
          enum { fval, sval, lval, mval, nval} which;
-         void dump(std::ostream &s) const;
-         void init(const JSONdata &);
-         ~JSONdata();
-         JSONdata(const JSONdata &);
-         JSONdata();
-         const JSONdata& operator=(const JSONdata &);
+         virtual void dump(std::ostream &s) const = 0;
     };
+
+    class JSONdata_float : public JSONdata {
+         float floatval;
+         void dump(std::ostream &s) const;
+         bool cmp(const JSONdata_float &);
+         JSONdata_float(float);
+    }
+
+    class JSONdata_string : public JSONdata {
+         std::shared_ptr<std::string> strp;
+         void dump(std::ostream &s) const;
+         bool cmp(const JSONdata_string &);
+         JSONdata_string(std::string);
+    }
+    }
+    class JSONdata_list : public JSONdata {
+         std::shared_ptr<JSONvec> list;
+         void dump(std::ostream &s) const;
+         bool cmp(const JSONdata_list &);
+         JSONdata_list();
+         void append(JSONdata &);
+    }
+    class JSONdata_map : public JSONdata {
+         std::shared_ptr<JSONmap> map;
+         void dump(std::ostream &s) const;
+         bool cmp(const JSONdata_map &);
+         JSONdata_map();
+         void append(JSONdata &, JSONdata &);
+    }
 
     struct JSONcmp {
     bool operator ()(const JSONdata &x,const  JSONdata &y);

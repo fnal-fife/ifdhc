@@ -72,4 +72,4 @@ ifdh.cfg: util/ifdh_version.h
 	eval set : \\`cat util/ifdh_version.h`; v="$$4"; printf "/^version=/s/=.*/=$$v/\nw\nq\n"| ed $@
 
 setup.py: util/ifdh_version.h
-	set -x; eval set : \\`cat util/ifdh_version.h`; v="$$4"; printf "/^ *version=/s/=.*/='$$v'/\nw\nq\n"| ed $@
+	set -x; eval set : \\`cat util/ifdh_version.h`; v="$$4"; printf "/^ *version=/s/=.*/='$$v',/\nw\nq\n"| ed $@

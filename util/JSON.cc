@@ -26,6 +26,8 @@ const char *JSON::ParseError::what() { return "JSON parse error"; }
 
 bool JSON::JSONcmp::operator ()(const JSON::JSONdata &x, const JSON::JSONdata &y) {
    if (x.which != y.which)        return x.which < y.which;
+   return x.cmp(y);
+}
    if (x.which == JSON::JSONdata::fval) return x.floatval < y.floatval;
    if (x.which == JSON::JSONdata::sval) return strcmp(&(*x.strvalue), &(*y.strvalue)) < 0;
    if (x.which == JSON::JSONdata::lval) return x.list < y.list;
@@ -33,29 +35,65 @@ bool JSON::JSONcmp::operator ()(const JSON::JSONdata &x, const JSON::JSONdata &y
    return false;
 }        
 
-JSON::JSONdata::JSONdata() :which(JSON::JSONdata::nval) {;}
+void JSON::JSONdata_float.dump(std::ostream &s) { s << floatval; }
+bool JSON::JSONdata_float.cmp(JSON::JSONdata_float &df) { return floatval < df.floatval; }
+JSON::JSONdata_float.JSONdata_float(float f):which(JSON::JSONdata::fval),floatval(f) {;}
 
+void JSON::JSONdata_string.dump(std::ostream &s) { s << *strp; }
+bool JSON::JSONdata_string.cmp(JSON::JSONdata_string &df) { return *strp < *df.strp; }
+JSON::JSONdata_string.JSONdata_string(std::string &s):which(JSON::JSONdata::sval),strp(s) {;} // need make_shared?
+JSON::JSONdata_list.dump(std::ostream &s) {
+   long i;
+   s << "[";
+   for(i = 0; i < (long)list->size()-1; i++) {
+       (*list)[i].dump(s);
+       s << ", ";
+   }
+   (*list)[i].dump(s);
+   s << "]";
+}
+JSON::JSONdata_list.cmp(JSONdata_list &l2) {
+    if (list->size() && l2.list->size()) {
+        cmp(list[0], l2->list[0]);
+    }
+}
+JSON::JSONdata_list.JSONdat_list() {
+    list(mkshared<JSONdata_vec>);
+}
+JSON::JSONdata_list.append(JSONdata &d) {
+    list->push_back(d);
+}
+
+JSON::JSONdata_map.dump(std::ostream &s) {
+   const char *sep = "";
+   s << "{";
+   for(JSON::JSONmap::iterator it = map->begin(); it != map->end(); it++ ) {
+       s << sep;
+       it->first.dump(s);
+       s << ": ";
+       it->second.dump(s);
+       sep = ", ";
+   }
+   s << "}";
+}
+bool
+JSON::JSONdata_map.cmp(JSONdata_map &){
+    return 
+}
+JSON::JSONdata_map.JSONdata_map(){
+}
 void
-JSON::JSONdata::init(const JSONdata &x) {
-   which = x.which;
-   floatval = 0.0;
-   if (x.which == JSON::JSONdata::fval) floatval = x.floatval;
-   if (x.which == JSON::JSONdata::sval) strvalue = x.strvalue;
-   if (x.which == JSON::JSONdata::lval) list = x.list;
-   if (x.which == JSON::JSONdata::mval) map = x.map;
+JSON::JSONdata_map.append(JSONdata &k, JSONdata &v){
 }
+    class JSONdata_map : public JSONdata {
+         std::shared_ptr<JSONmap> map;
+         void dump(std::ostream &s) const;
+         bool cmp(const JSONdata_map &);
+         JSONdata_map();
+         void append(JSONdata &, JSONdata &);
+    }
 
-JSON::JSONdata::JSONdata(const JSONdata &x) {
-  init(x);
-}
-const JSON::JSONdata & JSON::JSONdata::operator = (const JSONdata &x ) {
-  init(x);
-  return *this;
-}
-
-JSON::JSONdata::~JSONdata() {;}
-
-std::shared_ptr<const char>
+JSONdata_string
 JSON::getstr(skipstream &dataobj, char quote) {
    
    int c;
@@ -68,7 +106,7 @@ JSON::getstr(skipstream &dataobj, char quote) {
        res.push_back(c);
        c = dataobj.getc();
    } while ( c != quote );
-   return  std::shared_ptr<const char>(strdup(res.c_str()), free);
+   return JSONdata_string(res);
 }
 
 std::shared_ptr<JSON::JSONvec> JSON::getvec(skipstream &dataobj) {

@@ -152,7 +152,7 @@ do_gfal() {
    gfalopts="$1"
    src="$2"
    dst="$3"
-   unset PYTHONHOME; unset PYTHONPATH; unset LD_LIBRARY_PATH; unset GFAL_PLUGIN_DIR;
+   unset PYTHONHOME; unset PYTHONPATH; unset LD_LIBRARY_PATH; unset GFAL_PLUGIN_DIR; unset GFAL_CONFIG_DIR;
    PATH=/usr/bin
    if [ -r "${BEARER_TOKEN_FILE}" ]
    then

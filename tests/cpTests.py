@@ -19,8 +19,8 @@ base_uri_fmt = "https://samweb.fnal.gov:8483/sam/%s/api"
 # alternate dcache instances...
 cp = ConfigParser.ConfigParser()
 cp.read(os.environ["IFDHC_CONFIG_DIR"]+"/ifdh.cfg")
-dcache_host = cp.get('location dcache_stken', 'prefix_srm').replace("srm://","").replace("/pnfs/fnal.gov/usr/","")
-dcache_host = "fndca1.fnal.gov"
+#dcache_host = cp.get('location dcache_stken', 'prefix_srm').replace("srm://","").replace("/pnfs/fnal.gov/usr/","")
+dcache_host = "fndcadoor.fnal.gov"
 
 @contextlib.contextmanager
 def redir_stderr_fd():

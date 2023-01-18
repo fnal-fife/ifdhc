@@ -1,12 +1,3 @@
-#ifndef IFDH_JSON_H
-#define IFDH_JSON_H
-#include <vector>
-#include <map>
-#include <string>
-#include <iostream>
-#include <cstring>
-#include <exception>
-#include <memory>
 
 
 class JSON {
@@ -43,55 +34,35 @@ public:
     };
 
     class JSONdata;
+    class JSONcmp;
 
-    typedef std::map<JSONdata&, JSONdata&, JSONcmp> JSONmap;
-    typedef std::vector<JSONdata&> JSONvec;
+    typedef std::map<JSONdata, JSONdata, JSONcmp> JSONmap;
+    typedef std::vector<JSONdata> JSONvec;
 
     class JSONdata {
          public: 
+         union {
+            float floatval;
+            const char *strvalue;
+            JSONvec *list;
+            JSONmap *map;
+         }u;
          enum { fval, sval, lval, mval, nval} which;
-         virtual void dump(std::ostream &s) const = 0;
+         void dump(std::ostream &s) const;
+         //~JSONdata();
+         //JSONdata(const JSONdata &);
+         JSONdata();
     };
-
-    class JSONdata_float : public JSONdata {
-         float floatval;
-         void dump(std::ostream &s) const;
-         bool cmp(const JSONdata_float &);
-         JSONdata_float(float);
-    }
-
-    class JSONdata_string : public JSONdata {
-         std::shared_ptr<std::string> strp;
-         void dump(std::ostream &s) const;
-         bool cmp(const JSONdata_string &);
-         JSONdata_string(std::string);
-    }
-    }
-    class JSONdata_list : public JSONdata {
-         std::shared_ptr<JSONvec> list;
-         void dump(std::ostream &s) const;
-         bool cmp(const JSONdata_list &);
-         JSONdata_list();
-         void append(JSONdata &);
-    }
-    class JSONdata_map : public JSONdata {
-         std::shared_ptr<JSONmap> map;
-         void dump(std::ostream &s) const;
-         bool cmp(const JSONdata_map &);
-         JSONdata_map();
-         void append(JSONdata &, JSONdata &);
-    }
 
     struct JSONcmp {
     bool operator ()(const JSONdata &x,const  JSONdata &y);
     };
 
-    std::shared_ptr<const char> getstr(skipstream &dataobj, char quote);
+    const char *getstr(skipstream &dataobj, char quote);
 
-    std::shared_ptr<JSONvec> getvec(skipstream &dataobj);
+    JSONvec *getvec(skipstream &dataobj);
 
-    std::shared_ptr<JSONmap> getmap(skipstream &dataobj);
+    JSONmap *getmap(skipstream &dataobj);
 
-    JSONdata parsejson(skipstream &dataobj);
+   JSONdata parsejson(skipstream &dataobj);
 };
-#endif

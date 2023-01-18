@@ -19,8 +19,8 @@ base_uri_fmt = "https://samweb.fnal.gov:8483/sam/%s/api"
 # alternate dcache instances...
 cp = ConfigParser.ConfigParser()
 cp.read(os.environ["IFDHC_CONFIG_DIR"]+"/ifdh.cfg")
-dcache_host = cp.get('location dcache_stken', 'prefix_srm').replace("srm://","").replace("/pnfs/fnal.gov/usr/","")
-dcache_host = "fndca1.fnal.gov"
+#dcache_host = cp.get('location dcache_stken', 'prefix_srm').replace("srm://","").replace("/pnfs/fnal.gov/usr/","")
+dcache_host = "fndcadoor.fnal.gov"
 
 @contextlib.contextmanager
 def redir_stderr_fd():
@@ -274,14 +274,6 @@ class ifdh_cp_cases(unittest.TestCase):
         os.system("mv %s/test3.txt %s/test.txt" % (self.work, self.work))
         self.assertEqual(self.check_test_txt(), True, self._testMethodName)
          
-    def test_dirmode_expftp(self):
-        self.log(self._testMethodName)
-        self.ifdh_handle.cp(['--force=expftp', '-D', '%s/a/f1' % self.work, '%s/a/f2' % self.work, self.data_dir])
-        if (os.access("%s/f1" % self.data_dir, os.R_OK)) :
-            statinfo = os.stat("%s/f1" % self.data_dir)
-            self.assertEqual(statinfo.st_mode & 0o40000, 0, self._testMethodName)
-        else:
-            self.assertEqual(True,True, self._testMethodName)
 
     def test_gsiftp__out(self):
         self.log(self._testMethodName)
@@ -335,27 +327,7 @@ class ifdh_cp_cases(unittest.TestCase):
         self.assertEqual(res, 0, self._testMethodName)
         self.assertEqual(self.check_test_txt(), True, self._testMethodName)
 
-    def test_expftp__out(self):
-        self.log(self._testMethodName)
-        self.make_local_test_txt()
-        res = self.ifdh_handle.cp([ "--force=expftp", "%s/test.txt"%self.work, "%s/test.txt" % self.data_dir])
-        self.check_writable( "%s/test.txt" % self.data_dir)
-        # shouldn't need this one, but we seem to?
-        li1 = self.ifdh_handle.ls(self.data_dir,1,"")
-        l2 = self.ifdh_handle.ls("%s/test.txt" % self.data_dir, 1,"")
-        self.assertEqual(len(l2),1,self._testMethodName)  
 
-    def test_expftp_in(self):
-        self.log(self._testMethodName)
-        #dir=self.li_remote_dir()
-        data_dir = self.ifdh_handle.ls("%s/test.txt" % self.data_dir, 1,"")
-        test_text='%s/test.text'%(self.data_dir)
-        #self.log('%s: searching for %s in data_dir '%(self._testMethodName,test_text))
-        #self.log('%s: contents of data_dir %s'%(self._testMethodName,data_dir))
-        if test_text not in data_dir:
-            self.make_remote_test_txt()
-        res = self.ifdh_handle.cp([ "--force=expftp" , "%s/test.txt"%self.data_dir, "%s/test.txt"%self.work])
-        self.assertEqual(res==0 and self.check_test_txt(), True, self._testMethodName)
 
     def test_srm__out(self):
         self.log(self._testMethodName)
@@ -446,7 +418,6 @@ class ifdh_cp_cases(unittest.TestCase):
         # force copy outbound by experiment ftp server, so we
         # own the files and can clean them out when done.
         self.log(self._testMethodName)
-        self.ifdh_handle.cp([ "--force=expftp", "-r", "%s/a"%self.work, "%s/a"%self.data_dir])
         
         self.ifdh_handle.cp([ "--force=gridftp", "-r", "%s/a"%self.data_dir, "%s/d"%self.work])
 
@@ -463,7 +434,6 @@ class ifdh_cp_cases(unittest.TestCase):
         # force copy outbound by experiment ftp server, so we
         # own the files and can clean them out when done.
         self.log(self._testMethodName)
-        self.ifdh_handle.cp([ "-r", "--force=expftp", "%s/a"%self.work, "%s/a"%self.data_dir])
         
         self.ifdh_handle.cp([ "-r", "--force=gridftp", "%s/a"%self.data_dir, "%s/d"%self.work])
 

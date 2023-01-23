@@ -170,7 +170,7 @@ do_gfal() {
        exit 1
        ;;
    *)
-       eval "gfal-copy -f --just-copy $gfalopts '$src' '$dst' >&2";;
+       eval "gfal-copy --just-copy $gfalopts '$src' '$dst' >&2";;
    esac
 }
 

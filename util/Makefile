@@ -7,7 +7,7 @@ OBJ=$(addsuffix .o,$(basename $(SRC)))
 TST=$(addsuffix -test,$(basename($SRC)))
 DEFS=
 TESTDEFS=-DUNITTEST
-CXXFLAGS=-pedantic-errors -Wall -Wextra -Werror -fPIC -g $(DEFS) $(ARCH) -I../../util
+CXXFLAGS=-pedantic-errors -Wall -Wextra -Werror -fPIC -g $(DEFS) $(ARCH) -I../../util -std=c++11 
 CFLAGS=-pedantic-errors -Wall -Wextra -Werror -fPIC -g $(DEFS) $(ARCH) -I../../util --std=c99
 
 

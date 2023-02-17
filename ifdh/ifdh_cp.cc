@@ -679,9 +679,9 @@ check_grid_credentials_tokens() {
         fgets(buf,512,pf);
         fclose(pf);
 
-        if (*buf >= '0' && (atol(buf) - time(0)) < 60) {
+        if (*buf >= '0' && (atol(buf) - time(0)) < 900) {
             //
-            // we consider it expired if there's less than a minute left...
+            // we consider it expired if there's less 15 minutes left...
             // 
             ifdh::_debug && std::cerr << "..but its expired: "<< atol(buf) << "\n" ;
             found = false;
@@ -943,7 +943,7 @@ get_grid_credentials_if_needed() {
         // we already set BEARER_TOKEN_FILE to our default so that is
         // where htgettoken will put it...
         cmdbuf.str("");
-        cmdbuf << "htgettoken -a " << vault << " -i " << issuer;
+        cmdbuf << "htgettoken --minsecs=900 -a " << vault << " -i " << issuer;
         if (role != "Analysis") {
             // need lowercase role for htgettoken...
             std::string cmdrole(role);

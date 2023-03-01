@@ -11,6 +11,7 @@ Product=ifdhc
 # p392  -> python v3_9_2 (e19, e20, & c7)
 # p399  -> python v3_9_9 (e19, e20, & c7)
 # p3913  -> python v3_9_13 (e20, e26, c7, & c14)
+# p3915  -> python v3_9_15 (e20, e26, c14, & c15)
 #
 Group:
 
@@ -61,6 +62,46 @@ Group:
     EnvSet(IFDHC_FQ_DIR, ${UPS_PROD_DIR} )
 
      Action=ExtraSetup
+
+Flavor=ANY
+Qualifiers=e26:p3915:debug
+
+  Action=DefineFQ
+    EnvSet(IFDHC_FQ_DIR, ${UPS_PROD_DIR}/${UPS_PROD_FLAVOR}-e26-p3915-debug )
+
+  Action = ExtraSetup
+    setupRequired( python v3_9_15 )
+    setupRequired( gcc v12_1_0 )
+
+Flavor=ANY
+Qualifiers=e26:p3915:prof
+
+  Action=DefineFQ
+    EnvSet(IFDHC_FQ_DIR, ${UPS_PROD_DIR}/${UPS_PROD_FLAVOR}-e26-p3915-prof )
+
+  Action = ExtraSetup
+    setupRequired( python v3_9_15 )
+    setupRequired( gcc v12_1_0 )
+
+Flavor=ANY
+Qualifiers=e20:p3915:debug
+
+  Action=DefineFQ
+    EnvSet(IFDHC_FQ_DIR, ${UPS_PROD_DIR}/${UPS_PROD_FLAVOR}-e20-p3915-debug )
+
+  Action = ExtraSetup
+    setupRequired( python v3_9_15 )
+    setupRequired( gcc v9_3_0 )
+
+Flavor=ANY
+Qualifiers=e20:p3915:prof
+
+  Action=DefineFQ
+    EnvSet(IFDHC_FQ_DIR, ${UPS_PROD_DIR}/${UPS_PROD_FLAVOR}-e20-p3915-prof )
+
+  Action = ExtraSetup
+    setupRequired( python v3_9_15 )
+    setupRequired( gcc v9_3_0 )
 
 Flavor=ANY
 Qualifiers=e26:p3913:debug
@@ -141,6 +182,46 @@ Qualifiers=e19:p399:prof
   Action = ExtraSetup
     setupRequired( python v3_9_9 )
     setupRequired( gcc v8_2_0 )
+
+Flavor=ANY
+Qualifiers=c15:p3915:debug
+
+  Action=DefineFQ
+    EnvSet(IFDHC_FQ_DIR, ${UPS_PROD_DIR}/${UPS_PROD_FLAVOR}-c15-p3915-debug )
+
+  Action = ExtraSetup
+    setupRequired( python v3_9_15 )
+    setupRequired( clang v15_0_7 )
+
+Flavor=ANY
+Qualifiers=c15:p3915:prof
+
+  Action=DefineFQ
+    EnvSet(IFDHC_FQ_DIR, ${UPS_PROD_DIR}/${UPS_PROD_FLAVOR}-c15-p3915-prof )
+
+  Action = ExtraSetup
+    setupRequired( python v3_9_15 )
+    setupRequired( clang v15_0_7 )
+
+Flavor=ANY
+Qualifiers=c14:p3915:debug
+
+  Action=DefineFQ
+    EnvSet(IFDHC_FQ_DIR, ${UPS_PROD_DIR}/${UPS_PROD_FLAVOR}-c14-p3915-debug )
+
+  Action = ExtraSetup
+    setupRequired( python v3_9_15 )
+    setupRequired( clang v14_0_6c )
+
+Flavor=ANY
+Qualifiers=c14:p3915:prof
+
+  Action=DefineFQ
+    EnvSet(IFDHC_FQ_DIR, ${UPS_PROD_DIR}/${UPS_PROD_FLAVOR}-c14-p3915-prof )
+
+  Action = ExtraSetup
+    setupRequired( python v3_9_15 )
+    setupRequired( clang v14_0_6c )
 
 Flavor=ANY
 Qualifiers=c14:p3913:debug

@@ -52,6 +52,7 @@ class aux_file_cases(unittest.TestCase):
         self.mk_remote_dir('%s/%s'%(self.data_dir,msg))
 
     def setUp(self):
+        print("-----setup----")
         os.environ['EXPERIMENT'] =  aux_file_cases.experiment
         self.ifdh_handle = ifdh.ifdh(base_uri_fmt % aux_file_cases.experiment)
         self.hostname = socket.gethostname()
@@ -70,6 +71,7 @@ class aux_file_cases(unittest.TestCase):
                 f.write("foo\n")
                 f.close()
         os.system("ls -R %s" % self.work)
+        print("-----end setup----")
 
     def tearDown(self):
         os.system("rm -rf %s" % self.work)

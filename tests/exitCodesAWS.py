@@ -49,6 +49,7 @@ class exitcodecases(unittest.TestCase):
             raise
 
     def setUp(self):
+        print("-----setup----")
         self.ifdh_handle = ifdh.ifdh()
         exp=os.getenv('EXPERIMENT')
         if exp:
@@ -68,6 +69,7 @@ class exitcodecases(unittest.TestCase):
         self.forceMethods=[""]
         res = os.system("EXPERIMENT=%s ifdh mkdir %s "% (self.experiment, self.goodRemoteDir))
         res = os.system("EXPERIMENT=%s ifdh cp %s  %s "% (self.experiment, self.goodLocalFile, self.goodRemoteFile))
+        print("-----end setup----")
 
     def tearDown(self):
         for fname in self.ifdh_handle.ls(self.goodRemoteDir,1,''):

@@ -144,6 +144,7 @@ class ifdh_cp_cases(unittest.TestCase):
              self.setUp_impl()
 
     def setUp_impl(self):
+        print("-----setup----")
         os.environ['IFDH_CP_MAXRETRIES'] = "0"
         os.environ['EXPERIMENT'] =  ifdh_cp_cases.experiment
         os.environ['SAVE_CPN_DIR'] = os.environ.get('CPN_DIR','')
@@ -177,7 +178,7 @@ class ifdh_cp_cases(unittest.TestCase):
                 f.close()
         os.system("ls -R %s" % self.work)
         time.sleep(1) # wait for NFS
-        print("Setup complete.")
+        print("-----end setup----")
 
     def tearDown(self):
         os.system("rm -rf %s" % self.work)

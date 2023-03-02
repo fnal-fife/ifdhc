@@ -516,7 +516,7 @@ class ifdh_cp_cases(unittest.TestCase):
         self.clean_dest()
         expsave = os.environ.get('EXPERIMENT','')
         os.environ['EXPERIMENT'] = "nova"
-        os.environ['IFDH_STAGE_VIA'] = "srm://%s:8443/srm/managerv2?SFN=/pnfs/fnal.gov/usr/nova/scratch/ifdh_stage/test_multi" % dcache_host
+        os.environ['IFDH_STAGE_VIA'] = "srm://%s:8443/srm/managerv2?SFN=/pnfs/fnal.gov/usr/nova/scratch/users/$USER/ifdh_stage/test_multi" % dcache_host
         self.ifdh_handle.addOutputFile('%s/a/f1' % self.work)
         self.ifdh_handle.addOutputFile('%s/a/f2' % self.work)
         self.ifdh_handle.copyBackOutput(self.data_dir)
@@ -530,7 +530,7 @@ class ifdh_cp_cases(unittest.TestCase):
         self.clean_dest()
         expsave = os.environ.get('EXPERIMENT','')
         os.environ['EXPERIMENT'] = "nova"
-        os.environ['IFDH_STAGE_VIA'] = "gsiftp://%s/pnfs/fnal.gov/usr/nova/scratch/ifdh_stage/test_multi" % dcache_host
+        os.environ['IFDH_STAGE_VIA'] = "gsiftp://%s/pnfs/fnal.gov/usr/nova/scratch/users/$USER/ifdh_stage/test_multi" % dcache_host
         self.ifdh_handle.addOutputFile('%s/a/f1' % self.work)
         self.ifdh_handle.addOutputFile('%s/a/f2' % self.work)
         self.ifdh_handle.copyBackOutput(self.data_dir)
@@ -560,7 +560,8 @@ class ifdh_cp_cases(unittest.TestCase):
 
     def test_pnfs_rewrite_1(self):
          self.log(self._testMethodName)
-         res = self.ifdh_handle.cp(['-D','%s/a/f1' % self.work,'%s/a/f2' % self.work,'/pnfs/nova/scratch/ifdh_stage/test'])
+         res = self.ifdh_handle.mkdir_p('/pnfs/nova/scratch/users/$USER/ifdh_stage/test')
+         res = self.ifdh_handle.cp(['-D','%s/a/f1' % self.work,'%s/a/f2' % self.work,'/pnfs/nova/scratch/users/$USER/ifdh_stage/test'])
          time.sleep(1)
          r1 = len(self.ifdh_handle.ls('/pnfs/nova/scratch/ifdh_stage/test/f1',1,''))
          r2 = len(self.ifdh_handle.ls('/pnfs/nova/scratch/ifdh_stage/test/f2',1,''))
@@ -569,8 +570,9 @@ class ifdh_cp_cases(unittest.TestCase):
          self.assertEqual(r1==1 and r2==1,True, self._testMethodName)
 
     def test_pnfs_rewrite_2(self):
+         res = self.ifdh_handle.mkdir_p('/pnfs/nova/scratch/users/$USER/ifdh_stage/test')
          self.log(self._testMethodName)
-         res = self.ifdh_handle.cp(['-D','%s/a/f1' % self.work,'%s/a/f2' % self.work,'/pnfs/fnal.gov/usr/nova/scratch/ifdh_stage/test'])
+         res = self.ifdh_handle.cp(['-D','%s/a/f1' % self.work,'%s/a/f2' % self.work,'/pnfs/fnal.gov/usr/nova/scratch/users/$USER/ifdh_stage/test'])
          time.sleep(1)
          self.ifdh_handle.ll('/pnfs/nova/scratch/ifdh_stage/test/',1,'')
          r1 = len(self.ifdh_handle.ls('/pnfs/nova/scratch/ifdh_stage/test/f1',1,''))

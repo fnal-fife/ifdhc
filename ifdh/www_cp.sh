@@ -1,5 +1,11 @@
 #!/bin/bash
 
+# token support isn't there on sl6, so just chop it off at the knees here
+if grep -q release.6 /etc/system-release
+then
+    unset BEARER_TOKEN_FILE
+    unset BEARER_TOKEN
+fi
 
 # "cp" style utility for web locations, uses curl or gfal...
 IFDH_HTTP_CMD="${IFDH_HTTP_CMD:-gfal}"
@@ -153,7 +159,7 @@ do_gfal() {
    src="$2"
    dst="$3"
    unset PYTHONHOME; unset PYTHONPATH; unset LD_LIBRARY_PATH; unset GFAL_PLUGIN_DIR; unset GFAL_CONFIG_DIR;
-   PATH=/usr/bin
+   PATH=/bin:/usr/bin
    if [ -r "${BEARER_TOKEN_FILE}" ]
    then
       export BEARER_TOKEN=`cat ${BEARER_TOKEN_FILE}`

@@ -1262,6 +1262,11 @@ ifdh::retry_system(const char *cmd_str, int error_expected, cpn_lock &locker, if
             exit(-1);
         }
 
+        if (_errortxt.find("gfal-copy error: 256") != std::string::npos) {
+           std::cerr << "Saw 'gfal-copy error: 256' in stderr, marking it a failure to be retried...\n";
+           res = 1;
+        }
+
         if (dash_d_warning && res !=0 && (_errortxt.find("directory") != std::string::npos || _errortxt.find("exists") != std::string::npos)) {
            std::cerr << "Perhaps you forgot a -D to indicate destination is a directory? \n";
            // do not keep retrying the exists error...

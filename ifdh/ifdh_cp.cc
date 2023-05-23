@@ -333,6 +333,9 @@ cpn_lock::lock() {
 
     // call lock, skip to last line 
     pf = popen("exec $CPN_DIR/bin/lock","r");
+    if (!pf) {
+        return;
+    }
     while (!feof(pf) && !ferror(pf)) {
         if (fgets(buf, 512, pf)) {
             fputs(buf,stderr);
@@ -590,6 +593,11 @@ check_grid_credentials_proxies() {
         ifdh::_debug && std::cerr << "check_grid_credentials: proxies:\n";
         FILE *pf = popen("voms-proxy-info -exists -valid 0:10 -text -vo 2>/dev/null", "r");
 
+        if (!pf) {
+            // we can not check, just proceed...
+            return 1;
+        }
+
         if (experiment == "samdev")  // use fermilab for fake samdev expt
             experiment = "fermilab";
 
@@ -676,6 +684,10 @@ check_grid_credentials_tokens() {
         std::cerr.flush();
         
         FILE *pf = popen(cmd.c_str() , "r");
+        if (!pf) {
+            // we can not check, just proceed.
+            return 1;
+        }
         fgets(buf,512,pf);
         fclose(pf);
 
@@ -1189,6 +1201,9 @@ my_system(const char *cmd, std::string &errortxt) {
     fd = dup(1);
     snprintf(cmdbuf, 4095, "%s 2>&1 1>&%d ", cmd, fd );
     pF = popen(cmdbuf, "r");
+    if (!pF) {
+        return -1;
+    }
     while (!feof(pF)) {
         fgres = fgets(linebuf, 1023, pF);
         if (fgres) {
@@ -1245,6 +1260,11 @@ ifdh::retry_system(const char *cmd_str, int error_expected, cpn_lock &locker, if
             std::cerr << (time(&gt)?ctime(&gt):"") << " ";
             std::cerr << logmsg.str();
             exit(-1);
+        }
+
+        if (_errortxt.find("gfal-copy error: 256") != std::string::npos) {
+           std::cerr << "Saw 'gfal-copy error: 256' in stderr, marking it a failure to be retried...\n";
+           res = 1;
         }
 
         if (dash_d_warning && res !=0 && (_errortxt.find("directory") != std::string::npos || _errortxt.find("exists") != std::string::npos)) {
@@ -2160,6 +2180,7 @@ ifdh::lss( std::string loc, int recursion_depth, std::string force) {
     if (fake_popen) {
         fclose(pf);
         unlink(tmpfile.c_str());
+        status = 0;
     } else {
         status = pclose(pf);
     }

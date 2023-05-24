@@ -64,6 +64,26 @@ Group:
      Action=ExtraSetup
 
 Flavor=ANY
+Qualifiers=e28:p3915:debug
+
+  Action=DefineFQ
+    EnvSet(IFDHC_FQ_DIR, ${UPS_PROD_DIR}/${UPS_PROD_FLAVOR}-e28-p3915-debug )
+
+  Action = ExtraSetup
+    setupRequired( python v3_9_15 )
+    setupRequired( gcc v13_1_0 )
+
+Flavor=ANY
+Qualifiers=e28:p3915:prof
+
+  Action=DefineFQ
+    EnvSet(IFDHC_FQ_DIR, ${UPS_PROD_DIR}/${UPS_PROD_FLAVOR}-e28-p3915-prof )
+
+  Action = ExtraSetup
+    setupRequired( python v3_9_15 )
+    setupRequired( gcc v13_1_0 )
+
+Flavor=ANY
 Qualifiers=e26:p3915:debug
 
   Action=DefineFQ

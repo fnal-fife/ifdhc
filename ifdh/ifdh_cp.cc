@@ -135,7 +135,7 @@ cache_stat(std::string s) {
    // try to flush NFS dir cache ?
    res = stat(s.c_str(), &sbuf);
    if (res != 0 || (sbuf.st_size == 0 && !S_ISFIFO(sbuf.st_mode))) {
-      ifdh::_debug && std::cerr << "got bad bits on stat("  << s << ") trying again\n";
+      ifdh::_debug && std::cerr << "retrying stat("  << s << ")\n";
       // if it looks wonky (failed, no size) flush and retry
       flushdir(parent_dir(s).c_str());
       close(open(s.c_str(),O_RDONLY));

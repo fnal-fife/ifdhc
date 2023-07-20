@@ -14,7 +14,9 @@ public:
     json(std::string s);
     json(float n);
     json(std::vector<json*>);
+    json(std::vector<std::string>);
     json(std::map<std::string,json*>);
+    json(std::map<std::string,std::string>);
     bool is_none();
     bool is_string();
     bool is_num();

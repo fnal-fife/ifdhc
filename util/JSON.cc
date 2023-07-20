@@ -79,6 +79,20 @@ std::string json::sval()               {assert(is_string()); return patom;}
 float json::fval()                     {assert(is_num()); return natom;}
 json::~json(){;} //XXX -- recursvely delete
 
+json::json(std::vector<std::string> l1){
+    _shape = _list; 
+    
+    for( auto p = l1.begin(); p != l1.end(); p++ ) {
+        plist.push_back(new json(*p));
+    }
+}
+json::json(std::map<std::string,std::string>m1){
+    _shape = _map; 
+    for( auto p = m1.begin(); p != m1.end(); p++ ) {
+       pmap.insert( std::pair<std::string, json *> ( p->first, new json(p->second)));
+    }
+}
+
 void
 json::dump(std::ostream &s) {
     bool first=true; 
@@ -220,5 +234,21 @@ main() {
    std::cout << "t3out: " ;
    r->dump(std::cout);
    std::cout << "\n";
+
+   std::cout << "from std::vector<std::string>\n";
+
+   std::vector<std::string> vs;
+   vs.push_back("s0");
+   vs.push_back("s1");
+   vs.push_back("s2");
+   r = new json(vs);
+   r->dump(std::cout);
+
+   std::map<std::string, std::string> mss;
+   mss.insert( std::pair<std::string, std::string>( "k0", "v0"));
+   mss.insert( std::pair<std::string, std::string>( "k1", "v1"));
+   mss.insert( std::pair<std::string, std::string>( "k2", "v2"));
+   r = new json(mss);
+   r->dump(std::cout);
 }
 #endif

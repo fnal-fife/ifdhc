@@ -3,6 +3,9 @@
 #include <sstream>
 #include "JSON.h"
 
+namespace ifdh_util_ns {
+
+
 void 
 assert(bool b) { 
     if(!b) 
@@ -238,6 +241,8 @@ json::dumps() {
     return ss.str();
 }
 
+}
+
 #ifdef UNITTEST
 int
 main() {
@@ -277,4 +282,5 @@ main() {
    r = new json(mss);
    r->dump(std::cout);
 }
+ 
 #endif

@@ -3,6 +3,11 @@
 #include <unordered_map>
 #include <map>
 
+#ifndef JSON_H
+#define JSON_H
+
+namespace ifdh_util_ns {
+
 // this should be an abstract base and  5 subclasses for space efficiency, but not today...
 class json {
     enum {_none, _string, _num, _list, _map} _shape;
@@ -39,3 +44,7 @@ public:
 json *load_json(std::istream &s);
 json *loads_json(std::string s);
 
+}
+using namespace ifdh_util_ns;
+
+#endif

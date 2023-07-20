@@ -3,6 +3,21 @@
 #include <sstream>
 #include "JSON.h"
 
+void 
+assert(bool b) { 
+    if(!b) 
+        throw std::runtime_error("assertion error");
+}
+
+bool
+is_in(char c, const char *p) {
+  while(p && *p) {
+     if (c == *p)
+        return true;
+     p++;
+  }
+  return false;
+}
 
 // utilities for parsing:
 
@@ -34,201 +49,176 @@ throwerror_s( const char *s ) {
 }
 
 // consume an expected character and surrounding white space
-static void 
+static bool 
 eat(int c, std::istream &s) {
    eatspace(s);
    if (c) {
        if (s.peek() == c) {
 	   s.get();
+           return true;
        } else {
-	  throwerror(c);
+           throwerror( c );
        }
    }
+   return false;
 }
 
-void fjson::dump(std::ostream &s){s << fval; }
-void fjson::load(std::istream &s){s >> fval; }
-json *fjson::operator [](int){throw std::runtime_error("unimplemented"); return  new fjson; }
-json *fjson::operator [](std::string){throw std::runtime_error("unimplemented"); new fjson; }
-size_t fjson::hash() {std::hash<int> ihash; return ihash(fval); }
-fjson::~fjson() {;}
+json::json(){_shape = _none; patom = "";}
+json::json(std::string s){_shape = _string; patom = s;}
+json::json(float n){_shape = _num; natom = n;}
+json::json(std::vector<json*> l1){_shape = _list; plist = l1;}
+json::json(std::map<std::string,json*>m1){_shape = _map; pmap = m1;}
+bool json::is_none()                   { return _shape == _none;}
+bool json::is_string()                 { return _shape == _string;}
+bool json::is_num()                    { return _shape == _num;}
+bool json::is_list()                   { return _shape == _list;}
+bool json::is_map()                    { return _shape == _map;}
+json *&json::operator [](int i)        {assert(is_list()); return plist[i];}
+json *&json::operator [](std::string s){assert(is_map()); return pmap[s];}
+std::string json::sval()               {assert(is_string()); return patom;}
+float json::fval()                     {assert(is_num()); return natom;}
+json::~json(){;} //XXX -- recursvely delete
 
-void sjson::dump(std::ostream &s){s << '"'<< sval << '"'; }
-
-void sjson::load(std::istream &s){
-    eat('"', s);
-    while (s.peek() != '"'){ 
-        if (s.peek() == '\\') 
-  	    s.get(); 
-        sval.push_back(s.get()); 
-    } 
-    s.get(); 
-}
-
-size_t sjson::hash() { std::hash<std::string>shash; return shash(sval); }
-json *sjson::operator [](int){throw std::runtime_error("unimplemented"); return new sjson; }
-json *sjson::operator [](std::string){throw std::runtime_error("unimplemented");return new sjson; }
-sjson::~sjson() {;}
-
-
-void vjson::dump(std::ostream &s){
-   s << "[";
-   for( auto p = vec.begin(); p != vec.end(); p++) {
-       if (p != vec.begin() )
-           s << ",";
-       (*p)->dump(s);
+void
+json::dump(std::ostream &s) {
+    bool first=true; 
+    switch(_shape) {
+    case _none: s << "None"; break;
+    case _string: s << '"' << patom << '"'; break;
+    case _num: s << natom; break;
+    case _list: 
+          s<< "["; 
+          for( auto p = plist.begin(); p != plist.end(); p++) { 
+             if(!first) 
+                s << ", "; 
+             first=false; 
+             (*p)->dump(s); 
+         } 
+         s << "]"; 
+         break;
+    case _map: 
+         s<< "{"; 
+         for( auto p = pmap.begin(); p != pmap.end(); p++) { 
+             if (!first) 
+                 s<< ", "; 
+             first=false;  
+             s << '"' << p->first << '"'; 
+             s<<":";
+             p->second->dump(s);
+          }  
+          s << "}"; 
+          break;
    }
-   s << "]";
 }
 
-void vjson::load(std::istream &s){ 
-   bool first=true;
-   eat('[', s);
+json* 
+load_json_num(std::istream &s) {
+   std::string res; // XXX handle backslash quotes...
+   while( !s.eof() && (isdigit(s.peek()) || '.' == s.peek()) ) {
+      res.push_back(s.get());
+   }
+   return new json(atof(res.c_str()));
+}
+json* 
+load_json_string(std::istream &s) {
+   std::string res; // XXX handle backslash quotes...
+   s.get(); // eat the quote
+   while( !s.eof() && s.peek() != '"' ) {
+      res.push_back(s.get());
+   }
+   s.get(); // eat the quote
+   return new json(res);
+}
+
+json*
+load_json_list(std::istream &s) {
+   std::vector<json *> res;    
+   eat('[',s);
    eatspace(s);
-   while (s.peek() != ']') {
-       if (first) 
-	   first = false;
-       else {
-	   eat(',', s);
-           eatspace(s);
-       }
-       vec.push_back(load_json_i(s));
+   while ( !s.eof() && s.peek() != ']' ) {
+       res.push_back(load_json(s));
        eatspace(s);
+       if ( s.peek() == ',') {
+           eat(',',s);
+       } else {
+           if (s.peek() != ']') {
+               throwerror_s(",]");
+           }
+       }
    }
-   s.get();
-}
-json *vjson::operator [](int i){return vec[i]; }
-json *vjson::operator [](std::string){throw std::runtime_error("unimplemented"); new fjson; }
-size_t vjson::hash() { 
-   size_t res;
-   for( auto p = vec.begin(); p != vec.end(); p++ ) 
-      res = (res << 1) ^ (*p)->hash();
-   return res;
+   return new json(res);
 }
 
-vjson::~vjson() {
-   for( auto p = vec.begin(); p != vec.end(); p++ ) 
-       delete (*p);
-}
-
-mjson::~mjson() {
-    for( auto p = map.begin(); p != map.end(); p++ ) {
-        delete p->first;
-        delete p->second;
-    }
-}
-
-void mjson::dump(std::ostream &s) {
-   s << "{";
-   for( auto p = map.begin(); p != map.end(); p++ ) {
-       if (p != map.begin())
-           s << ", ";
-       p->first->dump(s);
-       s << ": ";
-       p->second->dump(s);
-   }
-   s << "}";
-}
-void mjson::load(std::istream &s){ 
-   json *k, *v;
-   bool first=true;
-   eat('{', s);
+json*
+load_json_map(std::istream &s) {
+   json *j1, *j2;
+   std::map<std::string, json *> res;    
+   eat('{',s);
    eatspace(s);
-   while (s.peek() != '}') {
-       if (first) 
-          first = false;
-       else
-	  eat(',', s);
-
-       k = load_json_i(s);
-
+   while ( !s.eof() && s.peek() != '}' ) {
+       j1 = load_json(s);
        eat(':', s);
-
-       v = load_json_i(s);
-       map[k] = v;
+       j2 = load_json(s);
        eatspace(s);
+
+       res.insert(std::pair<std::string, json *>(j1->patom, j2));
+       
+       if ( s.peek() == ',') {
+           eat(',',s);
+       } else { 
+           if (s.peek() != '}') {
+               throwerror_s(",}");
+           }
+       }
    }
-   s.get();
+   return new json(res);
 }
 
-json *mjson::operator [](int k)        { fjson ij(k); return map[&ij];}
-json *mjson::operator [](std::string s){ sjson sj(s); return map[&sj];}
-size_t mjson::hash() { 
-   size_t res;
-   for( auto p = map.begin(); p != map.end(); p++ ) 
-      res = (res << 1) ^ p->first->hash() ^ p->second->hash();
-   return res;
-}
-
-json *loads_json(std::string s) {
-    std::stringstream ss;
-    ss.str(s);
-    linenum = 1;
-    return load_json_i(ss);
-}
-
-json *load_json(std::istream &s) {
-   linenum = 1;
-   return load_json_i(s);
-}
-
-json *load_json_i(std::istream &s) {
-   json *p;
+json *
+load_json(std::istream &s) {
+   json * res;
    eatspace(s);
    switch(s.peek()) {
-       case '0': case '1': case '2': case '3': case '4': 
-       case '5': case '6': case '7': case '8': case '9':
-	   p = new fjson();
-	   break;
-       case '"':
-	   p = new sjson();
-	   break;
-       case '[':
-	   p = new vjson();
-	   break;
-       case '{':
-	   p = new mjson();
-	   break;
-       default:
-	    throwerror_s("\"[{0123456789'");
-       }
-       p->load(s);
-       return p;
+   case '{':
+      return load_json_map(s);
+   case '[':
+      return load_json_list(s);
+   case '"':
+      res = load_json_string(s);
+      return res;
+   case '0': case '1': case '2': case '3': case '4':
+   case '5': case '6': case '7': case '8': case '9':
+      return load_json_num(s);
+   }
+   return 0;
 }
 
-json *conv_json(std::map<const char *, const char *> m) {
-  mjson *m1 = new mjson;
-  for( auto p = m.begin(); p != m.end(); p++ ) {
-      m1->map[new sjson(p->first)] = new sjson(p->second);
-  }
-  return m1;
+json *loads_json(std::string s){
+   std::stringstream ss(s.c_str());
+   return load_json(ss);
 }
-
-json *conv_json(std::map<const char *, double> m) {
-  mjson *m1 = new mjson;
-  for( auto p = m.begin(); p != m.end(); p++ ) {
-      m1->map[new sjson(p->first)] = new fjson(p->second);
-  }
-  return m1;
-}
-
-json::json() {;}
-json::~json() {;}
 
 #ifdef UNITTEST
 int
 main() {
-   std::map<const char *, const char *> md1 = {{"foo","bar"},{"baz","bleem"}};
-   std::map<const char *, double> md2 = {{"foo",1},{"baz",2}};
-   json *p = loads_json("[1,2,{3:4,5:6}]") ;
-   p->dump(std::cout);
-   delete p;
+   std::string t1("[1, 22, 333]");
+   std::string t2("{\"a\": 1, \"bb\":22, \"ccc\": 333}");
+   std::string t3("{\"a\": \"x\", \"bb\":\"y\" , \"ccc\": 333}");
+   json *r;
+   r = loads_json(t1);
+   std::cout << "t1: " << t1 << "\n";
+   std::cout << "t1out: " ;
+   r->dump(std::cout);
    std::cout << "\n";
-   p = load_json(std::cin);
-   p->dump(std::cout);
-   conv_json(md1)->dump(std::cout);
-   conv_json(md2)->dump(std::cout);
-   delete p;
-   return 0;
+   r = loads_json(t2);
+   std::cout << "t2: " << t2 << "\n";
+   std::cout << "t2out: " ;
+   r->dump(std::cout);
+   std::cout << "\n";
+   r = loads_json(t3);
+   std::cout << "t3: " << t3 << "\n";
+   std::cout << "t3out: " ;
+   r->dump(std::cout);
+   std::cout << "\n";
 }
 #endif

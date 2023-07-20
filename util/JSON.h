@@ -4,71 +4,34 @@
 #include <map>
 
 class json {
+    enum {_none, _string, _num, _list, _map} _shape;
+    float natom;
+    std::string patom;
+    std::vector<json*> plist;
+    std::map<std::string,json*> pmap;
 public:
     json();
-    virtual void dump(std::ostream &s) = 0;
-    virtual void load(std::istream &s) = 0;
-    virtual json *operator [](int) = 0;
-    virtual json *operator [](std::string) = 0;
-    virtual size_t hash() = 0;
-    virtual ~json();
-};
-
-class fjson: public json { 
-    double fval;
-public:
-    fjson() : fval(0) {;}
-    fjson(double f) : fval(f) {;}
+    json(std::string s);
+    json(float n);
+    json(std::vector<json*>);
+    json(std::map<std::string,json*>);
+    bool is_none();
+    bool is_string();
+    bool is_num();
+    bool is_list();
+    bool is_map();
+    json *&operator [](int);
+    json *&operator [](std::string);
+    float fval();
+    std::string sval();
+    ~json();
     void dump(std::ostream &s);
-    void load(std::istream &s);
-    json *operator [](int);
-    json *operator [](std::string);
-    size_t hash();
-    virtual ~fjson();
+    friend json *load_json(std::istream &s);
+    friend json *load_json_map(std::istream &s);
+    friend json *load_json_string(std::istream &s);
+    friend json *load_json_list(std::istream &s);
+    friend json *loads_json(std::string s);
 };
-
-class sjson: public json { 
-    std::string sval;
-public:
-    sjson():sval(""){;}
-    sjson(std::string s):sval(s){;}
-    sjson(char *s):sval(s){;}
-    void dump(std::ostream &s);
-    void load(std::istream &s);
-    json *operator [](int);
-    json *operator [](std::string);
-    size_t hash();
-    virtual ~sjson();
-};
-
-class vjson: public json { 
-    std::vector<json *> vec;
-public:
-    void dump(std::ostream &s);
-    void load(std::istream &s);
-    json *operator [](int);
-    json *operator [](std::string);
-    size_t hash();
-    virtual ~vjson();
-};
-
-extern json *conv_json(std::map<const char *, const char *>);
-extern json *conv_json(std::map<const char *, int>);
-
-class mjson: public json { 
-    std::unordered_map<json *,json *> map;
-public:
-    void dump(std::ostream &s);
-    void load(std::istream &s);
-    json *operator [](int);
-    json *operator [](std::string);
-    size_t hash();
-    virtual ~mjson();
-    friend json *conv_json(std::map<const char *, const char *>);
-    friend json *conv_json(std::map<const char *, double>);
-};
-
 json *load_json(std::istream &s);
 json *loads_json(std::string s);
-json *load_json_i(std::istream &s);
-size_t hash(json &j);
+

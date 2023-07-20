@@ -3,6 +3,7 @@
 #include <unordered_map>
 #include <map>
 
+// this should be an abstract base and  5 subclasses for space efficiency, but not today...
 class json {
     enum {_none, _string, _num, _list, _map} _shape;
     float natom;
@@ -28,6 +29,7 @@ public:
     std::string sval();
     ~json();
     void dump(std::ostream &s);
+    std::string dumps();
     friend json *load_json(std::istream &s);
     friend json *load_json_map(std::istream &s);
     friend json *load_json_string(std::istream &s);

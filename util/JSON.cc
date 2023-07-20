@@ -77,7 +77,25 @@ json *&json::operator [](int i)        {assert(is_list()); return plist[i];}
 json *&json::operator [](std::string s){assert(is_map()); return pmap[s];}
 std::string json::sval()               {assert(is_string()); return patom;}
 float json::fval()                     {assert(is_num()); return natom;}
-json::~json(){;} //XXX -- recursvely delete
+
+json::~json(){
+   switch(_shape) {
+   case _none:
+   case _string:
+   case _num:
+       break;
+   case _list:
+       for( auto p = plist.begin(); p != plist.end(); p++) { 
+          delete *p;
+       }
+       break;
+   case _map:
+       for( auto p = pmap.begin(); p != pmap.end(); p++) { 
+          delete p->second;
+       }
+       break;
+   }
+}
 
 json::json(std::vector<std::string> l1){
     _shape = _list; 
@@ -210,6 +228,14 @@ load_json(std::istream &s) {
 json *loads_json(std::string s){
    std::stringstream ss(s.c_str());
    return load_json(ss);
+}
+
+// convenience method
+std::string
+json::dumps() {
+    std::stringstream ss;
+    dump(ss);
+    return ss.str();
 }
 
 #ifdef UNITTEST

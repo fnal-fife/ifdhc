@@ -183,15 +183,7 @@ class ifdh {
         // return the path
         std::string getToken();
         void dd_mc_authenticate();
-        json *dd_create_project(
-             std::vector<std::string> files,
-             std::map<std::string, std::string> common_attributes,
-             std::map<std::string, std::string> project_attributes,
-             std::string query,
-             int worker_timeout,
-             int idle_timeout,
-             std::vector<std::string> users,
-             std::vector<std::string> roles);
+        json *dd_create_project( std::vector<std::string> files, std::map<std::string, std::string> common_attributes, std::map<std::string, std::string> project_attributes, std::string query, int worker_timeout, int idle_timeout, std::vector<std::string> users, std::vector<std::string> roles);
         std::string new_worker_id(std::string new_id, std::string worker_id_file = "");
 
     private:

@@ -26,8 +26,8 @@ HDR=ifdh.h
 SWIGCXXFLAGS=-fPIC -I../util -I../numsg -I../../util -I../../numsg -I../../ifdh -g -Dregister= -I$${PYTHON_INCLUDE:-`echo $${VIRTUAL_ENV:-/usr}/include/python$${PYMAJOR:-}*`} $(ARCH)
 CXXFLAGS=-pedantic-errors -Wall -Wextra -Werror -fPIC -I../../util -I../util -I ../../numsg -I../numsg -g  $(ARCH) -I$(SRCDIR) -std=c++11
 CFLAGS=-pedantic-errors -Wall -Wextra -Werror -fPIC -I../../util -I../util -I ../../numsg -I../numsg -g  $(ARCH) -I$(SRCDIR) -std=c99
-OBJ=ifdh.o ifdh_cp.o ifdh_sam.o ifdh_ddmc.o
-ALL_OBJS=$(OBJ) ../util/WebAPI.o ../numsg/numsg.o ../util/SyslogAPI.o ../util/utils.o ../util/regwrap.o ../util/Checksum.o ../util/md5.o ../util/WimpyConfigParser.o ../util/sha256.o
+OBJ=ifdh.o ifdh_cp.o ifdh_sam.o ifdh_dd.o
+ALL_OBJS=$(OBJ) ../util/WebAPI.o ../numsg/numsg.o ../util/SyslogAPI.o ../util/utils.o ../util/regwrap.o ../util/Checksum.o ../util/md5.o ../util/WimpyConfigParser.o ../util/sha256.o ../util/JSON.o
 genOBJ=ifdh_main.o ifdh_pybindgen.o python/ifdh.$(SHLIB)
 genSRC=ifdh_main.cc
 #genSRC=ifdh_pybindgen.cc ifdh_main.cc
@@ -107,5 +107,5 @@ ifdh_main.o: ifdh_main.cc ifdh.h ../util/WebAPI.h
 
 ifdh.o: ifdh.cc ifdh.h ../util/WebAPI.h ../util/../numsg/numsg.h ../util/../numsg/../util/SyslogAPI.h ifdh.h ../util/WebAPI.h  ../util/sha256.h
 
-ifdh_dd_test: ifdh_dd.cc ifdh_cp.o ifdh.o ../util/JSON.o ../util/utils.o ../util/WebAPI.o
-	g++ -std=c++11  -I../util -DUNITTEST -o ifdh_dd_test ifdh_dd.cc  ../util/*.o ifdh_cp.o ifdh.o
+ifdh_dd_test: ifdh_dd.cc $(LIB)
+	g++ -std=c++11  -I../util -DUNITTEST -o ifdh_dd_test ifdh_dd.cc  $(LIB)

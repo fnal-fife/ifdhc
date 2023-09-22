@@ -1,88 +1,62 @@
-
-check_env() {
-    static int checked = 0;
-    static const char *cpn_basedir = "/grid/fermiapp/products/common/prd/cpn";
-
-    if (!checked) {
-        checked = 1;
-
-        srandom(getpid()*getuid());
-
-        // try to find cpn even if it isn't setup
-        if (!getenv("CPN_DIR")) {
-           if (0 == access(cpn_basedir, R_OK)) {
-              for (int i = 10; i > 0; i-- ) {
-                  stringstream setenvbuf;
-                  setenvbuf << cpn_basedir << "/v1_" << i << "/NULL";
-                  if (0 == access(setenvbuf.str().c_str(), R_OK)) {
-                      setenv("CPN_DIR", setenvbuf.str().c_str(), 1);
-                      break;
-                  }
-              }
-           }
-        }
-
-        // we do not want it set...
-        unsetenv("X509_USER_CERT");
-
-        char *ep;
-
-        if (0 != (ep = getenv("EXPERIMENT")) && 0 == getenv("CPN_LOCK_GROUP")) {
-            setenv("CPN_LOCK_GROUP", ep, 0);
-        }
-              
-        string path(getenv("PATH")?getenv("PATH"):"");
-        char *p;
-
-        if (0 != (p = getenv("VDT_LOCATION"))) {
-            if (string::npos == path.find(p)) {
-               path_prepend(p,"/globus/bin");
-               path_prepend(p,"/srm-client-fermi/bin");
-            }
-        } else if (0 == access("/usr/bin/globus-url-copy", R_OK)) {
-            if (string::npos == path.find("/usr/bin")) {
-               path_prepend("/usr","/bin");
-            }
-        } else {
-             // where is vdt?!?
-             ;
-        }
-    }
-
-#ifdef _GNU_LIBC_VERSION_H
-
-    // put cmvfs OSG utils at the end of our path as a failover/fallback
-    // currently assuming 64bit is okay
-    int glibcminor = atoi(gnu_get_libc_version()+2);
-    int slver = glibcminor > 5 ? (glibcminor > 12 ? 7 : 6) : 5;
-    path_ish_append("PATH","/usr/bin","");
-    path_ish_append("LD_LIBRARY_PATH","/usr/lib64","");
-    stringstream cvmfs_dir, ocvmfs_dir;
-    cvmfs_dir << "/cvmfs/oasis.opensciencegrid.org/mis/osg-wn-client/3.6/current/el" <<  slver << "-x86_64";
-    ocvmfs_dir << "/cvmfs/oasis.opensciencegrid.org/mis/osg-wn-client/3.5/current/el" <<  slver << "-x86_64";
-    path_ish_append("PATH",cvmfs_dir.str().c_str(),"/usr/bin");
-    path_ish_append("PATH",ocvmfs_dir.str().c_str(),"/usr/bin");
-    path_ish_append("LD_LIBRARY_PATH",cvmfs_dir.str().c_str(),"/usr/lib64");
+#include "ifdh.h"
+#include "ifdh_mbuf.h"
+#include "utils.h"
+#include <fcntl.h>
+#include <string>
+#include <sstream>
+#include <iostream>
+#include <iomanip>
+#include <../numsg/numsg.h>
+#include <stdlib.h>
+#include <sys/stat.h>
+#include <stdarg.h>
+#include <string.h>
+#include <netdb.h>
+#include <sys/types.h>
+#include <unistd.h>
+#include <errno.h>
+#include <exception>
+#include <sys/wait.h>
+#include <signal.h>
+#include <sys/signal.h>
+#include <sys/param.h>
+#include <map>
+#include "../util/Checksum.h"
+#include <../util/regwrap.h>
+#include <setjmp.h>
+#include <memory>
+#ifndef __APPLE_CC__
+#include <gnu/libc-version.h>
 #endif
-}
+#include <uuid/uuid.h>
 
+time_t gt;
+
+#if __cplusplus <= 199711L
+#define unique_ptr auto_ptr
+#endif
+
+using namespace std;
+
+namespace ifdh_ns {
+ 
+int ifdh::_debug;
+WimpyConfigParser ifdh::_config;
+std::string ifdh::_config_version;
+
+
+std::string
+ifdh::unique_string() {
+    uuid_t uuid;
+    char uuidbuf[80];
+    uuid_generate(uuid);
+    uuid_unparse(uuid,uuidbuf);
+    return std::string(uuidbuf);
+}
 string cpn_loc  = "cpn";  // just use the one in the PATH -- its a product now
 string fermi_gsiftp  = "gsiftp://fg-bestman1.fnal.gov:2811";
 string bestmanuri = "srm://fg-bestman1.fnal.gov:10443/srm/v2/server?SFN=";
 
-std::string ifdh::_default_base_ssl_uri = "https://samweb.fnal.gov:8483/sam/";
-std::string ifdh::_default_base_uri =  ifdh::_default_base_ssl_uri;
-
-// some things still pass in the old http via IFDH_BASE_URL, so we have
-// to fix it...
-std::string old_http_base_uri = "http://samweb.fnal.gov:8480/sam/";
-
-string ssl_uri(string s) {
-   if (s.find(old_http_base_uri) == 0) {
-      return ifdh::_default_base_ssl_uri + s.substr(old_http_base_uri.length());
-   }
-   return s;
-}
 
 
 string datadir() {

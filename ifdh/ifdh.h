@@ -9,6 +9,7 @@
 #include <map>
 #include <utility>
 #include <uuid/uuid.h>
+#include "JSON.h"
 
 
 namespace ifdh_ns {
@@ -38,6 +39,7 @@ class ifdh {
         std::string unique_string();
         std::vector<std::string> build_stage_list( std::vector<std::string>, int, const char *stage_via);
         std::string _errortxt;
+        std::string _dd_mc_session_tok;
    public:
         static WimpyConfigParser _config;
         static std::string _config_version;
@@ -180,6 +182,18 @@ class ifdh {
         // get a Token for the current experiment if needed, 
         // return the path
         std::string getToken();
+        void dd_mc_authenticate();
+        json *dd_create_project(
+             std::vector<std::string> files,
+             std::map<std::string, std::string> common_attributes,
+             std::map<std::string, std::string> project_attributes,
+             std::string query,
+             int worker_timeout,
+             int idle_timeout,
+             std::vector<std::string> users,
+             std::vector<std::string> roles);
+        std::string new_worker_id(std::string new_id, std::string worker_id_file = "");
+
     private:
         IFile lookup_loc(std::string url) ;
         std::string locpath(IFile loc, std::string proto) ;

@@ -520,6 +520,13 @@ WebAPI::WebAPI(std::string url, int postflag, std::string postdata, int maxretri
             hcount++;
 
 	    _debug && std::cerr << "got header line " << buf << "\n";
+ 
+            char *cp = strchr(buf, ':');
+            if ( cp ) {
+                std::string hname(buf, cp-buf);
+                std::string hval(cp+2, strlen(cp)-4);
+                _rcv_headers.insert(std::pair<std::string, std::string> ( hname, hval));
+            }
 
 	    if (strncmp(buf,"HTTP/1.", 7) == 0) {
 		_status = atol(buf + 8);

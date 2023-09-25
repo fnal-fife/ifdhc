@@ -9,6 +9,8 @@
 #include "ifdh.h"
 #include <fcntl.h>
 #include <unistd.h>
+#include <pwd.h>
+#include <iostream>
 
 // URLs for "hypot" experiment:
 // ============================
@@ -49,7 +51,7 @@ get_dd_url() {
 std::string
 get_metacat_dd_auth_url() {
     std::string exp(getexperiment());
-    std::string url("https://metacat.fnal.gov:9443/auth/");
+    std::string url("https://metacat.fnal.gov:8143/auth/");
     url.reserve(64);
     if (getenv("METACAT_AUTH_SERVER_URL")) {
         url = getenv("METACAT_AUTH_SERVER_URL");
@@ -77,14 +79,24 @@ ifdh::new_worker_id(std::string new_id, std::string worker_id_file) {
 
 void
 ifdh::dd_mc_authenticate() {
-   std::ifstream tfd(getToken());
-   std::string token;
-   std::getline(tfd, token);
-   tfd.close();
-   WebAPI wa1(get_metacat_dd_auth_url());
-   wa1.data().close();
+    std::string user;
 
-   _dd_mc_session_tok = wa1._rcv_headers["X-Authentication-Token"];
+    if (getenv("GRID_USER"))
+       user = getenv("GRID_USER");
+    else if (getenv("USER"))
+       user = getenv("USER");
+    else
+       user = "unknown_user";
+
+    std::ifstream tfd(getToken());
+    std::string token;
+    std::getline(tfd, token);
+    std::string username;
+    tfd.close();
+
+    WebAPI wa1(get_metacat_dd_auth_url()+"/auth?method=token&username="+user);
+
+    _dd_mc_session_tok = wa1._rcv_headers["X-Authentication-Token"];
 }
 
 json *
@@ -121,10 +133,20 @@ ifdh::dd_create_project(
 #ifdef UNITTEST
 int
 main() {
-   putenv("EXPERIMENT=hypot");
-   putenv("IFDH_TOKEN_ENABLE=1");
-   putenv("IFDH_DEBUG=2");
-   ifdh handle;
-   handle.dd_mc_authenticate();
+   WebAPI::_debug = 1;
+   unsigned int watchme;
+   watchme = 0xdeadbeef;
+   if (watchme != 0xdeadbeef) { std::cout << "ouch1!\n"; }
+   setenv("EXPERIMENT","hypot",1);
+   setenv("IFDH_TOKEN_ENABLE","1",1);
+   setenv("IFDH_DEBUG","2",1);
+
+   if (watchme != 0xdeadbeef) { std::cout << "ouch1!\n"; }
+   ifdh *handle = new ifdh();
+   if (watchme != 0xdeadbeef) { std::cout << "ouch1!\n"; }
+   std::cout << "calling dd_mc_auithenticate()\n"; std::cout.flush();
+   handle->dd_mc_authenticate();
+   if (watchme != 0xdeadbeef) { std::cout << "ouch1!\n"; }
+   delete handle;
 }
 #endif

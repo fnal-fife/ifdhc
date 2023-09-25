@@ -233,7 +233,7 @@ WebAPI::WebAPI(std::string url, int postflag, std::string postdata, int maxretri
      // struct sockaddr_storage server; // connection address struct
      struct addrinfo *addrp;   // getaddrinfo() result
      struct addrinfo *addrf;   // getaddrinfo() result, to free later
-     static char buf[512];      // buffer for header lines
+     static char buf[1024];      // buffer for header lines
      int optval, optlen;
      int retries;
      int res;
@@ -516,7 +516,7 @@ WebAPI::WebAPI(std::string url, int postflag, std::string postdata, int maxretri
                  totaltime = totaltime + (t2 - t1);
              }
            
-	    _fromsite.getline(buf, 512);
+	    _fromsite.getline(buf, 1024);
             hcount++;
 
 	    _debug && std::cerr << "got header line " << buf << "\n";
@@ -524,7 +524,7 @@ WebAPI::WebAPI(std::string url, int postflag, std::string postdata, int maxretri
             char *cp = strchr(buf, ':');
             if ( cp ) {
                 std::string hname(buf, cp-buf);
-                std::string hval(cp+2, strlen(cp)-4);
+                std::string hval(cp+2, strlen(cp)-3);
                 _rcv_headers.insert(std::pair<std::string, std::string> ( hname, hval));
             }
 
@@ -541,17 +541,30 @@ WebAPI::WebAPI(std::string url, int postflag, std::string postdata, int maxretri
                 loc = "";
                 loc += buf;
                 while (buf[strlen(buf)-1] != '\r' && strlen(buf) && !_fromsite.eof() ) {
-	            _fromsite.getline(buf, 512);
+	            _fromsite.getline(buf, 1024);
 	            _debug && std::cerr << "no end of line yet loc: ..." << loc << "\n";
 	            _debug && std::cerr << "buf: " << buf << "\n";
 
                     loc += buf;
                 }
 
+                _debug && std::cerr << " loc[10] " << loc[10] << "loc[11] " << loc[11] << " loc[12] " << loc[12];
+
                 if (buf[strlen(buf)-1] == '\r' )
                     loc = loc.substr(0,loc.size()-1);
 
-		url = loc.c_str() + 10;
+                if (loc.substr(10).find(':') == std::string::npos) {
+                    int spos;
+                    if (loc[10] == '/') {  // absolute path, no protocol, replace after :
+                       spos = url.find(':');
+                    } else {
+                        spos = url.rfind('/'); // relative path, replace after last /
+                    }
+                    url = url.substr(0,spos+1) + loc.substr(10);
+                    _debug && std::cerr << "Relative path case: url: " << url <<  "\n";
+                } else {
+                    url = loc.c_str() + 10;
+                }
 	        _debug && std::cerr << "Location header: url: " << url <<  "\n";
 	    }
 
@@ -600,11 +613,13 @@ WebAPI::WebAPI(std::string url, int postflag, std::string postdata, int maxretri
         std::stringstream message;
         message << "\nHTTP-Status: " << _status << "\n";
         message << "Error text is:\n";
-        while (_fromsite.getline(buf, 512).gcount() > 0) {
+        while (_fromsite.getline(buf, 1024).gcount() > 0) {
 	    message << buf << "\n";
         }
+        message << "\n-----\n";
+        _debug && std::cerr << "throwing exception, message: " << message.str() << "\n";
         throw(WebAPIException(url,message.str()));
-     }    
+     }
 }
 
 int
@@ -647,6 +662,14 @@ test_WebAPI_fetchurl() {
 
 	    std::cout << "got line: " << line << std::endl;;
       }
+      for ( auto p = ds3._rcv_headers.begin(); p != ds3._rcv_headers.end(); p++  ) {
+           std::cout << "header " << p->first << ": " <<  p->second << "\n";
+      }
+      std::string foo;
+      foo = ds3._rcv_headers["Date"];
+      std::cout << "extracted Date: " << foo << "\n";
+      foo = ds3._rcv_headers["Content-Type"];
+      std::cout << "extracted Content-Type: " << foo << "\n";
    } catch (WebAPIException &we) {
       std::cout << "WebAPIException: " << we.what() << std::endl;
    }

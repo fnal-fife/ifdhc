@@ -39,7 +39,6 @@ class ifdh {
         std::string unique_string();
         std::vector<std::string> build_stage_list( std::vector<std::string>, int, const char *stage_via);
         std::string _errortxt;
-        std::string _dd_mc_session_tok;
    public:
         static WimpyConfigParser _config;
         static std::string _config_version;
@@ -201,6 +200,8 @@ class ifdh {
         int do_url_int(int postflag, ...);
         std::string do_url_str(int postflag,...);
         std::vector<std::string> do_url_lst(int postflag,...);
+     private:
+        std::string _dd_mc_session_tok;
 };
 
 }

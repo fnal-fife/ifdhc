@@ -73,7 +73,7 @@ ifdh: libifdh.$(SHLIB) ifdh_main.o
 #	patch < ifdh_pybindgen.patch
 
 ifdh_pybindgen.o: ifdh_pybindgen.cc
-	${CXX} -c -o $@  $(SWIGCXXFLAGS) $< 
+	${CXX} $(ARCH) -c -o $@  $(SWIGCXXFLAGS) $< 
 
 python/ifdh.$(SHLIB): $(PYMOD_OBJS)
 	${CXX} --shared $(ARCH) -o  $@ $(PYMOD_OBJS) `ls $${PYTHON_LIB:-/usr/lib64}/libpython$${PYMAJOR:-}*[asd]* | head -1` $(LDLIBS) || ${CXX} --shared $(ARCH) -o  $@ $(PYMOD_OBJS)  `ls $${PYTHON_LIB:-/usr/lib}/libpython$${PYMAJOR:-}*[asd]* | head -1` $(LDLIBS)
@@ -107,5 +107,5 @@ ifdh_main.o: ifdh_main.cc ifdh.h ../util/WebAPI.h
 
 ifdh.o: ifdh.cc ifdh.h ../util/WebAPI.h ../util/../numsg/numsg.h ../util/../numsg/../util/SyslogAPI.h ifdh.h ../util/WebAPI.h  ../util/sha256.h
 
-ifdh_dd_test: ifdh_dd.cc $(LIB)
-	g++ -std=c++11  -I../util -DUNITTEST -o ifdh_dd_test ifdh_dd.cc  $(LIB)
+ifdh_dd_test: ifdh_dd.cc ../util/WebAPI.o $(LIB)
+	g++ -g  $(CXXFLAGS) -I../util -DUNITTEST -o ifdh_dd_test ifdh_dd.cc ../util/WebAPI.o  $(LIB)

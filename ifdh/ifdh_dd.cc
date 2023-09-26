@@ -11,6 +11,8 @@
 #include <unistd.h>
 #include <pwd.h>
 #include <iostream>
+#include <fstream>
+#include <stdlib.h>
 
 // URLs for "hypot" experiment:
 // ============================
@@ -57,7 +59,9 @@ get_metacat_dd_auth_url() {
         url = getenv("METACAT_AUTH_SERVER_URL");
     } else {
         url += exp;
-        url += "_dev";
+        if ( exp == "hypot" ) {
+            url += "_dev";
+        }
     }
     return url;
 }
@@ -66,15 +70,32 @@ get_metacat_dd_auth_url() {
 //
 
 std::string
-ifdh::new_worker_id(std::string new_id, std::string worker_id_file) {
-    if (worker_id_file.empty())
-       worker_id_file = ".data_dispatcher_worker_id";
-    if (new_id.empty())
-       new_id = unique_string();
-    int fd = open(worker_id_file.c_str(), O_WRONLY);
-    write(fd,new_id.c_str(), new_id.length());
-    close(fd);
-    return new_id;
+ifdh::dd_worker_id(std::string new_id, std::string worker_id_file) {
+    bool write_file = false; // only write the cache file if we're setting id
+    if (_dd_worker_id.empty()) {
+        if (worker_id_file.empty())
+           worker_id_file = ".data_dispatcher_worker_id";
+         
+        if (new_id.empty()) {
+           if (access(worker_id_file.c_str(), O_RDONLY)) {
+               std::ifstream wif(worker_id_file);
+               std::getline(wif, _dd_worker_id);
+               wif.close();
+           } else {
+               _dd_worker_id = unique_string();
+               write_file = true;
+           }
+        }
+    } else {
+       _dd_worker_id = new_id;
+       write_file = true;
+    }
+    if ( write_file) {
+       int fd = open(worker_id_file.c_str(), O_WRONLY);
+       write(fd,new_id.c_str(), new_id.length());
+       close(fd);
+    }
+    return _dd_worker_id;
 }
 
 void
@@ -110,11 +131,20 @@ ifdh::dd_create_project(
      std::vector<std::string> users,
      std::vector<std::string> roles)  
 {
-     std::map<std::string, json *> msj;
+     std::map<std::string, json *> msj, mfdict;
+     std::vector<json *> mfinfo;
+     std::vector<std::string> fsplit;
      json *res;
 
-     msj.insert( std::pair<std::string,json *>( "files", new json(files)));
-     msj.insert( std::pair<std::string,json *>( "common_attributes", new json(common_attributes)));
+     for (auto finfo = files.begin(); finfo != files.end(); finfo++) {
+         fsplit = split(*finfo,':');
+         mfdict["namespace"] = new json(fsplit[0]);
+         mfdict["name"] = new json(fsplit[1]);
+         mfdict["attributes"] = new json(common_attributes);
+         mfinfo.push_back(new json(mfdict));
+     }
+
+     msj.insert( std::pair<std::string,json *>( "files", new json(mfinfo)));
      msj.insert( std::pair<std::string,json *>( "project_attributes", new json(project_attributes)));
      msj.insert( std::pair<std::string,json *>( "query", new json(query)));
      msj.insert( std::pair<std::string,json *>( "worker_timeout", new json(worker_timeout)));
@@ -129,24 +159,62 @@ ifdh::dd_create_project(
      return res;
 }
 
+std::string
+ifdh::dd_next_file(std::string project_id, std::string cpu_site, std::string worker_id, time_t timeout, int stagger) {
+    std::string info;
+
+    if (stagger) {
+       sleep(stagger * rand() / RAND_MAX);
+    }
+
+    worker_id = dd_worker_id(worker_id);
+    std::string url = get_dd_url() + 
+         "/next_file?project_id=" + project_id + 
+         "&worker_id=" + worker_id;
+
+    if(!cpu_site.empty()) {
+        url += "&cpu_site=";
+        url += cpu_site;
+    }
+
+    bool retry = true;
+ 
+    if ( timeout ) {
+        timeout += time(0);
+    }
+
+    while ( retry ) {
+        WebAPI *wa = new WebAPI(url, 0, 0);
+
+        if ( wa->getStatus() == 200 ) {
+             std::getline(wa->data(), info);
+             retry = false;
+        } else {
+            sleep(60);
+        }
+     
+        if ( timeout ) {
+            retry = time(0) < timeout;
+        }
+
+        delete wa;
+    }
+    return info; 
+}
+
+
 
 #ifdef UNITTEST
 int
 main() {
    WebAPI::_debug = 1;
-   unsigned int watchme;
-   watchme = 0xdeadbeef;
-   if (watchme != 0xdeadbeef) { std::cout << "ouch1!\n"; }
    setenv("EXPERIMENT","hypot",1);
    setenv("IFDH_TOKEN_ENABLE","1",1);
    setenv("IFDH_DEBUG","2",1);
 
-   if (watchme != 0xdeadbeef) { std::cout << "ouch1!\n"; }
    ifdh *handle = new ifdh();
-   if (watchme != 0xdeadbeef) { std::cout << "ouch1!\n"; }
    std::cout << "calling dd_mc_auithenticate()\n"; std::cout.flush();
    handle->dd_mc_authenticate();
-   if (watchme != 0xdeadbeef) { std::cout << "ouch1!\n"; }
    delete handle;
 }
 #endif

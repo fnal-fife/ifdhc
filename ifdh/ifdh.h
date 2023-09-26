@@ -183,7 +183,7 @@ class ifdh {
         std::string getToken();
         void dd_mc_authenticate();
         json *dd_create_project( std::vector<std::string> files, std::map<std::string, std::string> common_attributes, std::map<std::string, std::string> project_attributes, std::string query, int worker_timeout, int idle_timeout, std::vector<std::string> users, std::vector<std::string> roles);
-        std::string new_worker_id(std::string new_id, std::string worker_id_file = "");
+        std::string dd_next_file(std::string project_id, std::string cpu_site="", std::string worker_id="", time_t timeout=0, int stagger=0);
 
     private:
         IFile lookup_loc(std::string url) ;
@@ -200,8 +200,11 @@ class ifdh {
         int do_url_int(int postflag, ...);
         std::string do_url_str(int postflag,...);
         std::vector<std::string> do_url_lst(int postflag,...);
-     private:
+        std::string dd_worker_id(std::string new_id="", std::string worker_id_file="");
+
+        // internals for data-dispatcher client code
         std::string _dd_mc_session_tok;
+        std::string _dd_worker_id;
 };
 
 }

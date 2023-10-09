@@ -183,7 +183,10 @@ class ifdh {
         std::string getToken();
         void dd_mc_authenticate();
         json *dd_create_project( std::vector<std::string> files, std::map<std::string, std::string> common_attributes, std::map<std::string, std::string> project_attributes, std::string query, int worker_timeout, int idle_timeout, std::vector<std::string> users, std::vector<std::string> roles);
-        std::string dd_next_file(std::string project_id, std::string cpu_site="", std::string worker_id="", time_t timeout=0, int stagger=0);
+        json * dd_next_file(std::string project_id, std::string cpu_site="", std::string worker_id="", time_t timeout=0, int stagger=0);
+        json * ifdh::dd_get_project(int project_id, boolean with_files, boolean with_replicas);
+        json * ifdh::dd_file_done(int project_id, std::string file_did);
+        json * ifdh::dd_file_failed(int project_id, std::string file_did);
 
     private:
         IFile lookup_loc(std::string url) ;

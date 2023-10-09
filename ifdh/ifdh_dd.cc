@@ -31,7 +31,11 @@ get_metacat_url() {
         url = getenv("METACAT_SERVER_URL");
     } else {
         url += exp;
-        url += "_meta_dev/app";
+        if ( exp == "hypot" ) {
+            url += "_meta_dev/app";
+        } else {
+            url += "_meta_demo/app";
+        }
     }
     return url;
 }
@@ -45,7 +49,11 @@ get_dd_url() {
     } else {
         std::string exp(getexperiment());
         url += exp;
-        url += "_dd/app";
+        if ( exp == "hypot" ) {
+            url += "_dd/app";
+        } else {
+            url += "/dd/app";
+        }
     }
     return url;
 }
@@ -159,7 +167,7 @@ ifdh::dd_create_project(
      return res;
 }
 
-std::string
+json *
 ifdh::dd_next_file(std::string project_id, std::string cpu_site, std::string worker_id, time_t timeout, int stagger) {
     std::string info;
 
@@ -187,7 +195,7 @@ ifdh::dd_next_file(std::string project_id, std::string cpu_site, std::string wor
         WebAPI *wa = new WebAPI(url, 0, 0);
 
         if ( wa->getStatus() == 200 ) {
-             std::getline(wa->data(), info);
+             res = load_json(wa->data());
              retry = false;
         } else {
             sleep(60);
@@ -203,6 +211,46 @@ ifdh::dd_next_file(std::string project_id, std::string cpu_site, std::string wor
 }
 
 
+json *
+ifdh::dd_get_project(int project_id, boolean with_files, boolean with_replicas) {
+    std::string url = get_dd_url() + "project?project_id=" + itoa(project_id) + 
+                     "&with_files=" + (with_files ? "yes" : "no") + 
+                     "&with_replicass=" + (with_replicas ? "yes" : "no");
+    WebAPI *wa = new WebAPI(url, 0, 0);
+
+    if ( wa->getStatus() == 200 ) {
+         res = load_json(wa->data());
+    } else {
+         res = json_None();
+    }
+    return res;
+}
+
+json *
+ifdh::dd_file_done(int project_id, std::string file_did) {
+    std::string url = get_dd_url() + "release?handle_id=" + itoa(project_id) + ":" + file_did + "&failed=no";
+    WebAPI *wa = new WebAPI(url, 0, 0);
+
+    if ( wa->getStatus() == 200 ) {
+         res = load_json(wa->data());
+    } else {
+         res = json_None();
+    }
+    return res;
+}
+
+json *
+ifdh::dd_file_failed(int project_id, std::string file_did) {
+    std::string url = get_dd_url() + "release?handle_id=" + itoa(project_id) + ":" + file_did + "&failed=yes";
+    WebAPI *wa = new WebAPI(url, 0, 0);
+
+    if ( wa->getStatus() == 200 ) {
+         res = load_json(wa->data());
+    } else {
+         res = json_None();
+    }
+    return res;
+}
 
 #ifdef UNITTEST
 int

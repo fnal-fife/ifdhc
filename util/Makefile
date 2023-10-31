@@ -24,13 +24,13 @@ ifdh_version.h: FORCE
 FORCE:
 
 sha256-test: sha256.c
-	${CC} -o $@ $(TESTDEFS) $(CFLAGS) $< 
+	${CC} -g -o $@ $(TESTDEFS) $(CFLAGS) $< 
 
 utils-test: utils.cc WimpyConfigParser.o
-	${CXX} -o $@ $(TESTDEFS) $(CXXFLAGS) $< WimpyConfigParser.o
+	${CXX} -g -o $@ $(TESTDEFS) $(CXXFLAGS) $< WimpyConfigParser.o
 
 %-test: %.cc WimpyConfigParser.o
-	${CXX} -o $@ $(TESTDEFS) $(CXXFLAGS) $< utils.o WimpyConfigParser.o
+	${CXX} -g -o $@ $(TESTDEFS) $(CXXFLAGS) $< utils.o WimpyConfigParser.o
 
 
 %.o: %.cc

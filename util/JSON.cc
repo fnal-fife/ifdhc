@@ -1,286 +1,422 @@
-#include <exception>
-#include <cctype>
-#include <sstream>
 #include "JSON.h"
+#include <sstream>
+#include <stdexcept>
 
-namespace ifdh_util_ns {
+class json;
+class json_none;
+class json_str;
+class json_num;
+class json_list;
+class json_dict;
 
+// json type just indirects through the pointer..
+json::json ()
+{
+    pval = std::shared_ptr < json_none > ();
+}
 
-void 
-assert(bool b) { 
-    if(!b) 
-        throw std::runtime_error("assertion error");
+json::json (json_storage * v)
+{
+    pval = std::shared_ptr < json_storage > (v);
+}
+
+json::json (const json & j)
+{
+    pval = j.pval;
+}
+
+void
+json::dump (std::ostream & os) const 
+{
+    pval->dump (os);
+}
+
+json & json::operator[](int i) {
+    return (*pval)[i];
+}
+
+json & json::operator[](json j) {
+    return (*pval)[j];
+}
+
+// empty constructors
+
+json_none::json_none ()
+{;
+}
+
+json_str::json_str ()
+{;
+}
+
+json_str::~json_str ()
+{;
+}
+
+json_num::json_num ()
+{;
+}
+
+json_num::~json_num ()
+{;
+}
+
+json_list::json_list ()
+{;
+}
+
+json_dict::json_dict ()
+{;
+}
+
+// need some operator < stuff so maps work...
+bool json::operator < (const json j)
+{
+    return dumps () < j.dumps ();
 }
 
 bool
-is_in(char c, const char *p) {
-  while(p && *p) {
-     if (c == *p)
-        return true;
-     p++;
-  }
-  return false;
+operator < (const json j1, const json j2)
+{
+    return j1.dumps () < j2.dumps ();
 }
 
-// utilities for parsing:
-
-static int linenum = 1;
-
-// eat whitespace, keep track of linenum numbers for errors.
-static void 
-eatspace(std::istream &s) {
-   while (isspace(s.peek())) {
-       if (s.peek() == '\n') {
-	   linenum++;
-       }
-       s.get();
-   }
-}
-
-// raise a parse error..
 static void
-throwerror( int c ) {
-    std::stringstream msg;
-    msg << "Expected: '" << (char)c << "' at line "<< linenum ;
-    throw std::runtime_error(msg.str());
-}
-static void
-throwerror_s( const char *s ) {
-    std::stringstream msg;
-    msg << "Expected one of: \"" << s << "\" at line "<< linenum ;
-    throw std::runtime_error(msg.str());
-}
-
-// consume an expected character and surrounding white space
-static bool 
-eat(int c, std::istream &s) {
-   eatspace(s);
-   if (c) {
-       if (s.peek() == c) {
-	   s.get();
-           return true;
-       } else {
-           throwerror( c );
-       }
-   }
-   return false;
-}
-
-json::json(){_shape = _none; patom = "";}
-json::json(std::string s){_shape = _string; patom = s;}
-json::json(float n){_shape = _num; natom = n;}
-json::json(std::vector<json*> l1){_shape = _list; plist = l1;}
-json::json(std::map<std::string,json*>m1){_shape = _map; pmap = m1;}
-bool json::is_none()                   { return _shape == _none;}
-bool json::is_string()                 { return _shape == _string;}
-bool json::is_num()                    { return _shape == _num;}
-bool json::is_list()                   { return _shape == _list;}
-bool json::is_map()                    { return _shape == _map;}
-json *&json::operator [](int i)        {assert(is_list()); return plist[i];}
-json *&json::operator [](std::string s){assert(is_map()); return pmap[s];}
-std::string json::sval()               {assert(is_string()); return patom;}
-float json::fval()                     {assert(is_num()); return natom;}
-
-json::~json(){
-   switch(_shape) {
-   case _none:
-   case _string:
-   case _num:
-       break;
-   case _list:
-       for( auto p = plist.begin(); p != plist.end(); p++) { 
-          delete *p;
-       }
-       break;
-   case _map:
-       for( auto p = pmap.begin(); p != pmap.end(); p++) { 
-          delete p->second;
-       }
-       break;
-   }
-}
-
-json::json(std::vector<std::string> l1){
-    _shape = _list; 
-    
-    for( auto p = l1.begin(); p != l1.end(); p++ ) {
-        plist.push_back(new json(*p));
+eats (std::istream & is, const char *match = 0)
+{
+    int
+	c = is.peek ();
+    // first eat whitespace...
+    while (c == ' ' || c == '\n' || c == '\t') {
+	is.get ();
+	c = is.peek ();
     }
-}
-json::json(std::map<std::string,std::string>m1){
-    _shape = _map; 
-    for( auto p = m1.begin(); p != m1.end(); p++ ) {
-       pmap.insert( std::pair<std::string, json *> ( p->first, new json(p->second)));
+    // then match something specific, if requested
+    if (match) {
+	while (*match && c == *match) {
+	    is.get ();
+	    c = is.peek ();
+	    match++;
+	}
+	if (*match) {
+	    std::stringstream ss;
+	    ss << "Unexpected char '" << c << "'; expected '" << *match <<
+		"'.";
+	    throw
+	    std::domain_error (ss.str ());
+	}
     }
 }
 
 void
-json::dump(std::ostream &s) {
-    bool first=true; 
-    switch(_shape) {
-    case _none: s << "None"; break;
-    case _string: s << '"' << patom << '"'; break;
-    case _num: s << natom; break;
-    case _list: 
-          s<< "["; 
-          for( auto p = plist.begin(); p != plist.end(); p++) { 
-             if(!first) 
-                s << ", "; 
-             first=false; 
-             (*p)->dump(s); 
-         } 
-         s << "]"; 
-         break;
-    case _map: 
-         s<< "{"; 
-         for( auto p = pmap.begin(); p != pmap.end(); p++) { 
-             if (!first) 
-                 s<< ", "; 
-             first=false;  
-             s << '"' << p->first << '"'; 
-             s<<":";
-             p->second->dump(s);
-          }  
-          s << "}"; 
-          break;
-   }
+json_none::dump (std::ostream & os) const
+{
+    os << "None";
 }
 
-json* 
-load_json_num(std::istream &s) {
-   std::string res; // XXX handle backslash quotes...
-   while( !s.eof() && (isdigit(s.peek()) || '.' == s.peek()) ) {
-      res.push_back(s.get());
-   }
-   return new json(atof(res.c_str()));
-}
-json* 
-load_json_string(std::istream &s) {
-   std::string res; // XXX handle backslash quotes...
-   s.get(); // eat the quote
-   while( !s.eof() && s.peek() != '"' ) {
-      res.push_back(s.get());
-   }
-   s.get(); // eat the quote
-   return new json(res);
+json json_none::load (std::istream & is)
+{
+    json_none *
+	jn = new json_none;
+    eats (is, "None");
+    return json (jn);
 }
 
-json*
-load_json_list(std::istream &s) {
-   std::vector<json *> res;    
-   eat('[',s);
-   eatspace(s);
-   while ( !s.eof() && s.peek() != ']' ) {
-       res.push_back(load_json(s));
-       eatspace(s);
-       if ( s.peek() == ',') {
-           eat(',',s);
-       } else {
-           if (s.peek() != ']') {
-               throwerror_s(",]");
-           }
-       }
-   }
-   return new json(res);
+void
+json_str::dump (std::ostream & os) const
+{
+    // XXX handle \n \t etc.
+    os << '"' << val << '"';
 }
 
-json*
-load_json_map(std::istream &s) {
-   json *j1, *j2;
-   std::map<std::string, json *> res;    
-   eat('{',s);
-   eatspace(s);
-   while ( !s.eof() && s.peek() != '}' ) {
-       j1 = load_json(s);
-       eat(':', s);
-       j2 = load_json(s);
-       eatspace(s);
-
-       res.insert(std::pair<std::string, json *>(j1->patom, j2));
-       
-       if ( s.peek() == ',') {
-           eat(',',s);
-       } else { 
-           if (s.peek() != '}') {
-               throwerror_s(",}");
-           }
-       }
-   }
-   return new json(res);
+json json_str::load (std::istream & is)
+{
+    json_str *
+	jn = new json_str;
+    eats (is, "\"");
+    while (is.peek () != '"') {
+	int
+	    c = is.get ();
+	if (c == '\\') {
+	    c = is.get ();
+	    // XXX handle \n \t etc.
+	}
+	jn->val.push_back (c);
+    }
+    eats (is, "\"");
+    return json (jn);
 }
 
-json *
-load_json(std::istream &s) {
-   json * res;
-   eatspace(s);
-   switch(s.peek()) {
-   case '{':
-      return load_json_map(s);
-   case '[':
-      return load_json_list(s);
-   case '"':
-      res = load_json_string(s);
-      return res;
-   case '0': case '1': case '2': case '3': case '4':
-   case '5': case '6': case '7': case '8': case '9':
-      return load_json_num(s);
-   }
-   return 0;
+json_str::operator  std::string ()
+{
+    return val;
 }
 
-json *loads_json(std::string s){
-   std::stringstream ss(s.c_str());
-   return load_json(ss);
+void
+json_num::dump (std::ostream & os) const
+{
+    os << val;
 }
 
-// convenience method
-std::string
-json::dumps() {
+json json_num::load (std::istream & is)
+{
+    json_num *jn = new json_num;
+    is >> jn->val;
+    return json (jn);
+}
+
+json_num::operator  double ()
+{
+    return val;
+}
+
+void
+json_list::dump (std::ostream & os) const
+{
+    bool first = true;
+    os << "[";
+    for (auto p = val.begin (); p != val.end (); p++) {
+	if (!first)
+	    os << ", ";
+	first = false;
+	p->dump (os);
+    }
+    os << "]";
+}
+
+json json_list::load (std::istream & is)
+{
+    json_list * jl = new json_list;
+    bool first = true;
+
+    eats (is, "[");
+    eats (is);
+    while (is.peek () != ']') {
+	if (!first) {
+	    eats (is, ",");
+	}
+	first = false;
+	jl->val.push_back (json::load (is));
+    }
+    eats (is, "]");
+    return json (jl);
+}
+
+void
+json_dict::dump (std::ostream & os) const
+{
+    bool first = true;
+    os << "{";
+    for (auto p = val.begin (); p != val.end (); p++) {
+	if (!first)
+	    os << ", ";
+	first = false;
+	p->first.dump (os);
+	os << ": ";
+	p->second.dump (os);
+    }
+    os << "}";
+}
+
+json json_dict::load (std::istream & is)
+{
+    json_dict * jd = new json_dict;
+    json k, v;
+    bool first = true;
+
+    eats (is, "{");
+    eats (is);
+    while (is.peek () != '}') {
+	if (!first) {
+	    eats (is, ",");
+	}
+	first = false;
+	k = json::load (is);
+	eats (is, ":");
+	v = json::load (is);
+	eats (is);
+	jd->val.insert (std::pair < json, json > (k, v));
+    }
+    eats (is, "}");
+    return json (jd);
+}
+
+json & json_storage::operator[](int) {
+    throw std::domain_error ("Wrong Component for [int]");
+}
+
+void
+json_storage::dump (std::ostream & os) const
+{
+    os.flush ();
+    throw std::domain_error ("Wrong Component for dump()");
+}
+
+//void json_storage::load(std::istream &is) const  { is.flush(); throw std::domain_error("Wrong Component for load()"); }
+
+json json::load (std::istream & is)
+{
+    eats (is);
+    switch (is.peek ()) {
+    case '0': case '1': case '2': case '3': case '4': 
+    case '5': case '6': case '7': case '8': case '9':
+	return json_num::load (is);
+    case '"':
+	return json_str::load (is);
+    case '[':
+	return json_list::load (is);
+    case '{':
+	return json_dict::load (is);
+    case 'N':
+	return json_none::load (is);
+    default:
+	std::stringstream ss;
+	ss << "Unexpected char '" << is.peek () << "'.";
+	throw
+	std::domain_error (ss.str ());
+    }
+}
+
+json json::loads (std::string s)
+{
+    std::stringstream ss (s.c_str ());
+    return load (ss);
+}
+
+std::string json::dumps () const
+{
     std::stringstream ss;
-    dump(ss);
-    return ss.str();
+    dump (ss);
+    return ss.str ();
 }
 
+json_storage::operator  double ()
+{
+    throw std::domain_error ("Wrong Component for double()");
+}
+
+json_storage::operator  std::string ()
+{
+    throw std::domain_error ("Wrong Component for string()");
+}
+
+json_list::json_list (std::vector < json > v)
+{
+    for (auto p = v.begin (); p != v.end (); p++) {
+	val.push_back (*p);
+    }
+}
+
+json_list::json_list (std::vector < std::string > v)
+{
+    for (auto p = v.begin (); p != v.end (); p++) {
+	json_str *sv = new json_str (*p);
+	val.push_back (json (sv));
+    }
+}
+
+json_num::json_num (double n)
+{
+    val = n;
+}
+
+json_str::json_str (std::string s)
+{
+    val = s;
+}
+
+json_dict::json_dict (std::map < std::string, json > m)
+{
+    for (auto p = m.begin (); p != m.end (); p++) {
+	json_str *sv = new json_str (p->first);
+	val.insert (std::pair < json, json > (json (sv), p->second));
+    }
+}
+
+json_dict::json_dict (std::map < std::string, std::string > m)
+{
+    for (auto p = m.begin (); p != m.end (); p++) {
+	val.insert (std::pair < json,
+		    json > (json (new json_str (p->first)),
+			    json (new json_str (p->second))));
+    }
+}
+
+json_dict::~json_dict ()
+{
+}
+
+json & json_storage::operator[](json j) {
+    j.dump (std::cerr);
+    throw
+    std::domain_error ("Wrong Component for []");
+}
+
+json & json_list::operator[](int i) {
+    return val[i];
+}
+
+json & json_dict::operator[](json j) {
+    return val[j];
 }
 
 #ifdef UNITTEST
 int
-main() {
-   std::string t1("[1, 22, 333]");
-   std::string t2("{\"a\": 1, \"bb\":22, \"ccc\": 333}");
-   std::string t3("{\"a\": \"x\", \"bb\":\"y\" , \"ccc\": 333}");
-   json *r;
-   r = loads_json(t1);
-   std::cout << "t1: " << t1 << "\n";
-   std::cout << "t1out: " ;
-   r->dump(std::cout);
-   std::cout << "\n";
-   r = loads_json(t2);
-   std::cout << "t2: " << t2 << "\n";
-   std::cout << "t2out: " ;
-   r->dump(std::cout);
-   std::cout << "\n";
-   r = loads_json(t3);
-   std::cout << "t3: " << t3 << "\n";
-   std::cout << "t3out: " ;
-   r->dump(std::cout);
-   std::cout << "\n";
+main ()
+{
 
-   std::cout << "from std::vector<std::string>\n";
+    std::string t0 ("11");
+    std::string ta ("\"foo\"");
+    std::string t1 ("[1, 22, 333]");
+    std::string t2 ("{\"a\": 1, \"bb\":22, \"ccc\": 333}");
+    std::string t3 ("{\"a\": \"x\", \"bb\":\"y\" , \"ccc\": 333}");
+    json r;
 
-   std::vector<std::string> vs;
-   vs.push_back("s0");
-   vs.push_back("s1");
-   vs.push_back("s2");
-   r = new json(vs);
-   r->dump(std::cout);
+    r = json::loads (ta);
+    std::cout << "ta: " << ta << "\n";
+    std::cout << "taout: ";
+    r.dump (std::cout);
+    std::cout << "\n";
 
-   std::map<std::string, std::string> mss;
-   mss.insert( std::pair<std::string, std::string>( "k0", "v0"));
-   mss.insert( std::pair<std::string, std::string>( "k1", "v1"));
-   mss.insert( std::pair<std::string, std::string>( "k2", "v2"));
-   r = new json(mss);
-   r->dump(std::cout);
+    r = json::loads (t0);
+    std::cout << "t0: " << t0 << "\n";
+    std::cout << "t0out: ";
+    r.dump (std::cout);
+    std::cout << "\n";
+
+    r = json::loads (t1);
+    std::cout << "t1: " << t1 << "\n";
+    std::cout << "t1out: ";
+    r.dump (std::cout);
+    std::cout << "\n";
+
+    r = json::loads (t2);
+    std::cout << "t2: " << t2 << "\n";
+    std::cout << "t2out: ";
+    r.dump (std::cout);
+    std::cout << "\n";
+
+    r = json::loads (t3);
+    std::cout << "t3: " << t3 << "\n";
+    std::cout << "t3out: ";
+    r.dump (std::cout);
+    std::cout << "\n";
+
+    std::cout << "from std::vector<std::string>\n";
+
+    std::vector < std::string > vs;
+    vs.push_back ("s0");
+    vs.push_back ("s1");
+    vs.push_back ("s2");
+    r = json (new json_list (vs));
+    r.dump (std::cout);
+
+    std::cout << "from std::map<std::string, std::string>\n";
+    std::map < std::string, std::string > mss;
+    mss.insert (std::pair < std::string, std::string > ("k0", "v0"));
+    mss.insert (std::pair < std::string, std::string > ("k1", "v1"));
+    mss.insert (std::pair < std::string, std::string > ("k2", "v2"));
+    r = json (new json_dict (mss));
+    r.dump (std::cout);
 }
- 
 #endif

@@ -147,8 +147,6 @@ ifdh::metacat_query( std::string query, bool meta, bool provenance ) {
     std::string data, line;
     std::string sep, rsep;
 
-    std::cout << "ifdh::metacat_query: url is" << url << "\n";
-
     url += "/data/query?with_meta=" ;
     url += (meta ? "yes" : "no");
     url += "&with_provenance=";
@@ -164,7 +162,6 @@ ifdh::metacat_query( std::string query, bool meta, bool provenance ) {
        if (line.size() == 0) {
           break;
        }
-       std::cout << "got: '" << line << "'\n";
        if (line[0] == 30) {
            // starts with ascii RS, so streaming continuation...
            line.replace(0,1,"",0);
@@ -178,8 +175,6 @@ ifdh::metacat_query( std::string query, bool meta, bool provenance ) {
        sep = ",\n";
     }
     data += "]";
-    std::cout << "done.\n";
-    std::cout << "merged: " << data << "\n";
     res = json::loads(data);
     wa1.data().close();
     return res;
@@ -266,8 +261,6 @@ ifdh::dd_next_file_json(int project_id, std::string cpu_site, std::string worker
     std::string auth_header("X-Authentication-Token: ");
     auth_header += _dd_mc_session_tok; 
 
-    std::cout << "Trying to call url: " << url << "\n";
-
     while ( retry ) {
         WebAPI wa(url, 0, "",  10, -1, "", auth_header);
 
@@ -321,19 +314,17 @@ ifdh::dd_next_file_url(int project_id, std::string cpu_site, std::string worker_
     //   "retry": false
     // }
 
-    std::cout << "Got info: 0 " ; info.dump(std::cout); std::cout << "\n";
-    info = info[json("handle")];
-    std::cout << "Got info: 1" ; info.dump(std::cout); std::cout << "\n";
-    info = info[json("replicas")];
-    std::cout << "Got info: 2" ; info.dump(std::cout); std::cout << "\n";
-    json which = info.keys()[0];
-    info = info[which]; 
-    std::cout << "Got info: 3" ; info.dump(std::cout); std::cout << "\n";
-    info = info[json("url")];
-    std::cout << "Got info: 4" ; info.dump(std::cout); std::cout << "\n";
+    info = info[json("handle")][json("replicas")];
+
+    json which = info.keys()[0]; // i.e. "FNAL_DCACHE" above...
+    std::string name = info[which][json("name")];
+    std::string ns = info[which][json("namespace")];
+
+    _last_file_did = ns + ":" +  name;
+
+    info = info[which][json("url")];
     return info;
 }
-
 
 json
 ifdh::dd_get_project(int project_id, bool with_files, bool with_replicas) {
@@ -341,11 +332,14 @@ ifdh::dd_get_project(int project_id, bool with_files, bool with_replicas) {
     std::string url = get_dd_url() + "project?project_id=" + projbuf  + 
                      "&with_files=" + (with_files ? "yes" : "no") + 
                      "&with_replicass=" + (with_replicas ? "yes" : "no");
-    WebAPI *wa = new WebAPI(url, 0, 0);
+    std::string auth_header("X-Authentication-Token: ");
+    auth_header += _dd_mc_session_tok; 
+
+    WebAPI wa(url, 0, "",  10, -1, "", auth_header);
     json res;
 
-    if ( wa->getStatus() == 200 ) {
-         res = json::load(wa->data());
+    if ( wa.getStatus() == 200 ) {
+         res = json::load(wa.data());
     } else {
          res = json(new json_none);
     }
@@ -355,12 +349,20 @@ ifdh::dd_get_project(int project_id, bool with_files, bool with_replicas) {
 json
 ifdh::dd_file_done(int project_id, std::string file_did) {
     sprintf(projbuf, "%d", project_id);
-    std::string url = get_dd_url() + "release?handle_id=" + projbuf  + ":" + file_did + "&failed=no";
-    WebAPI *wa = new WebAPI(url, 0, 0);
+
+    if (file_did == "") {
+        file_did = _last_file_did;
+    }
+
+    std::string url = get_dd_url() + "/release?handle_id=" + projbuf  + ":" + file_did + "&failed=no";
+    std::string auth_header("X-Authentication-Token: ");
+    auth_header += _dd_mc_session_tok; 
+
+    WebAPI wa(url, 0, "",  10, -1, "", auth_header);
     json res;
 
-    if ( wa->getStatus() == 200 ) {
-         res = json::load(wa->data());
+    if ( wa.getStatus() == 200 ) {
+         res = json::load(wa.data());
     } else {
          res = json(new json_none);
     }
@@ -370,12 +372,18 @@ ifdh::dd_file_done(int project_id, std::string file_did) {
 json 
 ifdh::dd_file_failed(int project_id, std::string file_did) {
     sprintf(projbuf, "%d", project_id);
-    std::string url = get_dd_url() + "release?handle_id=" + projbuf  + ":" + file_did + "&failed=yes";
-    WebAPI *wa = new WebAPI(url, 0, 0);
+
+    if (file_did == "") {
+        file_did = _last_file_did;
+    }
+    std::string url = get_dd_url() + "/release?handle_id=" + projbuf  + ":" + file_did + "&failed=yes";
+    std::string auth_header("X-Authentication-Token: ");
+    auth_header += _dd_mc_session_tok; 
+    WebAPI wa(url, 0, "",  10, -1, "", auth_header);
     json res;
 
-    if ( wa->getStatus() == 200 ) {
-         res = json::load(wa->data());
+    if ( wa.getStatus() == 200 ) {
+         res = json::load(wa.data());
     } else {
          res = json(new json_none);
     }
@@ -411,6 +419,14 @@ main() {
    std::string file_url = handle->dd_next_file_url(project_id, "bel-kwinih.fnal.gov", worker_id, 0, 0);
    
    std::cout << "file_url: " << file_url << "\n";
+
+   handle->dd_file_done(project_id, "");
+
+   file_url = handle->dd_next_file_url(project_id, "bel-kwinih.fnal.gov", worker_id, 0, 0);
+   
+   std::cout << "file_url: " << file_url << "\n";
+
+   handle->dd_file_failed(project_id, "");
 
    delete handle;
 }

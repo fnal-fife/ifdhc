@@ -64,7 +64,7 @@ get_dd_url() {
         } else if ( exp == "dune" ) {
             url += "/dd/app";
         } else {
-            url += "_dd_prod/data"
+            url += "_dd_prod/data";
         }
     }
     return url;
@@ -140,7 +140,7 @@ ifdh::dd_mc_authenticate() {
     _dd_mc_session_tok = wa1._rcv_headers["X-Authentication-Token"];
 }
 
-json *
+json 
 ifdh::dd_create_project( 
      std::vector<std::string> files,
      std::map<std::string, std::string> common_attributes,
@@ -151,37 +151,35 @@ ifdh::dd_create_project(
      std::vector<std::string> users,
      std::vector<std::string> roles)  
 {
-     std::map<std::string, json *> msj, mfdict;
-     std::vector<json *> mfinfo;
+     std::map<std::string, json > msj, mfdict;
+     std::vector<json> mfinfo;
      std::vector<std::string> fsplit;
-     json *res;
+     json res;
 
      for (auto finfo = files.begin(); finfo != files.end(); finfo++) {
          fsplit = split(*finfo,':');
-         mfdict["namespace"] = new json(fsplit[0]);
-         mfdict["name"] = new json(fsplit[1]);
-         mfdict["attributes"] = new json(common_attributes);
-         mfinfo.push_back(new json(mfdict));
+         mfdict["namespace"] = json(new json_str(fsplit[0]));
+         mfdict["name"] = json(new json_str(fsplit[1]));
+         mfdict["attributes"] = json(new json_dict(common_attributes));
+         mfinfo.push_back(json(new json_dict(mfdict)));
      }
 
-     msj.insert( std::pair<std::string,json *>( "files", new json(mfinfo)));
-     msj.insert( std::pair<std::string,json *>( "project_attributes", new json(project_attributes)));
-     msj.insert( std::pair<std::string,json *>( "query", new json(query)));
-     msj.insert( std::pair<std::string,json *>( "worker_timeout", new json(worker_timeout)));
-     msj.insert( std::pair<std::string,json *>( "idle_timeout", new json(idle_timeout)));
-     msj.insert( std::pair<std::string,json *>( "users", new json(users)));
-     msj.insert( std::pair<std::string,json *>( "roles", new json(roles)));
-     json *qj = new json(msj);
-     WebAPI *wa = new WebAPI(get_dd_url()+"/create_project", 1, qj->dumps());
-     res = load_json(wa->data());
-     delete wa;
-     delete qj;
+     msj.insert( std::pair<std::string,json >( "files", json(new json_list(mfinfo))));
+     msj.insert( std::pair<std::string,json >( "project_attributes", json(new json_dict(project_attributes))));
+     msj.insert( std::pair<std::string,json >( "query", json(new json_str(query))));
+     msj.insert( std::pair<std::string,json >( "worker_timeout", json(new json_num(worker_timeout))));
+     msj.insert( std::pair<std::string,json >( "idle_timeout", json(new json_num(idle_timeout))));
+     msj.insert( std::pair<std::string,json >( "users", json(new json_list(users))));
+     msj.insert( std::pair<std::string,json >( "roles", json(new json_list(roles))));
+     json qj(new json_dict(msj));
+     WebAPI wa(get_dd_url()+"/create_project", 1, qj.dumps());
+     res = json::load(wa.data());
      return res;
 }
 
-json *
+json
 ifdh::dd_next_file_json(std::string project_id, std::string cpu_site, std::string worker_id, time_t timeout, int stagger) {
-    std::string info;
+    json res;
 
     if (stagger) {
        sleep(stagger * rand() / RAND_MAX);
@@ -207,7 +205,7 @@ ifdh::dd_next_file_json(std::string project_id, std::string cpu_site, std::strin
         WebAPI *wa = new WebAPI(url, 0, 0);
 
         if ( wa->getStatus() == 200 ) {
-             res = load_json(wa->data());
+             res = json::load(wa->data());
              retry = false;
         } else {
             sleep(60);
@@ -219,12 +217,12 @@ ifdh::dd_next_file_json(std::string project_id, std::string cpu_site, std::strin
 
         delete wa;
     }
-    return info; 
+    return res;
 }
 
 std::string
 ifdh::dd_next_file_url(std::string project_id, std::string cpu_site, std::string worker_id, time_t timeout, int stagger) {
-    json *info = dd_next_file_json(project_id, cpu_site, worker_id, timeout, stagger);
+    json info = dd_next_file_json(project_id, cpu_site, worker_id, timeout, stagger);
     // at this point we have json info like:
     // 
     // {
@@ -252,46 +250,58 @@ ifdh::dd_next_file_url(std::string project_id, std::string cpu_site, std::string
     // }
     //
     // ...and we want the url of the first (best?) replica
-    return (*(*(*info)["replicas"])[0])["url"].sval();
+    info = info[json("replicas")];
+    info = info[0];
+    info = info[json("url")];
+    return info;
 }
 
-json *
-ifdh::dd_get_project(int project_id, boolean with_files, boolean with_replicas) {
-    std::string url = get_dd_url() + "project?project_id=" + itoa(project_id) + 
+// for sprintf calls, below
+static char projbuf[128];
+
+json
+ifdh::dd_get_project(int project_id, bool with_files, bool with_replicas) {
+    sprintf(projbuf, "%d", project_id);
+    std::string url = get_dd_url() + "project?project_id=" + projbuf  + 
                      "&with_files=" + (with_files ? "yes" : "no") + 
                      "&with_replicass=" + (with_replicas ? "yes" : "no");
     WebAPI *wa = new WebAPI(url, 0, 0);
+    json res;
 
     if ( wa->getStatus() == 200 ) {
-         res = load_json(wa->data());
+         res = json::load(wa->data());
     } else {
-         res = json_None();
+         res = json(new json_none);
     }
     return res;
 }
 
-json *
+json
 ifdh::dd_file_done(int project_id, std::string file_did) {
-    std::string url = get_dd_url() + "release?handle_id=" + itoa(project_id) + ":" + file_did + "&failed=no";
+    sprintf(projbuf, "%d", project_id);
+    std::string url = get_dd_url() + "release?handle_id=" + projbuf  + ":" + file_did + "&failed=no";
     WebAPI *wa = new WebAPI(url, 0, 0);
+    json res;
 
     if ( wa->getStatus() == 200 ) {
-         res = load_json(wa->data());
+         res = json::load(wa->data());
     } else {
-         res = json_None();
+         res = json(new json_none);
     }
     return res;
 }
 
-json *
+json 
 ifdh::dd_file_failed(int project_id, std::string file_did) {
-    std::string url = get_dd_url() + "release?handle_id=" + itoa(project_id) + ":" + file_did + "&failed=yes";
+    sprintf(projbuf, "%d", project_id);
+    std::string url = get_dd_url() + "release?handle_id=" + projbuf  + ":" + file_did + "&failed=yes";
     WebAPI *wa = new WebAPI(url, 0, 0);
+    json res;
 
     if ( wa->getStatus() == 200 ) {
-         res = load_json(wa->data());
+         res = json::load(wa->data());
     } else {
-         res = json_None();
+         res = json(new json_none);
     }
     return res;
 }
@@ -299,6 +309,8 @@ ifdh::dd_file_failed(int project_id, std::string file_did) {
 #ifdef UNITTEST
 int
 main() {
+   json res;
+   std::string wid;
    WebAPI::_debug = 1;
    setenv("EXPERIMENT","hypot",1);
    setenv("IFDH_TOKEN_ENABLE","1",1);
@@ -307,6 +319,13 @@ main() {
    ifdh *handle = new ifdh();
    std::cout << "calling dd_mc_auithenticate()\n"; std::cout.flush();
    handle->dd_mc_authenticate();
+   wid = handle->dd_worker_id();
+   std::vector<std::string> emptyvec;
+   std::map<std::string, std::string> emptymap;
+   std::vector<std::string> uservec;
+   uservec.push_back("mengel");
+   res = handle->dd_create_project( emptyvec,  emptymap, emptymap, "files from mengel:gen_cfg", 0, 0, uservec, emptyvec);
+   res.dump(std::cout);
    delete handle;
 }
 #endif

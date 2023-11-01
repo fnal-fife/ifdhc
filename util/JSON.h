@@ -1,3 +1,5 @@
+#ifndef JSON_H
+#define JSON_H
 #include <iostream>
 #include <exception>
 #include <vector>
@@ -27,6 +29,8 @@ class json {
   public:
     json();
     json(json_storage *v);
+    json(const char *);
+    json(double);
     json(const json &);
     static json load(std::istream &is);
     static json loads(std::string s);
@@ -35,6 +39,7 @@ class json {
     json & operator[]( int );
     json & operator[]( json );
     bool operator < (const json);
+    operator std::string(); 
 };
 
 bool operator < (const json, const json);
@@ -92,3 +97,4 @@ class json_dict : public json_storage {
     ~json_dict();
 };
 
+#endif

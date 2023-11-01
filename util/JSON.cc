@@ -15,6 +15,13 @@ json::json ()
     pval = std::shared_ptr < json_none > ();
 }
 
+json::json(const char *pc) {
+    pval = std::shared_ptr<json_storage> (new json_str(std::string(pc)));
+}
+json::json(double n) {
+    pval = std::shared_ptr<json_storage> (new json_num(n));
+}
+
 json::json (json_storage * v)
 {
     pval = std::shared_ptr < json_storage > (v);
@@ -37,6 +44,10 @@ json & json::operator[](int i) {
 
 json & json::operator[](json j) {
     return (*pval)[j];
+}
+
+json::operator std::string() {
+    return (std::string)(*pval);
 }
 
 // empty constructors
@@ -87,7 +98,7 @@ eats (std::istream & is, const char *match = 0)
     int
 	c = is.peek ();
     // first eat whitespace...
-    while (c == ' ' || c == '\n' || c == '\t') {
+    while (c == ' ' || c == '\n' || c== '\r' || c == '\t') {
 	is.get ();
 	c = is.peek ();
     }
@@ -111,7 +122,7 @@ eats (std::istream & is, const char *match = 0)
 void
 json_none::dump (std::ostream & os) const
 {
-    os << "None";
+    os << "null";
 }
 
 json json_none::load (std::istream & is)
@@ -125,8 +136,19 @@ json json_none::load (std::istream & is)
 void
 json_str::dump (std::ostream & os) const
 {
-    // XXX handle \n \t etc.
-    os << '"' << val << '"';
+    std::string o_val = val;
+    size_t pos;
+    const char *repl;
+    pos = o_val.find_first_of("\\\n\r\t\f");
+    while (pos != std::string::npos) {
+        // NOTE not handling \uabcd...
+        if (o_val[pos] == '\n') repl = "\\n";
+        if (o_val[pos] == '\t') repl = "\\t";
+        if (o_val[pos] == '\r') repl = "\\r";
+        if (o_val[pos] == '\f') repl = "\\f";
+        o_val.replace(pos, 1, repl, 2);
+    }
+    os << '"' << o_val << '"';
 }
 
 json json_str::load (std::istream & is)
@@ -139,7 +161,11 @@ json json_str::load (std::istream & is)
 	    c = is.get ();
 	if (c == '\\') {
 	    c = is.get ();
-	    // XXX handle \n \t etc.
+            if (c == 'f') c = '\f';
+            if (c == 'n') c = '\n';
+            if (c == 'r') c = '\r';
+            if (c == 't') c = '\t';
+	    // NOTE not handling \uabcd...
 	}
 	jn->val.push_back (c);
     }
@@ -267,8 +293,9 @@ json json::load (std::istream & is)
 	return json_list::load (is);
     case '{':
 	return json_dict::load (is);
-    case 'N':
+    case 'n':
 	return json_none::load (is);
+    // XXX need 't' and 'f' cases for true/false and a bool storage subclass... sigh.
     default:
 	std::stringstream ss;
 	ss << "Unexpected char '" << is.peek () << "'.";
@@ -282,6 +309,7 @@ json json::loads (std::string s)
     std::stringstream ss (s.c_str ());
     return load (ss);
 }
+
 
 std::string json::dumps () const
 {

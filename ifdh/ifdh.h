@@ -182,11 +182,13 @@ class ifdh {
         // return the path
         std::string getToken();
         void dd_mc_authenticate();
-        json *dd_create_project( std::vector<std::string> files, std::map<std::string, std::string> common_attributes, std::map<std::string, std::string> project_attributes, std::string query, int worker_timeout, int idle_timeout, std::vector<std::string> users, std::vector<std::string> roles);
-        json * dd_next_file(std::string project_id, std::string cpu_site="", std::string worker_id="", time_t timeout=0, int stagger=0);
-        json * ifdh::dd_get_project(int project_id, boolean with_files, boolean with_replicas);
-        json * ifdh::dd_file_done(int project_id, std::string file_did);
-        json * ifdh::dd_file_failed(int project_id, std::string file_did);
+        json dd_create_project( std::vector<std::string> files, std::map<std::string, std::string> common_attributes, std::map<std::string, std::string> project_attributes, std::string query, int worker_timeout, int idle_timeout, std::vector<std::string> users, std::vector<std::string> roles);
+        json dd_next_file_json(std::string project_id, std::string cpu_site="", std::string worker_id="", time_t timeout=0, int stagger=0);
+        std::string dd_next_file_url(std::string project_id, std::string cpu_site="", std::string worker_id="", time_t timeout=0, int stagger=0);
+        json dd_get_project(int project_id, bool with_files, bool with_replicas);
+        json dd_file_done(int project_id, std::string file_did);
+        json dd_file_failed(int project_id, std::string file_did);
+        std::string dd_worker_id(std::string new_id="", std::string worker_id_file="");
 
     private:
         IFile lookup_loc(std::string url) ;
@@ -203,7 +205,6 @@ class ifdh {
         int do_url_int(int postflag, ...);
         std::string do_url_str(int postflag,...);
         std::vector<std::string> do_url_lst(int postflag,...);
-        std::string dd_worker_id(std::string new_id="", std::string worker_id_file="");
 
         // internals for data-dispatcher client code
         std::string _dd_mc_session_tok;

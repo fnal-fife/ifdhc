@@ -598,7 +598,7 @@ check_grid_credentials_proxies() {
             return 1;
         }
 
-        if (experiment == "samdev")  // use fermilab for fake samdev expt
+        if (experiment == "samdev" || experiment == "hypot")  // use fermilab for fake samdev expt
             experiment = "fermilab";
 
         while(fgets(buf,512,pf)) {

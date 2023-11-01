@@ -227,7 +227,7 @@ WebAPI::sockattach( std::fstream &fstr,  int &sitefd, int s, std::fstream::openm
 // the network connection, rather than saving he data
 // in a file and returning that.
 
-WebAPI::WebAPI(std::string url, int postflag, std::string postdata, int maxretries, int timeout, std::string http_proxy)  {
+WebAPI::WebAPI(std::string url, int postflag, std::string postdata, int maxretries, int timeout, std::string http_proxy, std::string auth_header)  {
      int s = -1;		// unix socket file descriptor
      WebAPI::parsed_url pu;     // parsed url.
      // struct sockaddr_storage server; // connection address struct
@@ -472,7 +472,10 @@ WebAPI::WebAPI(std::string url, int postflag, std::string postdata, int maxretri
               _tosite << "Authorization: Bearer " << tok << "\r\n";
 	      _debug && std::cerr << "sending header: " << "Authorization: Bearer " << tok << "\r\n";
          }
-
+         if (!auth_header.empty()) {
+              _tosite << auth_header << "\r\n";
+	      _debug && std::cerr << "sending header: " << auth_header << "\r\n";
+         }
 
          if (postflag) {
 

@@ -60,7 +60,7 @@ get_dd_url() {
         std::string exp(getexperiment());
         url += exp;
         if ( exp == "hypot" ) {
-            url += "_dd/app";
+            url += "_dd/data";
         } else if ( exp == "dune" ) {
             url += "/dd/app";
         } else {
@@ -140,6 +140,51 @@ ifdh::dd_mc_authenticate() {
     _dd_mc_session_tok = wa1._rcv_headers["X-Authentication-Token"];
 }
 
+json
+ifdh::metacat_query( std::string query, bool meta, bool provenance ) {
+    json res;
+    std::string url(get_metacat_url());
+    std::string data, line;
+    std::string sep, rsep;
+
+    std::cout << "ifdh::metacat_query: url is" << url << "\n";
+
+    url += "/data/query?with_meta=" ;
+    url += (meta ? "yes" : "no");
+    url += "&with_provenance=";
+    url +=  (provenance ? "yes" : "no");
+
+    std::string auth_header("X-Authentication-Token: ");
+    auth_header += _dd_mc_session_tok; 
+
+    WebAPI wa1(url, 1, query, 10, -1, "", auth_header);
+    sep = "[\n";
+    while (wa1.data()) {
+       getline(wa1.data(), line);
+       if (line.size() == 0) {
+          break;
+       }
+       std::cout << "got: '" << line << "'\n";
+       if (line[0] == 30) {
+           // starts with ascii RS, so streaming continuation...
+           line.replace(0,1,"",0);
+           rsep = sep;
+       } else {
+           // plain json text..
+           rsep = "";
+       }
+       data += rsep;
+       data += line;
+       sep = ",\n";
+    }
+    data += "]";
+    std::cout << "done.\n";
+    std::cout << "merged: " << data << "\n";
+    res = json::loads(data);
+    wa1.data().close();
+    return res;
+}
+
 json 
 ifdh::dd_create_project( 
      std::vector<std::string> files,
@@ -154,17 +199,30 @@ ifdh::dd_create_project(
      std::map<std::string, json > msj, mfdict;
      std::vector<json> mfinfo;
      std::vector<std::string> fsplit;
-     json res;
+     json res, jmfinfo;
+     std::string auth_header("X-Authentication-Token: ");
+    
+     auth_header += _dd_mc_session_tok; 
 
-     for (auto finfo = files.begin(); finfo != files.end(); finfo++) {
-         fsplit = split(*finfo,':');
-         mfdict["namespace"] = json(new json_str(fsplit[0]));
-         mfdict["name"] = json(new json_str(fsplit[1]));
-         mfdict["attributes"] = json(new json_dict(common_attributes));
-         mfinfo.push_back(json(new json_dict(mfdict)));
+     if (files.empty()) {
+         if (!query.empty()) {
+             // query metacat for files matching query
+             jmfinfo = metacat_query( query, false, false );
+         } else {
+             jmfinfo = json(new json_none);
+         }
+     } else {
+         for (auto finfo = files.begin(); finfo != files.end(); finfo++) {
+             fsplit = split(*finfo,':');
+             mfdict["namespace"] = json(new json_str(fsplit[0]));
+             mfdict["name"] = json(new json_str(fsplit[1]));
+             mfdict["attributes"] = json(new json_dict(common_attributes));
+             mfinfo.push_back(json(new json_dict(mfdict)));
+         }
+         jmfinfo =json(new json_list(mfinfo));
      }
 
-     msj.insert( std::pair<std::string,json >( "files", json(new json_list(mfinfo))));
+     msj.insert( std::pair<std::string,json >( "files", jmfinfo ));
      msj.insert( std::pair<std::string,json >( "project_attributes", json(new json_dict(project_attributes))));
      msj.insert( std::pair<std::string,json >( "query", json(new json_str(query))));
      msj.insert( std::pair<std::string,json >( "worker_timeout", json(new json_num(worker_timeout))));
@@ -172,13 +230,16 @@ ifdh::dd_create_project(
      msj.insert( std::pair<std::string,json >( "users", json(new json_list(users))));
      msj.insert( std::pair<std::string,json >( "roles", json(new json_list(roles))));
      json qj(new json_dict(msj));
-     WebAPI wa(get_dd_url()+"/create_project", 1, qj.dumps());
+     WebAPI wa(get_dd_url()+"/create_project", 1, qj.dumps(),  10, -1, "", auth_header);
      res = json::load(wa.data());
      return res;
 }
 
+// for sprintf calls, below
+static char projbuf[128];
+
 json
-ifdh::dd_next_file_json(std::string project_id, std::string cpu_site, std::string worker_id, time_t timeout, int stagger) {
+ifdh::dd_next_file_json(int project_id, std::string cpu_site, std::string worker_id, time_t timeout, int stagger) {
     json res;
 
     if (stagger) {
@@ -186,8 +247,9 @@ ifdh::dd_next_file_json(std::string project_id, std::string cpu_site, std::strin
     }
 
     worker_id = dd_worker_id(worker_id);
+    sprintf(projbuf, "%d", project_id);
     std::string url = get_dd_url() + 
-         "/next_file?project_id=" + project_id + 
+         "/next_file?project_id=" + projbuf + 
          "&worker_id=" + worker_id;
 
     if(!cpu_site.empty()) {
@@ -201,63 +263,77 @@ ifdh::dd_next_file_json(std::string project_id, std::string cpu_site, std::strin
         timeout += time(0);
     }
 
-    while ( retry ) {
-        WebAPI *wa = new WebAPI(url, 0, 0);
+    std::string auth_header("X-Authentication-Token: ");
+    auth_header += _dd_mc_session_tok; 
 
-        if ( wa->getStatus() == 200 ) {
-             res = json::load(wa->data());
+    std::cout << "Trying to call url: " << url << "\n";
+
+    while ( retry ) {
+        WebAPI wa(url, 0, "",  10, -1, "", auth_header);
+
+        if ( wa.getStatus() == 200 ) {
+             res = json::load(wa.data());
              retry = false;
+             wa.data().close();
         } else {
             sleep(60);
         }
      
         if ( timeout ) {
             retry = time(0) < timeout;
-        }
+        } 
 
-        delete wa;
     }
     return res;
 }
 
 std::string
-ifdh::dd_next_file_url(std::string project_id, std::string cpu_site, std::string worker_id, time_t timeout, int stagger) {
+ifdh::dd_next_file_url(int project_id, std::string cpu_site, std::string worker_id, time_t timeout, int stagger) {
     json info = dd_next_file_json(project_id, cpu_site, worker_id, timeout, stagger);
+
     // at this point we have json info like:
-    // 
-    // {
-    //   "attempts": 1,
-    //   "attributes": {},
-    //   "name": "a.fcl",
-    //   "namespace": "mengel",
-    //   "project_attributes": {},
-    //   "project_id": 188,
-    //   "replicas": [
-    //     {
-    //       "available": true,
-    //       "name": "a.fcl",
-    //       "namespace": "mengel",
-    //       "path": "/pnfs/fnal.gov/usr/hypot/rucio/mengel/e1/64/a.fcl",
-    //       "preference": 100,
-    //       "rse": "FNAL_DCACHE",
-    //       "rse_available": true,
-    //       "url": "https://fndcadoor.fnal.gov:2880/pnfs/fnal.gov/usr/hypot/rucio/mengel/e1/64/a.fcl"
-    //     }
-    //   ],
-    //   "reserved_since": 1697747190.818226,
-    //   "state": "reserved",
-    //   "worker_id": "4157a5e3"
-    // }
-    //
     // ...and we want the url of the first (best?) replica
+    // {
+    //   "handle": {
+    //     "attempts": 1,
+    //     "attributes": {},
+    //     "name": "a.fcl",
+    //     "namespace": "mengel",
+    //     "project_attributes": {},
+    //     "project_id": 205,
+    //     "replicas": {
+    //       "FNAL_DCACHE": {
+    //         "available": true,
+    //         "name": "a.fcl",
+    //         "namespace": "mengel",
+    //         "path": "/pnfs/fnal.gov/usr/hypot/rucio/mengel/e1/64/a.fcl",
+    //         "preference": 100,
+    //         "rse": "FNAL_DCACHE",
+    //         "rse_available": true,
+    //         "url": "https://fndcadoor.fnal.gov:2880/pnfs/fnal.gov/usr/hypot/rucio/mengel/e1/64/a.fcl"
+    //       }
+    //     },
+    //     "reserved_since": 1698870000,
+    //     "state": "reserved",
+    //     "worker_id": "dbbc0bd4-ed2c-4684-a361-21080bdd5d42"
+    //   },
+    //   "reason": "reserved",
+    //   "retry": false
+    // }
+
+    std::cout << "Got info: 0 " ; info.dump(std::cout); std::cout << "\n";
+    info = info[json("handle")];
+    std::cout << "Got info: 1" ; info.dump(std::cout); std::cout << "\n";
     info = info[json("replicas")];
-    info = info[0];
+    std::cout << "Got info: 2" ; info.dump(std::cout); std::cout << "\n";
+    json which = info.keys()[0];
+    info = info[which]; 
+    std::cout << "Got info: 3" ; info.dump(std::cout); std::cout << "\n";
     info = info[json("url")];
+    std::cout << "Got info: 4" ; info.dump(std::cout); std::cout << "\n";
     return info;
 }
 
-// for sprintf calls, below
-static char projbuf[128];
 
 json
 ifdh::dd_get_project(int project_id, bool with_files, bool with_replicas) {
@@ -323,9 +399,19 @@ main() {
    std::vector<std::string> emptyvec;
    std::map<std::string, std::string> emptymap;
    std::vector<std::string> uservec;
-   uservec.push_back("mengel");
+   uservec.push_back(getenv("USER"));
+   std::cout << "calling dd_create_project()\n"; std::cout.flush();
    res = handle->dd_create_project( emptyvec,  emptymap, emptymap, "files from mengel:gen_cfg", 0, 0, uservec, emptyvec);
    res.dump(std::cout);
+   std::cout << "\n";
+   int project_id = res[json("project_id")]; 
+   std::cout << "project_id: " << project_id << "\n";
+
+   std::string worker_id = handle-> dd_worker_id();
+   std::string file_url = handle->dd_next_file_url(project_id, "bel-kwinih.fnal.gov", worker_id, 0, 0);
+   
+   std::cout << "file_url: " << file_url << "\n";
+
    delete handle;
 }
 #endif

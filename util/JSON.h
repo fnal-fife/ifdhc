@@ -20,8 +20,9 @@ class json_storage {
     virtual json & operator[]( int );
     virtual json & operator[]( json );
     virtual void dump(std::ostream &os) const;
-    operator double();
-    operator std::string(); 
+    virtual operator double();
+    virtual operator std::string(); 
+    virtual std::vector<json> keys();
 };
 
 class json {
@@ -40,6 +41,9 @@ class json {
     json & operator[]( json );
     bool operator < (const json);
     operator std::string(); 
+    operator double(); 
+    operator int(); 
+    std::vector<json> keys();
 };
 
 bool operator < (const json, const json);
@@ -72,6 +76,16 @@ class json_num : public json_storage {
     operator double(); 
     ~json_num();
 };
+class json_bool : public json_storage {
+    bool val;
+  public:
+    json_bool(bool n);
+    json_bool();
+    void dump(std::ostream &os) const; 
+    static json load(std::istream &is); 
+    operator bool(); 
+    ~json_bool();
+};
 
 class json_list : public json_storage {
     std::vector<json> val;
@@ -94,6 +108,7 @@ class json_dict : public json_storage {
     json & operator[]( json );
     void dump( std::ostream &os ) const;
     static json load( std::istream &is ); 
+    std::vector<json> keys();
     ~json_dict();
 };
 

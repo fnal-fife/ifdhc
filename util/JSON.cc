@@ -2,14 +2,24 @@
 #include <sstream>
 #include <stdexcept>
 
-class json;
-class json_none;
-class json_str;
-class json_num;
-class json_list;
-class json_dict;
+// small implementation of subset of JSON for C++
+//  see: https://www.json.org/json-en.html
+//
+//  Features
+//  * supports parsing/generating to/from std::iostream or std::string objects
+//  * supports obj[key] and list[n] subscripting for access/modification
+//  * throws domain_error for mismatches
+//
+// Subset is Currently missing: 
+//  * booleans (true, false)
+//  * \uabcd unicode escapes
+//  * uses C++ iostreams operator>>(double&) to parse numbers, 
+//    so may have small differences from spec.
+//    see json_num::load()
 
-// json type just indirects through the pointer..
+
+// ====================
+// json operations just indirect through the shared pointer..
 json::json ()
 {
     pval = std::shared_ptr < json_none > ();
@@ -38,6 +48,11 @@ json::dump (std::ostream & os) const
     pval->dump (os);
 }
 
+std::vector<json>
+json::keys() {
+    return (*pval).keys();
+}
+
 json & json::operator[](int i) {
     return (*pval)[i];
 }
@@ -49,6 +64,14 @@ json & json::operator[](json j) {
 json::operator std::string() {
     return (std::string)(*pval);
 }
+json::operator double() {
+    return (double)(*pval);
+}
+json::operator int() {
+    return (int)(double)(*pval);
+}
+
+// ====================
 
 // empty constructors
 
@@ -61,6 +84,14 @@ json_str::json_str ()
 }
 
 json_str::~json_str ()
+{;
+}
+
+json_bool::json_bool ()
+{;
+}
+
+json_bool::~json_bool ()
 {;
 }
 
@@ -81,6 +112,9 @@ json_dict::json_dict ()
 }
 
 // need some operator < stuff so maps work...
+// do we need both of these?!?
+// basically convert to strings and compare  
+// could be faster another way, but this is reliable.
 bool json::operator < (const json j)
 {
     return dumps () < j.dumps ();
@@ -92,6 +126,8 @@ operator < (const json j1, const json j2)
     return j1.dumps () < j2.dumps ();
 }
 
+// eat white space and possibly match a token
+// useful string parsing unit.
 static void
 eats (std::istream & is, const char *match = 0)
 {
@@ -127,9 +163,8 @@ json_none::dump (std::ostream & os) const
 
 json json_none::load (std::istream & is)
 {
-    json_none *
-	jn = new json_none;
-    eats (is, "None");
+    json_none *jn = new json_none;
+    eats (is, "null");
     return json (jn);
 }
 
@@ -142,11 +177,16 @@ json_str::dump (std::ostream & os) const
     pos = o_val.find_first_of("\\\n\r\t\f");
     while (pos != std::string::npos) {
         // NOTE not handling \uabcd...
+        
+        if (o_val[pos] == '\\') repl = "\\\\";
         if (o_val[pos] == '\n') repl = "\\n";
         if (o_val[pos] == '\t') repl = "\\t";
         if (o_val[pos] == '\r') repl = "\\r";
         if (o_val[pos] == '\f') repl = "\\f";
+
         o_val.replace(pos, 1, repl, 2);
+
+        pos = o_val.find_first_of("\\\n\r\t\f");
     }
     os << '"' << o_val << '"';
 }
@@ -191,7 +231,31 @@ json json_num::load (std::istream & is)
     return json (jn);
 }
 
-json_num::operator  double ()
+json_num::operator double ()
+{
+    return val;
+}
+
+void
+json_bool::dump (std::ostream & os) const
+{
+    os << (val ? "true" : "false");
+}
+
+json json_bool::load (std::istream & is)
+{
+    json_bool *jn = new json_bool;
+    if (is.peek() == 't') {
+        eats(is, "true");
+        jn->val = true;
+    } else {
+        eats(is, "false");
+        jn->val = false;
+    }
+    return json (jn);
+}
+
+json_bool::operator  bool ()
 {
     return val;
 }
@@ -244,7 +308,8 @@ json_dict::dump (std::ostream & os) const
     os << "}";
 }
 
-json json_dict::load (std::istream & is)
+json 
+json_dict::load (std::istream & is)
 {
     json_dict * jd = new json_dict;
     json k, v;
@@ -267,8 +332,16 @@ json json_dict::load (std::istream & is)
     return json (jd);
 }
 
-json & json_storage::operator[](int) {
+json & 
+json_storage::operator[](int) 
+{
     throw std::domain_error ("Wrong Component for [int]");
+}
+
+std::vector<json>
+json_storage::keys() 
+{
+    throw std::domain_error ("Wrong Component for keys()");
 }
 
 void
@@ -278,24 +351,25 @@ json_storage::dump (std::ostream & os) const
     throw std::domain_error ("Wrong Component for dump()");
 }
 
-//void json_storage::load(std::istream &is) const  { is.flush(); throw std::domain_error("Wrong Component for load()"); }
-
+// top level load operation; use first non-blank character to
+// redirect to subclass parser.
 json json::load (std::istream & is)
 {
     eats (is);
     switch (is.peek ()) {
     case '0': case '1': case '2': case '3': case '4': 
     case '5': case '6': case '7': case '8': case '9':
-	return json_num::load (is);
+	return json_num::load(is);
     case '"':
-	return json_str::load (is);
+	return json_str::load(is);
     case '[':
-	return json_list::load (is);
+	return json_list::load(is);
     case '{':
-	return json_dict::load (is);
+	return json_dict::load(is);
     case 'n':
-	return json_none::load (is);
-    // XXX need 't' and 'f' cases for true/false and a bool storage subclass... sigh.
+	return json_none::load(is);
+    case 't': case 'f':
+        return json_bool::load(is);
     default:
 	std::stringstream ss;
 	ss << "Unexpected char '" << is.peek () << "'.";
@@ -347,6 +421,10 @@ json_num::json_num (double n)
 {
     val = n;
 }
+json_bool::json_bool (bool n)
+{
+    val = n;
+}
 
 json_str::json_str (std::string s)
 {
@@ -364,14 +442,24 @@ json_dict::json_dict (std::map < std::string, json > m)
 json_dict::json_dict (std::map < std::string, std::string > m)
 {
     for (auto p = m.begin (); p != m.end (); p++) {
-	val.insert (std::pair < json,
-		    json > (json (new json_str (p->first)),
-			    json (new json_str (p->second))));
+	val.insert (std::pair < json, json > (
+                       json (new json_str (p->first)),
+		       json (new json_str (p->second))));
     }
 }
 
 json_dict::~json_dict ()
 {
+}
+
+std::vector<json>
+json_dict::keys() 
+{
+    std::vector<json> res;
+    for (auto p = val.begin (); p != val.end (); p++) {
+        res.push_back(p->first);
+    }
+    return res;
 }
 
 json & json_storage::operator[](json j) {
@@ -398,6 +486,8 @@ main ()
     std::string t1 ("[1, 22, 333]");
     std::string t2 ("{\"a\": 1, \"bb\":22, \"ccc\": 333}");
     std::string t3 ("{\"a\": \"x\", \"bb\":\"y\" , \"ccc\": 333}");
+    std::string t4 ("[{\"fid\": \"09DDbeLUSsq8bbEN\", \"namespace\": \"mengel\", \"name\": \"a.fcl\", \"retired\": false, \"retired_by\": null, \"updated_by\": null, \"retired_timestamp\": null, \"updated_timestamp\": 1696890026.442766, \"created_timestamp\": 1696890026.442766, \"checksums\": {}, \"size\": 0, \"creator\": \"mengel\"}, {\"fid\": \"3nbKynn1Qgmzpoht\", \"namespace\": \"mengel\", \"name\": \"b.fcl\", \"retired\": false, \"retired_by\": null, \"updated_by\": null, \"retired_timestamp\": null, \"updated_timestamp\": 1696890028.153082, \"created_timestamp\": 1696890028.153082, \"checksums\": {}, \"size\": 0, \"creator\": \"mengel\"}, {\"fid\": \"OoBb8lGxT0KXACC4\", \"namespace\": \"mengel\", \"name\": \"c.fcl\", \"retired\": false, \"retired_by\": null, \"updated_by\": null, \"retired_timestamp\": null, \"updated_timestamp\": 1696890028.856275, \"created_timestamp\": 1696890028.856275, \"checksums\": {}, \"size\": 0, \"creator\": \"mengel\"}, {\"fid\": \"55PrINzwSFGCXb89\", \"namespace\": \"mengel\", \"name\": \"d.fcl\", \"retired\": false, \"retired_by\": null, \"updated_by\": null, \"retired_timestamp\": null, \"updated_timestamp\": 1696890029.6668, \"created_timestamp\": 1696890029.6668, \"checksums\": {}, \"size\": 0, \"creator\": \"mengel\"}, {\"fid\": \"GC9RKVnuQQC2znIx\", \"namespace\": \"mengel\", \"name\": \"e.fcl\", \"retired\": false, \"retired_by\": null, \"updated_by\": null, \"retired_timestamp\": null, \"updated_timestamp\": 1696890030.372117, \"created_timestamp\": 1696890030.372117, \"checksums\": {}, \"size\": 0, \"creator\": \"mengel\"}]");
+
     json r;
 
     r = json::loads (ta);
@@ -423,12 +513,24 @@ main ()
     std::cout << "t2out: ";
     r.dump (std::cout);
     std::cout << "\n";
+    
+    std::vector<json> kl = r.keys();
+    for (auto p = kl.begin(); p != kl.end(); p++ ) {
+        std::cout << "key: " << (std::string)(*p) << "\n";
+    }
 
     r = json::loads (t3);
     std::cout << "t3: " << t3 << "\n";
     std::cout << "t3out: ";
     r.dump (std::cout);
     std::cout << "\n";
+
+    r = json::loads (t4);
+    std::cout << "t4: " << t4 << "\n";
+    std::cout << "t4out: ";
+    r.dump (std::cout);
+    std::cout << "\n";
+
 
     std::cout << "from std::vector<std::string>\n";
 

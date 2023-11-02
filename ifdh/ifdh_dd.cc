@@ -30,6 +30,10 @@
 // rucio_host = https://hypot-rucio.fnal.gov
 // auth_host = https://auth-hypot-rucio.fnal.gov
 
+namespace ifdh_ns {
+
+extern void get_grid_credentials_if_needed();
+
 std::string
 get_metacat_url() {
     std::string exp(getexperiment());
@@ -105,10 +109,10 @@ ifdh::dd_worker_id(std::string new_id, std::string worker_id_file) {
                _dd_worker_id = unique_string();
                write_file = true;
            }
+        } else {
+           _dd_worker_id = new_id;
+           write_file = true;
         }
-    } else {
-       _dd_worker_id = new_id;
-       write_file = true;
     }
     if ( write_file) {
        int fd = open(worker_id_file.c_str(), O_WRONLY);
@@ -128,6 +132,9 @@ ifdh::dd_mc_authenticate() {
        user = getenv("USER");
     else
        user = "unknown_user";
+    
+
+    get_grid_credentials_if_needed();
 
     std::ifstream tfd(getToken());
     std::string token;
@@ -152,6 +159,9 @@ ifdh::metacat_query( std::string query, bool meta, bool provenance ) {
     url += "&with_provenance=";
     url +=  (provenance ? "yes" : "no");
 
+     if (_dd_mc_session_tok == "" ) {
+         dd_mc_authenticate();
+     }
     std::string auth_header("X-Authentication-Token: ");
     auth_header += _dd_mc_session_tok; 
 
@@ -195,8 +205,11 @@ ifdh::dd_create_project(
      std::vector<json> mfinfo;
      std::vector<std::string> fsplit;
      json res, jmfinfo;
-     std::string auth_header("X-Authentication-Token: ");
     
+     if (_dd_mc_session_tok == "" ) {
+         dd_mc_authenticate();
+     }
+     std::string auth_header("X-Authentication-Token: ");
      auth_header += _dd_mc_session_tok; 
 
      if (files.empty()) {
@@ -258,6 +271,9 @@ ifdh::dd_next_file_json(int project_id, std::string cpu_site, std::string worker
         timeout += time(0);
     }
 
+    if (_dd_mc_session_tok == "" ) {
+        dd_mc_authenticate();
+    }
     std::string auth_header("X-Authentication-Token: ");
     auth_header += _dd_mc_session_tok; 
 
@@ -332,6 +348,10 @@ ifdh::dd_get_project(int project_id, bool with_files, bool with_replicas) {
     std::string url = get_dd_url() + "project?project_id=" + projbuf  + 
                      "&with_files=" + (with_files ? "yes" : "no") + 
                      "&with_replicass=" + (with_replicas ? "yes" : "no");
+
+    if (_dd_mc_session_tok == "" ) {
+        dd_mc_authenticate();
+    }
     std::string auth_header("X-Authentication-Token: ");
     auth_header += _dd_mc_session_tok; 
 
@@ -352,6 +372,10 @@ ifdh::dd_file_done(int project_id, std::string file_did) {
 
     if (file_did == "") {
         file_did = _last_file_did;
+    }
+
+    if (_dd_mc_session_tok == "" ) {
+        dd_mc_authenticate();
     }
 
     std::string url = get_dd_url() + "/release?handle_id=" + projbuf  + ":" + file_did + "&failed=no";
@@ -388,6 +412,8 @@ ifdh::dd_file_failed(int project_id, std::string file_did) {
          res = json(new json_none);
     }
     return res;
+}
+
 }
 
 #ifdef UNITTEST
@@ -431,3 +457,4 @@ main() {
    delete handle;
 }
 #endif
+

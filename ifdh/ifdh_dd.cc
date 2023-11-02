@@ -165,7 +165,7 @@ ifdh::metacat_query( std::string query, bool meta, bool provenance ) {
     std::string auth_header("X-Authentication-Token: ");
     auth_header += _dd_mc_session_tok; 
 
-    WebAPI wa1(url, 1, query, 10, -1, "", auth_header);
+    WebAPI wa1(url, 1, query, 3, -1, "", auth_header);
     sep = "[\n";
     while (wa1.data()) {
        getline(wa1.data(), line);
@@ -238,7 +238,7 @@ ifdh::dd_create_project(
      msj.insert( std::pair<std::string,json >( "users", json(new json_list(users))));
      msj.insert( std::pair<std::string,json >( "roles", json(new json_list(roles))));
      json qj(new json_dict(msj));
-     WebAPI wa(get_dd_url()+"/create_project", 1, qj.dumps(),  10, -1, "", auth_header);
+     WebAPI wa(get_dd_url()+"/create_project", 1, qj.dumps(),  3, -1, "", auth_header);
      res = json::load(wa.data());
      return res;
 }
@@ -278,7 +278,7 @@ ifdh::dd_next_file_json(int project_id, std::string cpu_site, std::string worker
     auth_header += _dd_mc_session_tok; 
 
     while ( retry ) {
-        WebAPI wa(url, 0, "",  10, -1, "", auth_header);
+        WebAPI wa(url, 0, "",  3, -1, "", auth_header);
 
         if ( wa.getStatus() == 200 ) {
              res = json::load(wa.data());
@@ -382,7 +382,7 @@ ifdh::dd_file_done(int project_id, std::string file_did) {
     std::string auth_header("X-Authentication-Token: ");
     auth_header += _dd_mc_session_tok; 
 
-    WebAPI wa(url, 0, "",  10, -1, "", auth_header);
+    WebAPI wa(url, 0, "",  2, -1, "", auth_header);
     json res;
 
     if ( wa.getStatus() == 200 ) {
@@ -403,7 +403,7 @@ ifdh::dd_file_failed(int project_id, std::string file_did) {
     std::string url = get_dd_url() + "/release?handle_id=" + projbuf  + ":" + file_did + "&failed=yes";
     std::string auth_header("X-Authentication-Token: ");
     auth_header += _dd_mc_session_tok; 
-    WebAPI wa(url, 0, "",  10, -1, "", auth_header);
+    WebAPI wa(url, 0, "",  2, -1, "", auth_header);
     json res;
 
     if ( wa.getStatus() == 200 ) {

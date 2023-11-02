@@ -234,7 +234,7 @@ ifdh::dd_create_project(
 static char projbuf[128];
 
 json
-ifdh::dd_next_file_json(int project_id, std::string cpu_site, std::string worker_id, time_t timeout, int stagger) {
+ifdh::dd_next_file_json(int project_id, std::string cpu_site, std::string worker_id, long int timeout, int stagger) {
     json res;
 
     if (stagger) {
@@ -281,7 +281,7 @@ ifdh::dd_next_file_json(int project_id, std::string cpu_site, std::string worker
 }
 
 std::string
-ifdh::dd_next_file_url(int project_id, std::string cpu_site, std::string worker_id, time_t timeout, int stagger) {
+ifdh::dd_next_file_url(int project_id, std::string cpu_site, std::string worker_id, long int timeout, int stagger) {
     json info = dd_next_file_json(project_id, cpu_site, worker_id, timeout, stagger);
 
     // at this point we have json info like:

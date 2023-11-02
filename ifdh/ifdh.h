@@ -185,8 +185,8 @@ class ifdh {
         std::string getToken();
         void dd_mc_authenticate();
         json dd_create_project( std::vector<std::string> files, std::map<std::string, std::string> common_attributes, std::map<std::string, std::string> project_attributes, std::string query, int worker_timeout, int idle_timeout, std::vector<std::string> users, std::vector<std::string> roles);
-        json dd_next_file_json(int project_id, std::string cpu_site="", std::string worker_id="", time_t timeout=0, int stagger=0);
-        std::string dd_next_file_url(int project_id, std::string cpu_site="", std::string worker_id="", time_t timeout=0, int stagger=0);
+        json dd_next_file_json(int project_id, std::string cpu_site="", std::string worker_id="", long int timeout=0, int stagger=0);
+        std::string dd_next_file_url(int project_id, std::string cpu_site="", std::string worker_id="", long int timeout=0, int stagger=0);
         json dd_get_project(int project_id, bool with_files, bool with_replicas);
         json dd_file_done(int project_id, std::string file_did);
         json dd_file_failed(int project_id, std::string file_did);

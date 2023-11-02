@@ -502,6 +502,51 @@ ifdh::leaveState( string state ){
   return 1;
 }
 
+void ifdh::setStatus(string projecturi, string status) {
+   if (isdigit(projecturi[0])) {
+      ; // no process status in data-dispatcher...
+   } else {
+      sam_setStatus(projecturi, status);
+   }
+}
+string ifdh::updateFileStatus(string projecturi, string processid, string filename, string status){
+   if (isdigit(projecturi[0])) {
+      if (status == "consumed") {
+          // we pass "" for the file_did, because our code remembers it from dd_get_next...
+          dd_file_done( atoi(projecturi), processid,  "");
+      } else if (status == "skipped") {
+          dd_file_failed( atoi(projecturi), processid,  "");
+      }
+      return "";
+   } else {
+     return sam_updateFileStatus(projecturi, processid, filename, status);
+   }
+}
+string ifdh::getNextFile(string projecturi, string processid){
+   if (isdigit(projecturi[0])) {
+     return ifdh::dd_next_file_url( atoi(projecturi), hostname, processid, 0, 0);
+   } else {
+     return sam_getNextFile(projecturi, processid);
+   }
+}
+
+string ifdh::findProject( string name, string station){
+   if (isdigit(name[0])) {
+       # for data dispatcher, projects are numbers, just return the number
+       dd_mc_authenticate();
+       return name;
+   } else {
+       return sam_findProject(name, station);
+   }
+}
+
+std::string ifdh::establishProcess(std::string projecturi,  std::string appname, std::string appversion, std::string location, std::string user, std::string appfamily = "", std::string description = "", int filelimit = -1, std::string schemas = "") {
+   if (isdigit(projecturi[0])) {
+       return dd_worker_id("","");
+   } else {
+       return sam_establishProcess(projecturi, appname, apversion, location, user, appfamily, description, filelimit, schemas);
+   }
+}
 
 }
 

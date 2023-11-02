@@ -271,7 +271,7 @@ string ifdh::startProject( string name, string station,  string defname_or_id,  
 }
 
 string 
-ifdh::findProject( string name, string station){
+ifdh::sam_findProject( string name, string station){
    
   if (name == "" && getenv("SAM_PROJECT"))
       name = getenv("SAM_PROJECT}");
@@ -283,7 +283,7 @@ ifdh::findProject( string name, string station){
 }
 
 string 
-ifdh::establishProcess( string projecturi, string appname, string appversion, string location, string user, string appfamily , string description , int filelimit, string schemas ) {
+ifdh::sam_establishProcess( string projecturi, string appname, string appversion, string location, string user, string appfamily , string description , int filelimit, string schemas ) {
   char buf[64];
 
   if (projecturi == "" && getenv("SAM_PROJECT") && getenv("SAM_STATION") ) {
@@ -306,14 +306,14 @@ ifdh::establishProcess( string projecturi, string appname, string appversion, st
   return do_url_str(1,projecturi.c_str(),"establishProcess", "", "appname", appname.c_str(), "appversion", appversion.c_str(), "deliverylocation", location.c_str(), "username", user.c_str(), "appfamily", appfamily.c_str(), "description", description.c_str(), "filelimit", buf, "schemas", schemas.c_str(), "", "");
 }
 
-string ifdh::getNextFile(string projecturi, string processid){
+string ifdh::sam_getNextFile(string projecturi, string processid){
   if (projecturi == "" && getenv("SAM_PROJECT") && getenv("SAM_STATION") ) {
       projecturi = this->findProject("","");
   }
   return do_url_str(1,projecturi.c_str(),"processes",processid.c_str(),"getNextFile","","","");
 }
 
-string ifdh::updateFileStatus(string projecturi, string processid, string filename, string status){
+string ifdh::sam_updateFileStatus(string projecturi, string processid, string filename, string status){
   if (projecturi == "" && getenv("SAM_PROJECT") && getenv("SAM_STATION") ) {
       projecturi = this->findProject("","");
   }
@@ -337,7 +337,7 @@ ifdh::dumpProject(string projecturi) {
   return do_url_str(0,projecturi.c_str(), "summary","", "format", "json","","");
 }
 
-int ifdh::setStatus(string projecturi, string processid, string status){
+int ifdh::sam_setStatus(string projecturi, string processid, string status){
   if (projecturi == "" && getenv("SAM_PROJECT") && getenv("SAM_STATION") ) {
       projecturi = this->findProject("","");
   }

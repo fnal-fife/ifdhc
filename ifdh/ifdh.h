@@ -115,6 +115,7 @@ class ifdh {
 	std::string establishProcess(std::string projecturi,  std::string appname, std::string appversion, std::string location, std::string user, std::string appfamily = "", std::string description = "", int filelimit = -1, std::string schemas = "");
         // get the next file location from a project
 	std::string getNextFile(std::string projecturi, std::string processid);
+	std::string sam_getNextFile(std::string projecturi, std::string processid);
         // update the file status (use: transferred, skipped, or consumed)
 	std::string updateFileStatus(std::string projecturi, std::string processid, std::string filename, std::string status);
         // end the process
@@ -191,6 +192,10 @@ class ifdh {
         json dd_file_failed(int project_id, std::string file_did);
         std::string dd_worker_id(std::string new_id="", std::string worker_id_file="");
         json metacat_query(std::string, bool, bool);
+	std::string sam_findProject( std::string name, std::string station);
+	int sam_setStatus(std::string projecturi, std::string processid, std::string status);
+	std::string sam_updateFileStatus(std::string projecturi, std::string processid, std::string filename, std::string status);
+	std::string sam_establishProcess(std::string projecturi,  std::string appname, std::string appversion, std::string location, std::string user, std::string appfamily = "", std::string description = "", int filelimit = -1, std::string schemas = "");
 
     private:
         IFile lookup_loc(std::string url) ;

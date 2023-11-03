@@ -9,6 +9,7 @@
 #include <map>
 #include <utility>
 #include <uuid/uuid.h>
+#include "JSON.h"
 
 
 namespace ifdh_ns {
@@ -38,6 +39,7 @@ class ifdh {
         std::string unique_string();
         std::vector<std::string> build_stage_list( std::vector<std::string>, int, const char *stage_via);
         std::string _errortxt;
+        std::string _last_file_did;
    public:
         static WimpyConfigParser _config;
         static std::string _config_version;
@@ -113,6 +115,7 @@ class ifdh {
 	std::string establishProcess(std::string projecturi,  std::string appname, std::string appversion, std::string location, std::string user, std::string appfamily = "", std::string description = "", int filelimit = -1, std::string schemas = "");
         // get the next file location from a project
 	std::string getNextFile(std::string projecturi, std::string processid);
+	std::string sam_getNextFile(std::string projecturi, std::string processid);
         // update the file status (use: transferred, skipped, or consumed)
 	std::string updateFileStatus(std::string projecturi, std::string processid, std::string filename, std::string status);
         // end the process
@@ -180,6 +183,20 @@ class ifdh {
         // get a Token for the current experiment if needed, 
         // return the path
         std::string getToken();
+        void dd_mc_authenticate();
+        json dd_create_project( std::vector<std::string> files, std::map<std::string, std::string> common_attributes, std::map<std::string, std::string> project_attributes, std::string query, int worker_timeout, int idle_timeout, std::vector<std::string> users, std::vector<std::string> roles);
+        json dd_next_file_json(int project_id, std::string cpu_site="", std::string worker_id="", long int timeout=0, int stagger=0);
+        std::string dd_next_file_url(int project_id, std::string cpu_site="", std::string worker_id="", long int timeout=0, int stagger=0);
+        json dd_get_project(int project_id, bool with_files, bool with_replicas);
+        json dd_file_done(int project_id, std::string file_did);
+        json dd_file_failed(int project_id, std::string file_did);
+        std::string dd_worker_id(std::string new_id="", std::string worker_id_file="");
+        json metacat_query(std::string, bool, bool);
+	std::string sam_findProject( std::string name, std::string station);
+	int sam_setStatus(std::string projecturi, std::string processid, std::string status);
+	std::string sam_updateFileStatus(std::string projecturi, std::string processid, std::string filename, std::string status);
+	std::string sam_establishProcess(std::string projecturi,  std::string appname, std::string appversion, std::string location, std::string user, std::string appfamily = "", std::string description = "", int filelimit = -1, std::string schemas = "");
+
     private:
         IFile lookup_loc(std::string url) ;
         std::string locpath(IFile loc, std::string proto) ;
@@ -195,6 +212,10 @@ class ifdh {
         int do_url_int(int postflag, ...);
         std::string do_url_str(int postflag,...);
         std::vector<std::string> do_url_lst(int postflag,...);
+
+        // internals for data-dispatcher client code
+        std::string _dd_mc_session_tok;
+        std::string _dd_worker_id;
 };
 
 }

@@ -5,6 +5,7 @@
 #include <string>
 #include <sstream>
 #include <stdexcept>
+#include <map>
 
 #if __cplusplus >= 201103L
 #include <thread>
@@ -35,7 +36,8 @@ class WebAPI {
 
 public:
     static int _debug;
-    WebAPI(std::string url, int postflag = 0, std::string postdata = "", int maxretries = 10, int timeout = -1, std::string http_proxy = ""); // throw(WebAPIException)
+    std::map<std::string, std::string> _rcv_headers;
+    WebAPI(std::string url, int postflag = 0, std::string postdata = "", int maxretries = 10, int timeout = -1, std::string http_proxy = "", std::string auth_header=""); // throw(WebAPIException)
     ~WebAPI();
     int getStatus();
     std::fstream &data() { return _fromsite; }

@@ -8,7 +8,7 @@ TST=$(addsuffix -test,$(basename($SRC)))
 DEFS=
 TESTDEFS=-DUNITTEST
 CXXFLAGS=-pedantic-errors -Wall -Wextra -Werror -fPIC -g $(DEFS) $(ARCH) -I../../util -std=c++11 
-CFLAGS=-pedantic-errors -Wall -Wextra -Werror -fPIC -g $(DEFS) $(ARCH) -I../../util --std=c99
+CFLAGS=-pedantic-errors -Wall -Wextra -fPIC -g $(DEFS) $(ARCH) -I../../util --std=c99
 
 
 all: $(GEN) $(OBJ) $(TST)

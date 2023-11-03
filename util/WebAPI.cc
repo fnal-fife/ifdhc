@@ -340,11 +340,11 @@ WebAPI::WebAPI(std::string url, int postflag, std::string postdata, int maxretri
             // XXX How do we detect/retry https fails?
 
             // make sure we have openssl
-            if (access("/usr/bin/openssl11",X_OK) == 0) {
-               opensslcmd = "openssl11";
-            }
             if (access("/usr/bin/openssl",X_OK) == 0) {
                opensslcmd = "openssl";
+            }
+            if (access("/usr/bin/openssl11",X_OK) == 0) {
+               opensslcmd = "openssl11";
             }
             if (opensslcmd) {
                // okay so its not in /usr/bin, is it anywhere in PATH?
@@ -357,6 +357,8 @@ WebAPI::WebAPI(std::string url, int postflag, std::string postdata, int maxretri
             } else {
                throw(WebAPIException(url,"2 No openssl executable, cannot do https: calls in this environment"));
             }
+            if(_debug) { std::cerr << "opensslcmd: " << opensslcmd << "\n"; }
+
 
             int inp[2], outp[2], pid;
             pipe(inp);

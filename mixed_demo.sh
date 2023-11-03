@@ -5,8 +5,14 @@ export EXPERIMENT=hypot
 # sample data dispatcher file loop.
 #
 
+
 . /scratch/mengel/packages/setup-env.sh
 spack load r-m-dd-config experiment=hypot
+
+htgettoken -i hypot -a htvaultprod.fnal.gov
+rm .data_dispatcher_worker_id
+
+printenv | grep URL
 
 export DATA_DISPATCHER_URL=https://metacat.fnal.gov:9443/hypot_dd/data
 export METACAT_SERVER_URL=https://metacat.fnal.gov:9443/hypot_meta_dev/app
@@ -32,6 +38,7 @@ echo "got consumer_id $consumer_id"
 
 
 furi=`ifdh getNextFile $cpurl $consumer_id`
+export furi
 while [ "$furi"  != "" ]
 do
 	fname=`ifdh fetchInput $furi | tail -1 `
@@ -50,3 +57,5 @@ do
 done
 ifdh setStatus $cpurl $consumer_id  bad
 ifdh cleanup
+
+ddisp project show $projid

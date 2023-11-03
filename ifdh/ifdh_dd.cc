@@ -13,6 +13,7 @@
 #include <iostream>
 #include <fstream>
 #include <stdlib.h>
+#include <string.h>
 
 // URLs for "hypot" experiment:
 // ============================
@@ -217,7 +218,7 @@ ifdh::dd_create_project(
              // query metacat for files matching query
              jmfinfo = metacat_query( query, false, false );
          } else {
-             jmfinfo = json(new json_none);
+             jmfinfo = json(new json_null);
          }
      } else {
          for (auto finfo = files.begin(); finfo != files.end(); finfo++) {
@@ -243,8 +244,13 @@ ifdh::dd_create_project(
      return res;
 }
 
-// for sprintf calls, below
-static char projbuf[128];
+char *
+p_itoa(int n) {
+    static char projbuf[128];
+    memset(projbuf, 0, 128);
+    sprintf(projbuf, "%d", n);
+    return projbuf;
+}
 
 json
 ifdh::dd_next_file_json(int project_id, std::string cpu_site, std::string worker_id, long int timeout, int stagger) {
@@ -255,9 +261,8 @@ ifdh::dd_next_file_json(int project_id, std::string cpu_site, std::string worker
     }
 
     worker_id = dd_worker_id(worker_id);
-    sprintf(projbuf, "%d", project_id);
     std::string url = get_dd_url() + 
-         "/next_file?project_id=" + projbuf + 
+         "/next_file?project_id=" + p_itoa(project_id) + 
          "&worker_id=" + worker_id;
 
     if(!cpu_site.empty()) {
@@ -270,6 +275,7 @@ ifdh::dd_next_file_json(int project_id, std::string cpu_site, std::string worker
     if ( timeout ) {
         timeout += time(0);
     }
+    WebAPI::_debug = 1;
 
     if (_dd_mc_session_tok == "" ) {
         dd_mc_authenticate();
@@ -277,28 +283,42 @@ ifdh::dd_next_file_json(int project_id, std::string cpu_site, std::string worker
     std::string auth_header("X-Authentication-Token: ");
     auth_header += _dd_mc_session_tok; 
 
-    while ( retry ) {
-        WebAPI wa(url, 0, "",  3, -1, "", auth_header);
+    try {
+        while ( retry ) {
+            WebAPI wa(url, 0, "",  3, -1, "", auth_header);
 
-        if ( wa.getStatus() == 200 ) {
-             res = json::load(wa.data());
-             retry = false;
-             wa.data().close();
-        } else {
-            sleep(60);
+            if ( wa.getStatus() == 200 ) {
+                 res = json::load(wa.data());
+                 retry = false;
+                 wa.data().close();
+
+                 if ((bool)res[json("retry")]) {
+                     retry = true;
+                     sleep(60);
+                 }
+            }
+         
+            if ( timeout ) {
+                retry = time(0) < timeout;
+            } 
+
         }
-     
-        if ( timeout ) {
-            retry = time(0) < timeout;
-        } 
+        return res;
 
+    } catch (WebAPIException we) {
+        if ( strstr(we.what(), "Inactive project. State=done") ) {
+            // data dispatcher gives a 400 with the above when you run out..
+            return json(new json_null);
+        } else {
+            throw we;
+        }
     }
-    return res;
 }
 
 std::string
 ifdh::dd_next_file_url(int project_id, std::string cpu_site, std::string worker_id, long int timeout, int stagger) {
     json info = dd_next_file_json(project_id, cpu_site, worker_id, timeout, stagger);
+
 
     // at this point we have json info like:
     // ...and we want the url of the first (best?) replica
@@ -329,23 +349,34 @@ ifdh::dd_next_file_url(int project_id, std::string cpu_site, std::string worker_
     //   "reason": "reserved",
     //   "retry": false
     // }
+    _debug && std::cerr << "looking for replica in:";
+    if(_debug) info.dump(std::cerr);
+    _debug && std::cerr << "\n";
 
-    info = info[json("handle")][json("replicas")];
+    if (info.is_null()) { 
 
-    json which = info.keys()[0]; // i.e. "FNAL_DCACHE" above...
-    std::string name = info[which][json("name")];
-    std::string ns = info[which][json("namespace")];
+        // no files left...
+        return "";
 
-    _last_file_did = ns + ":" +  name;
+    } else {
 
-    info = info[which][json("url")];
-    return info;
+        info = info[json("handle")][json("replicas")];
+
+        json which = info.keys()[0]; // i.e. "FNAL_DCACHE" above...
+        std::string name = info[which][json("name")];
+        std::string ns = info[which][json("namespace")];
+
+        _last_file_did = ns + ":" +  name;
+
+        info = info[which][json("url")];
+        return info;
+    }
 }
 
 json
 ifdh::dd_get_project(int project_id, bool with_files, bool with_replicas) {
-    sprintf(projbuf, "%d", project_id);
-    std::string url = get_dd_url() + "project?project_id=" + projbuf  + 
+    std::string url = get_dd_url() + 
+                     "project?project_id=" + p_itoa(project_id)  + 
                      "&with_files=" + (with_files ? "yes" : "no") + 
                      "&with_replicass=" + (with_replicas ? "yes" : "no");
 
@@ -361,14 +392,13 @@ ifdh::dd_get_project(int project_id, bool with_files, bool with_replicas) {
     if ( wa.getStatus() == 200 ) {
          res = json::load(wa.data());
     } else {
-         res = json(new json_none);
+         res = json(new json_null);
     }
     return res;
 }
 
 json
 ifdh::dd_file_done(int project_id, std::string file_did) {
-    sprintf(projbuf, "%d", project_id);
 
     if (file_did == "") {
         file_did = _last_file_did;
@@ -378,7 +408,7 @@ ifdh::dd_file_done(int project_id, std::string file_did) {
         dd_mc_authenticate();
     }
 
-    std::string url = get_dd_url() + "/release?handle_id=" + projbuf  + ":" + file_did + "&failed=no";
+    std::string url = get_dd_url() + "/release?handle_id=" + p_itoa(project_id)  + ":" + file_did + "&failed=no";
     std::string auth_header("X-Authentication-Token: ");
     auth_header += _dd_mc_session_tok; 
 
@@ -388,19 +418,24 @@ ifdh::dd_file_done(int project_id, std::string file_did) {
     if ( wa.getStatus() == 200 ) {
          res = json::load(wa.data());
     } else {
-         res = json(new json_none);
+         res = json(new json_null);
     }
     return res;
 }
 
 json 
-ifdh::dd_file_failed(int project_id, std::string file_did) {
-    sprintf(projbuf, "%d", project_id);
+ifdh::dd_file_failed(int project_id, std::string file_did, bool retry) {
 
     if (file_did == "") {
         file_did = _last_file_did;
     }
-    std::string url = get_dd_url() + "/release?handle_id=" + projbuf  + ":" + file_did + "&failed=yes";
+    if (_dd_mc_session_tok == "" ) {
+        dd_mc_authenticate();
+    }
+
+    std::string url = get_dd_url() + 
+             "/release?handle_id=" + p_itoa(project_id)  + ":" + file_did + 
+             "&failed=yes&retry=" + (retry ? "yes" : "no");
     std::string auth_header("X-Authentication-Token: ");
     auth_header += _dd_mc_session_tok; 
     WebAPI wa(url, 0, "",  2, -1, "", auth_header);
@@ -409,7 +444,7 @@ ifdh::dd_file_failed(int project_id, std::string file_did) {
     if ( wa.getStatus() == 200 ) {
          res = json::load(wa.data());
     } else {
-         res = json(new json_none);
+         res = json(new json_null);
     }
     return res;
 }
@@ -427,6 +462,7 @@ main() {
    setenv("IFDH_DEBUG","2",1);
 
    ifdh *handle = new ifdh();
+   handle->_debug = 1;
    std::cout << "calling dd_mc_auithenticate()\n"; std::cout.flush();
    handle->dd_mc_authenticate();
    wid = handle->dd_worker_id();
@@ -449,10 +485,14 @@ main() {
    handle->dd_file_done(project_id, "");
 
    file_url = handle->dd_next_file_url(project_id, "bel-kwinih.fnal.gov", worker_id, 0, 0);
+   while (!file_url.empty()) {
    
-   std::cout << "file_url: " << file_url << "\n";
+       std::cout << "file_url: " << file_url << "\n";
 
-   handle->dd_file_failed(project_id, "");
+       handle->dd_file_done(project_id, "");
+
+       file_url = handle->dd_next_file_url(project_id, "bel-kwinih.fnal.gov", worker_id, 0, 0);
+   }
 
    delete handle;
 }

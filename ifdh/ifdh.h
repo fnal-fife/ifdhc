@@ -189,7 +189,7 @@ class ifdh {
         std::string dd_next_file_url(int project_id, std::string cpu_site="", std::string worker_id="", long int timeout=0, int stagger=0);
         json dd_get_project(int project_id, bool with_files, bool with_replicas);
         json dd_file_done(int project_id, std::string file_did);
-        json dd_file_failed(int project_id, std::string file_did);
+        json dd_file_failed(int project_id, std::string file_did, bool retry);
         std::string dd_worker_id(std::string new_id="", std::string worker_id_file="");
         json metacat_query(std::string, bool, bool);
 	std::string sam_findProject( std::string name, std::string station);

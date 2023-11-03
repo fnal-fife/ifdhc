@@ -8,7 +8,7 @@
 
 class json;
 class json_storage;
-class json_none;
+class json_null;
 class json_str;
 class json_num;
 class json_list;
@@ -21,8 +21,15 @@ class json_storage {
     virtual json & operator[]( json );
     virtual void dump(std::ostream &os) const;
     virtual operator double();
+    virtual operator bool();
     virtual operator std::string(); 
     virtual std::vector<json> keys();
+    virtual bool is_null() {return false;}
+    virtual bool is_list() {return false;}
+    virtual bool is_dict() {return false;}
+    virtual bool is_bool() {return false;}
+    virtual bool is_string() {return false;}
+    virtual bool is_number() {return false;}
 };
 
 class json {
@@ -43,16 +50,23 @@ class json {
     operator std::string(); 
     operator double(); 
     operator int(); 
+    operator bool();
     std::vector<json> keys();
+    virtual bool is_null()   {return pval->is_null();}
+    virtual bool is_list()   {return pval->is_list();}
+    virtual bool is_dict()   {return pval->is_dict();}
+    virtual bool is_string() {return pval->is_string();}
+    virtual bool is_number() {return pval->is_number();}
 };
 
 bool operator < (const json, const json);
 
-class json_none : public json_storage {
+class json_null : public json_storage {
   public:
-    json_none();
+    json_null();
     void dump(std::ostream &os) const;
     static json load(std::istream &is);
+    virtual bool is_null() {return true;}
 };
 
 class json_str : public json_storage {
@@ -64,6 +78,7 @@ class json_str : public json_storage {
     static json load(std::istream &is);
     operator std::string();
     ~json_str();
+    virtual bool is_string() {return true;}
 };
 
 class json_num : public json_storage {
@@ -75,6 +90,7 @@ class json_num : public json_storage {
     static json load(std::istream &is); 
     operator double(); 
     ~json_num();
+    virtual bool is_number() {return true;}
 };
 class json_bool : public json_storage {
     bool val;
@@ -85,6 +101,7 @@ class json_bool : public json_storage {
     static json load(std::istream &is); 
     operator bool(); 
     ~json_bool();
+    virtual bool is_bool() {return true;}
 };
 
 class json_list : public json_storage {
@@ -97,6 +114,7 @@ class json_list : public json_storage {
     void dump( std::ostream &os ) const; 
     static json load( std::istream &is );
     ~json_list();
+    virtual bool is_list() {return true;}
 };
 
 class json_dict : public json_storage {
@@ -110,6 +128,7 @@ class json_dict : public json_storage {
     static json load( std::istream &is ); 
     std::vector<json> keys();
     ~json_dict();
+    virtual bool is_dict() {return true;}
 };
 
 #endif

@@ -502,9 +502,16 @@ ifdh::leaveState( string state ){
   return 1;
 }
 
+bool
+is_dd_project_id(std::string x) {
+    // data-dispatcher project_ids are integers, 
+    // just check the first character.
+    return isdigit(x[0]);
+}
+
 int
 ifdh::setStatus(string projecturi, string processid, string status) {
-   if (isdigit(projecturi[0])) {
+   if (is_dd_project_id(projecturi)) {
       return 0; // no process status in data-dispatcher...
    } else {
       return sam_setStatus(projecturi, processid, status);
@@ -513,12 +520,36 @@ ifdh::setStatus(string projecturi, string processid, string status) {
 
 string 
 ifdh::updateFileStatus(string projecturi, string processid, string filename, string status){
-   if (isdigit(projecturi[0])) {
+   if (is_dd_project_id(projecturi)) {
+      std::string file_did;
+      if (_last_file_did.empty()) {
+          // we don't have a remembered file_did, 
+          // so guess the namespace from the file uri if we have it
+          // in the environment, failing back to the username
+          // we think the url ends in .../namespace/xx/xx/filename
+          // so split it out and pick the 4th component from the end
+          if (getenv("furi")) {
+              std::vector<std::string> furi_cl = split(getenv("furi"),'/');
+              file_did = furi_cl[furi_cl.size()-4];
+          } else {
+              // maybe this should be experiment? not sure
+              file_did = getenv("USER");
+          }
+          // then guess the filename part as basename of the full filename
+          std::vector<std::string> filename_cl = split(filename,'/');
+          file_did +=  ":" + filename_cl[filename_cl.size()-1];
+          _debug && std::cerr << "reconstructed file_did '" << file_did << "'\n";
+      } else {
+          file_did  = _last_file_did;
+          _debug && std::cerr << "remembered file_did '" << file_did << "'\n";
+      }
       if (status == "consumed") {
-          // we pass "" for the file_did, because our code remembers it from dd_get_next...
-          dd_file_done( atoi(projecturi.c_str()), "");
+          dd_file_done( atoi(projecturi.c_str()), file_did);
       } else if (status == "skipped") {
-          dd_file_failed( atoi(projecturi.c_str()), "");
+          // we are mimicing SAM behavior here, make retries in project false.
+          dd_file_failed( atoi(projecturi.c_str()), file_did, false);
+      } else {
+          _debug && std::cerr << "note: ignoring file status '" << status << "' for data_dispatcher\n";
       }
       return "";
    } else {
@@ -528,7 +559,7 @@ ifdh::updateFileStatus(string projecturi, string processid, string filename, str
 string ifdh::getNextFile(string projecturi, string processid){
    char hostbuf[512];
 
-   if (isdigit(projecturi[0])) {
+   if (is_dd_project_id(projecturi)) {
        gethostname(hostbuf, 512);
        return ifdh::dd_next_file_url( atoi(projecturi.c_str()), hostbuf, processid, 0, 0);
    } else {
@@ -537,8 +568,7 @@ string ifdh::getNextFile(string projecturi, string processid){
 }
 
 string ifdh::findProject( string name, string station){
-   if (isdigit(name[0])) {
-       // for data dispatcher, projects are numbers, just return the number
+   if (is_dd_project_id(name)) {
        dd_mc_authenticate();
        return name;
    } else {
@@ -547,7 +577,7 @@ string ifdh::findProject( string name, string station){
 }
 
 std::string ifdh::establishProcess(std::string projecturi,  std::string appname, std::string appversion, std::string location, std::string user, std::string appfamily, std::string description, int filelimit, std::string schemas) {
-   if (isdigit(projecturi[0])) {
+   if (is_dd_project_id(projecturi)) {
        return dd_worker_id("","");
    } else {
        return sam_establishProcess(projecturi, appname, appversion, location, user, appfamily, description, filelimit, schemas);

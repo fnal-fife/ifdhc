@@ -22,7 +22,7 @@
 // json operations just indirect through the shared pointer..
 json::json ()
 {
-    pval = std::shared_ptr < json_none > ();
+    pval = std::shared_ptr < json_null > ();
 }
 
 json::json(const char *pc) {
@@ -67,6 +67,9 @@ json::operator std::string() {
 json::operator double() {
     return (double)(*pval);
 }
+json::operator bool() {
+    return (bool)(*pval);
+}
 json::operator int() {
     return (int)(double)(*pval);
 }
@@ -75,7 +78,7 @@ json::operator int() {
 
 // empty constructors
 
-json_none::json_none ()
+json_null::json_null ()
 {;
 }
 
@@ -131,10 +134,14 @@ operator < (const json j1, const json j2)
 static void
 eats (std::istream & is, const char *match = 0)
 {
-    int
-	c = is.peek ();
+    int c = is.peek ();
+
     // first eat whitespace...
     while (c == ' ' || c == '\n' || c== '\r' || c == '\t') {
+       
+#       ifdef PARSEDEBUG
+        std::cerr << "eats: '" << (char)c << "'\n";
+#       endif
 	is.get ();
 	c = is.peek ();
     }
@@ -142,12 +149,15 @@ eats (std::istream & is, const char *match = 0)
     if (match) {
 	while (*match && c == *match) {
 	    is.get ();
+#           ifdef PARSEDEBUG
+            std::cerr << "eats: '" << (char)c << "'\n";
+#           endif
 	    c = is.peek ();
 	    match++;
 	}
 	if (*match) {
 	    std::stringstream ss;
-	    ss << "Unexpected char '" << c << "'; expected '" << *match <<
+	    ss << "Unexpected char '" << (char)c << "'; expected '" << *match <<
 		"'.";
 	    throw
 	    std::domain_error (ss.str ());
@@ -156,14 +166,14 @@ eats (std::istream & is, const char *match = 0)
 }
 
 void
-json_none::dump (std::ostream & os) const
+json_null::dump (std::ostream & os) const
 {
     os << "null";
 }
 
-json json_none::load (std::istream & is)
+json json_null::load (std::istream & is)
 {
-    json_none *jn = new json_none;
+    json_null *jn = new json_null;
     eats (is, "null");
     return json (jn);
 }
@@ -210,6 +220,10 @@ json json_str::load (std::istream & is)
 	jn->val.push_back (c);
     }
     eats (is, "\"");
+#   ifdef PARSEDEBUG
+    std::cerr << "json string: '" << jn->val << "'\n";
+    std::cerr.flush();
+#   endif
     return json (jn);
 }
 
@@ -228,10 +242,17 @@ json json_num::load (std::istream & is)
 {
     json_num *jn = new json_num;
     is >> jn->val;
+#   ifdef PARSEDEBUG
+    std::cerr << "json_num: '" << jn->val << "'\n";
+#   endif
     return json (jn);
 }
 
 json_num::operator double ()
+{
+    return val;
+}
+json_bool::operator bool ()
 {
     return val;
 }
@@ -253,11 +274,6 @@ json json_bool::load (std::istream & is)
         jn->val = false;
     }
     return json (jn);
-}
-
-json_bool::operator  bool ()
-{
-    return val;
 }
 
 void
@@ -367,7 +383,7 @@ json json::load (std::istream & is)
     case '{':
 	return json_dict::load(is);
     case 'n':
-	return json_none::load(is);
+	return json_null::load(is);
     case 't': case 'f':
         return json_bool::load(is);
     default:
@@ -393,6 +409,10 @@ std::string json::dumps () const
 }
 
 json_storage::operator  double ()
+{
+    throw std::domain_error ("Wrong Component for double()");
+}
+json_storage::operator  bool ()
 {
     throw std::domain_error ("Wrong Component for double()");
 }
@@ -482,11 +502,12 @@ main ()
 {
 
     std::string t0 ("11");
+    std::string tn ("null");
     std::string ta ("\"foo\"");
     std::string t1 ("[1, 22, 333]");
     std::string t2 ("{\"a\": 1, \"bb\":22, \"ccc\": 333}");
     std::string t3 ("{\"a\": \"x\", \"bb\":\"y\" , \"ccc\": 333}");
-    std::string t4 ("[{\"fid\": \"09DDbeLUSsq8bbEN\", \"namespace\": \"mengel\", \"name\": \"a.fcl\", \"retired\": false, \"retired_by\": null, \"updated_by\": null, \"retired_timestamp\": null, \"updated_timestamp\": 1696890026.442766, \"created_timestamp\": 1696890026.442766, \"checksums\": {}, \"size\": 0, \"creator\": \"mengel\"}, {\"fid\": \"3nbKynn1Qgmzpoht\", \"namespace\": \"mengel\", \"name\": \"b.fcl\", \"retired\": false, \"retired_by\": null, \"updated_by\": null, \"retired_timestamp\": null, \"updated_timestamp\": 1696890028.153082, \"created_timestamp\": 1696890028.153082, \"checksums\": {}, \"size\": 0, \"creator\": \"mengel\"}, {\"fid\": \"OoBb8lGxT0KXACC4\", \"namespace\": \"mengel\", \"name\": \"c.fcl\", \"retired\": false, \"retired_by\": null, \"updated_by\": null, \"retired_timestamp\": null, \"updated_timestamp\": 1696890028.856275, \"created_timestamp\": 1696890028.856275, \"checksums\": {}, \"size\": 0, \"creator\": \"mengel\"}, {\"fid\": \"55PrINzwSFGCXb89\", \"namespace\": \"mengel\", \"name\": \"d.fcl\", \"retired\": false, \"retired_by\": null, \"updated_by\": null, \"retired_timestamp\": null, \"updated_timestamp\": 1696890029.6668, \"created_timestamp\": 1696890029.6668, \"checksums\": {}, \"size\": 0, \"creator\": \"mengel\"}, {\"fid\": \"GC9RKVnuQQC2znIx\", \"namespace\": \"mengel\", \"name\": \"e.fcl\", \"retired\": false, \"retired_by\": null, \"updated_by\": null, \"retired_timestamp\": null, \"updated_timestamp\": 1696890030.372117, \"created_timestamp\": 1696890030.372117, \"checksums\": {}, \"size\": 0, \"creator\": \"mengel\"}]");
+    std::string t4 ("{\"handle\": {\"project_id\": 231, \"namespace\": \"mengel\", \"name\": \"b.fcl\", \"state\": \"reserved\", \"worker_id\": \"ff9f9f85-e3af-4380-a46f-71ff9e74c56e\", \"attempts\": 1, \"attributes\": {}, \"reserved_since\": 1699037171.101709, \"replicas\": {\"FNAL_DCACHE\": {\"name\": \"b.fcl\", \"namespace\": \"mengel\", \"path\": \"/pnfs/fnal.gov/usr/hypot/rucio/mengel/9b/78/b.fcl\", \"url\": \"https://fndcadoor.fnal.gov:2880/pnfs/fnal.gov/usr/hypot/rucio/mengel/9b/78/b.fcl\", \"rse\": \"FNAL_DCACHE\", \"preference\": 100, \"available\": true, \"rse_available\": true}}, \"project_attributes\": {}}, \"reason\": \"reserved\", \"retry\": false}");
 
     json r;
 
@@ -495,24 +516,55 @@ main ()
     std::cout << "taout: ";
     r.dump (std::cout);
     std::cout << "\n";
+    if (r.is_null()) std::cout << "is_null\n";
+    if (r.is_dict()) std::cout << "is_dict\n";
+    if (r.is_list()) std::cout << "is_list\n";
+    if (r.is_number()) std::cout << "is_number\n";
+    if (r.is_string()) std::cout << "is_string\n";
+
+    r = json::loads (tn);
+    std::cout << "tn: " << tn << "\n";
+    std::cout << "tnout: ";
+    r.dump (std::cout);
+    std::cout << "\n";
+    if (r.is_null()) std::cout << "is_null\n";
+    if (r.is_dict()) std::cout << "is_dict\n";
+    if (r.is_list()) std::cout << "is_list\n";
+    if (r.is_number()) std::cout << "is_number\n";
+    if (r.is_string()) std::cout << "is_string\n";
 
     r = json::loads (t0);
     std::cout << "t0: " << t0 << "\n";
     std::cout << "t0out: ";
     r.dump (std::cout);
     std::cout << "\n";
+    if (r.is_null()) std::cout << "is_null\n";
+    if (r.is_dict()) std::cout << "is_dict\n";
+    if (r.is_list()) std::cout << "is_list\n";
+    if (r.is_number()) std::cout << "is_number\n";
+    if (r.is_string()) std::cout << "is_string\n";
 
     r = json::loads (t1);
     std::cout << "t1: " << t1 << "\n";
     std::cout << "t1out: ";
     r.dump (std::cout);
     std::cout << "\n";
+    if (r.is_null()) std::cout << "is_null\n";
+    if (r.is_dict()) std::cout << "is_dict\n";
+    if (r.is_list()) std::cout << "is_list\n";
+    if (r.is_number()) std::cout << "is_number\n";
+    if (r.is_string()) std::cout << "is_string\n";
 
     r = json::loads (t2);
     std::cout << "t2: " << t2 << "\n";
     std::cout << "t2out: ";
     r.dump (std::cout);
     std::cout << "\n";
+    if (r.is_null()) std::cout << "is_null\n";
+    if (r.is_dict()) std::cout << "is_dict\n";
+    if (r.is_list()) std::cout << "is_list\n";
+    if (r.is_number()) std::cout << "is_number\n";
+    if (r.is_string()) std::cout << "is_string\n";
     
     std::vector<json> kl = r.keys();
     for (auto p = kl.begin(); p != kl.end(); p++ ) {

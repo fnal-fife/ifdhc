@@ -104,6 +104,13 @@ EOF
         exit 1
       }
 
+cp -p ${thisdir}/../ifdh/decode_token.sh ${pkgbin}/  ||  \
+      { cat 1>&2 <<EOF
+ERROR: failed to copy ${thisdir}/../ifdh/decode_token.sh to ${pkgbin}
+EOF
+        exit 1
+      }
+
 cp -p ${thisdir}/ifdhc_config.table ${pkgups}/ || \
       { cat 1>&2 <<EOF
 ERROR: failed to copy ${thisdir}/ifdhc_config.table to ${pkgups}

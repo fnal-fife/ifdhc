@@ -136,6 +136,11 @@ eats (std::istream & is, const char *match = 0)
 {
     int c = is.peek ();
 
+    if (c == -1 && match[0] == ']') {
+       //streaming mode case, EOF can end a list...
+       return;
+    }
+
     // first eat whitespace...
     while (c == ' ' || c == '\n' || c== '\r' || c == '\t') {
        
@@ -145,8 +150,17 @@ eats (std::istream & is, const char *match = 0)
 	is.get ();
 	c = is.peek ();
     }
+
     // then match something specific, if requested
     if (match) {
+        if ( c == 30 &&(*match == '[' || *match == ',')) {
+           // json-streaming mode, treat ASCII RS as a bracket or comma to build
+           // up a list
+           is.get();
+           c = is.peek ();
+           match++;
+        }
+
 	while (*match && c == *match) {
 	    is.get ();
 #           ifdef PARSEDEBUG
@@ -157,7 +171,7 @@ eats (std::istream & is, const char *match = 0)
 	}
 	if (*match) {
 	    std::stringstream ss;
-	    ss << "Unexpected char '" << (char)c << "'; expected '" << *match <<
+	    ss << "Unexpected char '" << (char)c << "'(" << c <<"); expected '" << *match <<
 		"'.";
 	    throw
 	    std::domain_error (ss.str ());
@@ -297,12 +311,13 @@ json json_list::load (std::istream & is)
 
     eats (is, "[");
     eats (is);
-    while (is.peek () != ']') {
+    while (is.peek () != ']' && !is.eof()) {
 	if (!first) {
 	    eats (is, ",");
 	}
 	first = false;
 	jl->val.push_back (json::load (is));
+        eats(is);
     }
     eats (is, "]");
     return json (jl);
@@ -378,6 +393,7 @@ json json::load (std::istream & is)
 	return json_num::load(is);
     case '"':
 	return json_str::load(is);
+    case 30: // JSON-streaming mode, RS starts a list...
     case '[':
 	return json_list::load(is);
     case '{':

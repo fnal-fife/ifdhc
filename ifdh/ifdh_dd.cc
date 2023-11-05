@@ -167,26 +167,8 @@ ifdh::metacat_query( std::string query, bool meta, bool provenance ) {
     auth_header += _dd_mc_session_tok; 
 
     WebAPI wa1(url, 1, query, 3, -1, "", auth_header);
-    sep = "[\n";
-    while (wa1.data()) {
-       getline(wa1.data(), line);
-       if (line.size() == 0) {
-          break;
-       }
-       if (line[0] == 30) {
-           // starts with ascii RS, so streaming continuation...
-           line.replace(0,1,"",0);
-           rsep = sep;
-       } else {
-           // plain json text..
-           rsep = "";
-       }
-       data += rsep;
-       data += line;
-       sep = ",\n";
-    }
-    data += "]";
-    res = json::loads(data);
+    
+    res = json::load(wa1.data());
     wa1.data().close();
     return res;
 }

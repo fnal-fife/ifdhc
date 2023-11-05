@@ -2310,11 +2310,20 @@ ifdh::mkdir(string loc, string force ) {
     std::string fullurl, proto, lookup_proto;
     ifdh_op_msg mbuf("mkdir", *this);
     pick_proto_path(loc, force, proto, fullurl, lookup_proto);
+    IFile locdata = lookup_loc(loc);
     mbuf.src=loc;
     mbuf.proto = proto;
     int retries;
    
+    _debug && std::cerr << "locata.location " << locdata.location << "\n";
     std::string cmd     = _config.get(lookup_proto, "mkdir_cmd");
+    int auto_mkdir_flag = _config.getint(std::string("location ") + locdata.location, "auto_mkdir");
+    _debug && std::cerr << "auto_mkdir_flag " << auto_mkdir_flag << "\n";
+
+    if (auto_mkdir_flag) {
+        _debug && std::cerr << "skipping mkdir because " << loc << " has auto_mkdir set\n";
+        return 0;
+    }
 
     if (cmd.size() == 0) {
         std::cerr << (time(&gt)?ctime(&gt):"") << " ";

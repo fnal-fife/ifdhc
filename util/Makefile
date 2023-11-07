@@ -8,7 +8,7 @@ TST=$(addsuffix -test,$(basename($SRC)))
 DEFS=
 TESTDEFS=-DUNITTEST
 CXXFLAGS=-pedantic-errors -Wall -Wextra -Werror -fPIC -g $(DEFS) $(ARCH) -I../../util -std=c++11 
-CFLAGS=-pedantic-errors -Wall -Wextra -Werror -fPIC -g $(DEFS) $(ARCH) -I../../util --std=c99
+CFLAGS=-pedantic-errors -Wall -Wextra -fPIC -g $(DEFS) $(ARCH) -I../../util --std=c99
 
 
 all: $(GEN) $(OBJ) $(TST)
@@ -24,13 +24,13 @@ ifdh_version.h: FORCE
 FORCE:
 
 sha256-test: sha256.c
-	${CC} -o $@ $(TESTDEFS) $(CFLAGS) $< 
+	${CC} -g -o $@ $(TESTDEFS) $(CFLAGS) $< 
 
 utils-test: utils.cc WimpyConfigParser.o
-	${CXX} -o $@ $(TESTDEFS) $(CXXFLAGS) $< WimpyConfigParser.o
+	${CXX} -g -o $@ $(TESTDEFS) $(CXXFLAGS) $< WimpyConfigParser.o
 
 %-test: %.cc WimpyConfigParser.o
-	${CXX} -o $@ $(TESTDEFS) $(CXXFLAGS) $< utils.o WimpyConfigParser.o
+	${CXX} -g -o $@ $(TESTDEFS) $(CXXFLAGS) $< utils.o WimpyConfigParser.o
 
 
 %.o: %.cc

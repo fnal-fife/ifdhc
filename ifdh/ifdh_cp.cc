@@ -135,7 +135,7 @@ cache_stat(std::string s) {
    // try to flush NFS dir cache ?
    res = stat(s.c_str(), &sbuf);
    if (res != 0 || (sbuf.st_size == 0 && !S_ISFIFO(sbuf.st_mode))) {
-      ifdh::_debug && std::cerr << "got bad bits on stat("  << s << ") trying again\n";
+      ifdh::_debug && std::cerr << "retrying stat("  << s << ")\n";
       // if it looks wonky (failed, no size) flush and retry
       flushdir(parent_dir(s).c_str());
       close(open(s.c_str(),O_RDONLY));
@@ -598,7 +598,7 @@ check_grid_credentials_proxies() {
             return 1;
         }
 
-        if (experiment == "samdev")  // use fermilab for fake samdev expt
+        if (experiment == "samdev" || experiment == "hypot")  // use fermilab for fake samdev expt
             experiment = "fermilab";
 
         while(fgets(buf,512,pf)) {
@@ -908,22 +908,10 @@ get_grid_credentials_if_needed() {
         }
     }
 
+    bool found_token;
     if (tokens_enabled && !check_grid_credentials_tokens() && have_kerberos_creds() ) {
         ifdh::_debug && std::cerr << "no grid credentials: tokens:\n";
         setenv("BEARER_TOKEN_FILE", tokenfile.str().c_str(),1);
-        //
-        // turns out gfal utilities *only* believe 
-        // BEARER_TOKEN in the environment and do not read
-        // BEARER_TOKEN_FILE, etc... 
-        // https://dmc-docs.web.cern.ch/dmc-docs/developers/bearer-tokens.html
-        // so read the token file and set BEARER_TOKEN, as well.
-        //
-        const int maxtoken = 8192;
-        static char tokenbuf[maxtoken+1];
-        std::ifstream btf(tokenfile.str().c_str());
-        btf.read(tokenbuf, maxtoken);
-        btf.close();
-        setenv("BEARER_TOKEN", tokenbuf, 1);
     }
     if (tokens_enabled && !check_grid_credentials_tokens()) {
         std::string vault(ifdh::_config.get("tokens","vault_server"));
@@ -967,6 +955,7 @@ get_grid_credentials_if_needed() {
 
         if (res == 0) {
            found = true;
+           found_token = true;
         }
 
         if ((!WIFEXITED(res) ||  0 != WEXITSTATUS(res)) && res != 256) {
@@ -975,11 +964,27 @@ get_grid_credentials_if_needed() {
         }
     } else { 
         found = true;
+        found_token = true;
     }
   
     if (!found) {
         std::cerr << (time(&gt)?ctime(&gt):"") << " ";
         std::cerr << "Notice: Unable to find valid grid or kerberos credentials. Later actions will likely fail."<< endl;
+    }
+    if( found_token ) {
+        //
+        // turns out gfal utilities *only* believe 
+        // BEARER_TOKEN in the environment and do not read
+        // BEARER_TOKEN_FILE, etc... 
+        // https://dmc-docs.web.cern.ch/dmc-docs/developers/bearer-tokens.html
+        // so read the token file and set BEARER_TOKEN, as well.
+        //
+        const int maxtoken = 8192;
+        static char tokenbuf[maxtoken+1];
+        std::ifstream btf(tokenfile.str().c_str());
+        btf.read(tokenbuf, maxtoken);
+        btf.close();
+        setenv("BEARER_TOKEN", tokenbuf, 1);
     }
 }
 
@@ -2305,11 +2310,20 @@ ifdh::mkdir(string loc, string force ) {
     std::string fullurl, proto, lookup_proto;
     ifdh_op_msg mbuf("mkdir", *this);
     pick_proto_path(loc, force, proto, fullurl, lookup_proto);
+    IFile locdata = lookup_loc(loc);
     mbuf.src=loc;
     mbuf.proto = proto;
     int retries;
    
+    _debug && std::cerr << "locata.location " << locdata.location << "\n";
     std::string cmd     = _config.get(lookup_proto, "mkdir_cmd");
+    int auto_mkdir_flag = _config.getint(std::string("location ") + locdata.location, "auto_mkdir");
+    _debug && std::cerr << "auto_mkdir_flag " << auto_mkdir_flag << "\n";
+
+    if (auto_mkdir_flag) {
+        _debug && std::cerr << "skipping mkdir because " << loc << " has auto_mkdir set\n";
+        return 0;
+    }
 
     if (cmd.size() == 0) {
         std::cerr << (time(&gt)?ctime(&gt):"") << " ";

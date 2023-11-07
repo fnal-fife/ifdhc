@@ -1,74 +1,134 @@
+#ifndef JSON_H
+#define JSON_H
 #include <iostream>
+#include <exception>
 #include <vector>
-#include <unordered_map>
 #include <map>
+#include <memory>
+
+class json;
+class json_storage;
+class json_null;
+class json_str;
+class json_num;
+class json_list;
+class json_dict;
+
+
+class json_storage {
+  public:
+    virtual json & operator[]( int );
+    virtual json & operator[]( json );
+    virtual void dump(std::ostream &os) const;
+    virtual operator double();
+    virtual operator bool();
+    virtual operator std::string(); 
+    virtual std::vector<json> keys();
+    virtual bool is_null() {return false;}
+    virtual bool is_list() {return false;}
+    virtual bool is_dict() {return false;}
+    virtual bool is_bool() {return false;}
+    virtual bool is_string() {return false;}
+    virtual bool is_number() {return false;}
+};
 
 class json {
-public:
+    std::shared_ptr<json_storage> pval;
+  public:
     json();
-    virtual void dump(std::ostream &s) = 0;
-    virtual void load(std::istream &s) = 0;
-    virtual json *operator [](int) = 0;
-    virtual json *operator [](std::string) = 0;
-    virtual size_t hash() = 0;
-    virtual ~json();
+    json(json_storage *v);
+    json(const char *);
+    json(double);
+    json(const json &);
+    static json load(std::istream &is);
+    static json loads(std::string s);
+    std::string dumps() const;
+    void dump(std::ostream &os) const;
+    json & operator[]( int );
+    json & operator[]( json );
+    bool operator < (const json);
+    operator std::string(); 
+    operator double(); 
+    operator int(); 
+    operator bool();
+    std::vector<json> keys();
+    virtual bool is_null()   {return pval->is_null();}
+    virtual bool is_list()   {return pval->is_list();}
+    virtual bool is_dict()   {return pval->is_dict();}
+    virtual bool is_string() {return pval->is_string();}
+    virtual bool is_number() {return pval->is_number();}
 };
 
-class fjson: public json { 
-    double fval;
-public:
-    fjson() : fval(0) {;}
-    fjson(double f) : fval(f) {;}
-    void dump(std::ostream &s);
-    void load(std::istream &s);
-    json *operator [](int);
-    json *operator [](std::string);
-    size_t hash();
-    virtual ~fjson();
+bool operator < (const json, const json);
+
+class json_null : public json_storage {
+  public:
+    json_null();
+    void dump(std::ostream &os) const;
+    static json load(std::istream &is);
+    virtual bool is_null() {return true;}
 };
 
-class sjson: public json { 
-    std::string sval;
-public:
-    sjson():sval(""){;}
-    sjson(std::string s):sval(s){;}
-    sjson(char *s):sval(s){;}
-    void dump(std::ostream &s);
-    void load(std::istream &s);
-    json *operator [](int);
-    json *operator [](std::string);
-    size_t hash();
-    virtual ~sjson();
+class json_str : public json_storage {
+    std::string val;
+  public:
+    json_str(std::string s);
+    json_str();
+    void dump(std::ostream &os) const;
+    static json load(std::istream &is);
+    operator std::string();
+    ~json_str();
+    virtual bool is_string() {return true;}
 };
 
-class vjson: public json { 
-    std::vector<json *> vec;
-public:
-    void dump(std::ostream &s);
-    void load(std::istream &s);
-    json *operator [](int);
-    json *operator [](std::string);
-    size_t hash();
-    virtual ~vjson();
+class json_num : public json_storage {
+    double val;
+  public:
+    json_num(double n);
+    json_num();
+    void dump(std::ostream &os) const; 
+    static json load(std::istream &is); 
+    operator double(); 
+    ~json_num();
+    virtual bool is_number() {return true;}
+};
+class json_bool : public json_storage {
+    bool val;
+  public:
+    json_bool(bool n);
+    json_bool();
+    void dump(std::ostream &os) const; 
+    static json load(std::istream &is); 
+    operator bool(); 
+    ~json_bool();
+    virtual bool is_bool() {return true;}
 };
 
-extern json *conv_json(std::map<const char *, const char *>);
-extern json *conv_json(std::map<const char *, int>);
-
-class mjson: public json { 
-    std::unordered_map<json *,json *> map;
-public:
-    void dump(std::ostream &s);
-    void load(std::istream &s);
-    json *operator [](int);
-    json *operator [](std::string);
-    size_t hash();
-    virtual ~mjson();
-    friend json *conv_json(std::map<const char *, const char *>);
-    friend json *conv_json(std::map<const char *, double>);
+class json_list : public json_storage {
+    std::vector<json> val;
+  public:
+    json_list();
+    json_list(std::vector<json>);
+    json_list(std::vector<std::string>);
+    json & operator[]( int );
+    void dump( std::ostream &os ) const; 
+    static json load( std::istream &is );
+    ~json_list();
+    virtual bool is_list() {return true;}
 };
 
-json *load_json(std::istream &s);
-json *loads_json(std::string s);
-json *load_json_i(std::istream &s);
-size_t hash(json &j);
+class json_dict : public json_storage {
+    std::map<json,json> val;
+  public:
+    json_dict();
+    json_dict(std::map<std::string,json>);
+    json_dict(std::map<std::string,std::string>);
+    json & operator[]( json );
+    void dump( std::ostream &os ) const;
+    static json load( std::istream &is ); 
+    std::vector<json> keys();
+    ~json_dict();
+    virtual bool is_dict() {return true;}
+};
+
+#endif

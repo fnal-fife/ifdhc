@@ -36,10 +36,12 @@ class json {
     std::shared_ptr<json_storage> pval;
   public:
     json();
+    virtual ~json();
     json(json_storage *v);
     json(const char *);
     json(double);
     json(const json &);
+    json& operator=(const json &);
     static json load(std::istream &is);
     static json loads(std::string s);
     std::string dumps() const;

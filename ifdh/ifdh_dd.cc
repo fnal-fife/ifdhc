@@ -1,4 +1,3 @@
-
 // ifdh data dispatcher client
 //
 
@@ -287,7 +286,7 @@ ifdh::dd_next_file_json(int project_id, std::string cpu_site, std::string worker
         }
         return res;
 
-    } catch (WebAPIException we) {
+    } catch (WebAPIException const & we) {
         if ( strstr(we.what(), "Inactive project. State=done") ) {
             // data dispatcher gives a 400 with the above when you run out..
             return json(new json_null);
@@ -479,4 +478,3 @@ main() {
    delete handle;
 }
 #endif
-

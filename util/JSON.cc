@@ -25,6 +25,8 @@ json::json ()
     pval = std::shared_ptr < json_null > ();
 }
 
+json::~json () = default;
+
 json::json(const char *pc) {
     pval = std::shared_ptr<json_storage> (new json_str(std::string(pc)));
 }
@@ -40,6 +42,12 @@ json::json (json_storage * v)
 json::json (const json & j)
 {
     pval = j.pval;
+}
+
+json & json::operator=(const json & j)
+{
+    pval = j.pval;
+    return *this;
 }
 
 void

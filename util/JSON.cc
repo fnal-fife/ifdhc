@@ -2,6 +2,8 @@
 #include <sstream>
 #include <stdexcept>
 
+namespace ifdh_util_ns {
+
 // small implementation of subset of JSON for C++
 //  see: https://www.json.org/json-en.html
 //
@@ -520,6 +522,8 @@ json & json_dict::operator[](json j) {
     return val[j];
 }
 
+}
+
 #ifdef UNITTEST
 int
 main ()
@@ -626,3 +630,4 @@ main ()
     r.dump (std::cout);
 }
 #endif
+

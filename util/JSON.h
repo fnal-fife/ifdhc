@@ -6,6 +6,7 @@
 #include <map>
 #include <memory>
 
+namespace ifdh_util_ns {
 class json;
 class json_storage;
 class json_null;
@@ -133,4 +134,6 @@ class json_dict : public json_storage {
     virtual bool is_dict() {return true;}
 };
 
+}
+using namespace ifdh_util_ns;
 #endif

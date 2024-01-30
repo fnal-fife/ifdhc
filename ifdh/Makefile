@@ -24,7 +24,7 @@ endif
 LIB=libifdh.$(SHLIB)
 HDR=ifdh.h
 SWIGCXXFLAGS=-fPIC -I../util -I../numsg -I../../util -I../../numsg -I../../ifdh -g -Dregister= -I$${PYTHON_INCLUDE:-`echo $${VIRTUAL_ENV:-/usr}/include/python$${PYMAJOR:-}*`} $(ARCH)
-CXXFLAGS=-pedantic-errors -Wall -Wextra -Werror -fPIC -I../../util -I../util -I ../../numsg -I../numsg -g  $(ARCH) -I$(SRCDIR) -std=c++11
+CXXFLAGS=-pedantic-errors -Wall -Wextra -Werror -fPIC -I../../util -I../util -I ../../numsg -I../numsg -g  -std=c++11  $(ARCH) -I$(SRCDIR) 
 CFLAGS=-pedantic-errors -Wall -Wextra -Werror -fPIC -I../../util -I../util -I ../../numsg -I../numsg -g  $(ARCH) -I$(SRCDIR) -std=c99
 OBJ=ifdh.o ifdh_cp.o ifdh_sam.o ifdh_dd.o
 ALL_OBJS=$(OBJ) ../util/WebAPI.o ../numsg/numsg.o ../util/SyslogAPI.o ../util/utils.o ../util/regwrap.o ../util/Checksum.o ../util/md5.o ../util/WimpyConfigParser.o ../util/sha256.o ../util/JSON.o 

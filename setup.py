@@ -55,7 +55,7 @@ def read(fname):
 
 setup(
     name='ifdhc',
-    version='v2_7',
+    version='2.7',
     description='Intensity Frontier Data Handling',
     maintainer='Marc Mengel',
     maintainer_email='mengel@fnal.gov',
@@ -75,7 +75,7 @@ setup(
         'build_ext': ifdhBuild,
     },
     ext_modules=[MakeExtension('ifdh')],
-    scripts=[ 'ifdh/demo.sh', 'ifdh/ifdh_copyback.sh', 'ifdh/www_cp.sh', 'ifdh/xrdwrap.sh'],
+    scripts=[ 'ifdh/demo.sh', 'ifdh/ifdh_copyback.sh', 'ifdh/www_cp.sh', 'ifdh/xrdwrap.sh', 'ifdh/ifdh'],
     data_files=[
         ('etc',['ifdh.cfg']),
       ],

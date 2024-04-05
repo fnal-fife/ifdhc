@@ -78,6 +78,5 @@ setup(
     scripts=[ 'ifdh/demo.sh', 'ifdh/ifdh_copyback.sh', 'ifdh/www_cp.sh', 'ifdh/xrdwrap.sh' ],
     data_files=[
         ('etc',['ifdh.cfg']),
-        ('bin',['bin/ifdh']),
       ],
 )

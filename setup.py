@@ -34,6 +34,8 @@ class ifdhBuild(build_ext):
         cmd = [
             'make',
             'DESTDIR=%s/ifdhc/' % build_path,
+            'PYTHON=%s' % sys.executable,
+            'PYMAJOR=%s' % sys.version_info.major,
             'clean',
             'all',
             'install',

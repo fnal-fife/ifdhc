@@ -77,7 +77,7 @@ setup(
         'build_ext': ifdhBuild,
     },
     ext_modules=[MakeExtension('ifdh')],
-    scripts=[ 'ifdh/demo.sh', 'ifdh/ifdh_copyback.sh', 'ifdh/www_cp.sh', 'ifdh/xrdwrap.sh' ],
+    scripts=[ 'ifdh/demo.sh', 'ifdh/ifdh_copyback.sh', 'ifdh/www_cp.sh', 'ifdh/xrdwrap.sh', 'ifdh/ifdh' ],
     data_files=[
         ('etc',['ifdh.cfg']),
       ],

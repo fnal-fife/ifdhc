@@ -45,7 +45,7 @@ class ifdhBuild(build_ext):
             call(cmd)
             build_path = os.path.abspath(
                os.path.dirname(self.get_ext_fullpath(ext.name)))
-            call(['cp', '%s/ifdhc/lib/python/ifdh.so' % build_path, '%s/ifdhc/ifdh.so' % build_path])
+            call(['cp', '%s/ifdhc/lib/python/ifdh.so' % build_path, '%s/ifdh.so' % build_path])
 
         self.execute(compile, [], 'Compiling ifdhc')
 

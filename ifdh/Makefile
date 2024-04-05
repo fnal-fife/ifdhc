@@ -73,7 +73,7 @@ ifdh: libifdh.$(SHLIB) ifdh_main.o
 #	patch < ifdh_pybindgen.patch
 
 ifdh_pybindgen.o: ifdh_pybindgen.cc
-	${CXX} $(ARCH) -c -o $@  $(SWIGCXXFLAGS) $< 
+	${CXX} $(CXXFLAGS) $(ARCH) -c -o $@  $(SWIGCXXFLAGS) $< 
 
 python/ifdh.$(SHLIB): $(PYMOD_OBJS)
 	${CXX} --shared $(ARCH) -o  $@ $(PYMOD_OBJS) `ls $${PYTHON_LIB:-/usr/lib64}/libpython$${PYMAJOR:-}*[asd]* | head -1` $(LDLIBS) || ${CXX} --shared $(ARCH) -o  $@ $(PYMOD_OBJS)  `ls $${PYTHON_LIB:-/usr/lib}/libpython$${PYMAJOR:-}*[asd]* | head -1` $(LDLIBS)

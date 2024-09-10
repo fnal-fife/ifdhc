@@ -145,12 +145,6 @@ ifdh::ifdh(std::string baseuri) {
 	_debug = atoi(debug);
         _debug && std::cerr << "IFDH_DEBUG=" << debug << " => " << atoi(debug) << "\n";
     }
-    if ( baseuri == "" ) {
-        _baseuri = getenv("IFDH_BASE_URI")?getenv("IFDH_BASE_URI"):(getenv("EXPERIMENT")?_default_base_uri+getenv("EXPERIMENT")+"/api":"") ;
-     } else {
-       _baseuri = baseuri;
-    }
-    _debug && std::cerr << "ifdh constructor: _baseuri is '" << _baseuri << "'\n";
     
     // -------------------------------------------------------
     // parse and initialize config file
@@ -166,6 +160,31 @@ ifdh::ifdh(std::string baseuri) {
        }
        _debug && std::cerr << "ifdh: config file version is " << _config_version << "\n";
     }
+
+    if ( baseuri == "" ) {
+        if( getenv("IFDH_BASE_URI") ) {
+            _baseuri = getenv("IFDH_BASE_URI");
+        } else if (getenv("EXPERIMENT") ) {
+             size_t p1;
+             char *exp = getenv("EXPERIMENT");
+             std::string exp2uri = _config.get("general", "exp2uri");
+
+             while ((p1 = exp2uri.find("%(exp)s")) != std::string::npos) {
+                 exp2uri = exp2uri.replace(p1, 7, exp);
+             }
+             // except samdev is shortened...
+             if ((p1 = exp2uri.find("samsamdev")) != std::string::npos) {
+                 exp2uri = exp2uri.replace(p1, 9, "samdev");
+             }
+            _baseuri = exp2uri;
+        } else {
+            _baseuri = "";
+        }
+     } else {
+       _baseuri = baseuri;
+    }
+    _debug && std::cerr << "ifdh constructor: _baseuri is '" << _baseuri << "'\n";
+
     _dd_mc_session_tok.clear();
 }
 

@@ -34,6 +34,8 @@ class ifdhBuild(build_ext):
         cmd = [
             'make',
             'DESTDIR=%s/ifdhc/' % build_path,
+            'PYTHON=%s' % sys.executable,
+            'PYMAJOR=%s' % sys.version_info.major,
             'clean',
             'all',
             'install',
@@ -43,7 +45,7 @@ class ifdhBuild(build_ext):
             call(cmd)
             build_path = os.path.abspath(
                os.path.dirname(self.get_ext_fullpath(ext.name)))
-            call(['mv', '%s/ifdhc/lib/python/ifdh.so' % build_path, '%s/ifdh.so' % build_path])
+            call(['cp', '%s/ifdhc/lib/python/ifdh.so' % build_path, '%s/ifdh.so' % build_path])
 
         self.execute(compile, [], 'Compiling ifdhc')
 
@@ -55,7 +57,7 @@ def read(fname):
 
 setup(
     name='ifdhc',
-    version='v2_7',
+    version='2.7.0',
     description='Intensity Frontier Data Handling',
     maintainer='Marc Mengel',
     maintainer_email='mengel@fnal.gov',
@@ -75,7 +77,7 @@ setup(
         'build_ext': ifdhBuild,
     },
     ext_modules=[MakeExtension('ifdh')],
-    scripts=[ 'ifdh/demo.sh', 'ifdh/ifdh_copyback.sh', 'ifdh/www_cp.sh', 'ifdh/xrdwrap.sh'],
+    scripts=[ 'ifdh/demo.sh', 'ifdh/ifdh_copyback.sh', 'ifdh/www_cp.sh', 'ifdh/xrdwrap.sh', 'ifdh/ifdh' ],
     data_files=[
         ('etc',['ifdh.cfg']),
       ],

@@ -689,7 +689,7 @@ check_grid_credentials_tokens() {
             return 1;
         }
         fgets(buf,512,pf);
-        fclose(pf);
+        pclose(pf);
 
         if (*buf >= '0' && (atol(buf) - time(0)) < 900) {
             //

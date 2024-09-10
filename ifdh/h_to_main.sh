@@ -12,7 +12,7 @@ get_env_names() {
       # get env entries from ifdh.cfg
       grep env ../ifdh.cfg | sed -e 's/.*=//'
       # get getenv calls from ifdh code
-      grep getenv *.cc ../util/*.cc | sed -e 's/.*getenv("\([A-Z_]*\)").*/\1/' | grep -v ':' 
+      grep getenv *.cc ../util/*.cc | sed -e 's/.*getenv( *"\([A-Z_]*\)" *).*/\1/' | grep -v ':' 
     ) | sort -u | grep -v '^$'
 }
 

@@ -7,7 +7,7 @@ OBJ=$(addsuffix .o,$(basename $(SRC)))
 TST=$(addsuffix -test,$(basename($SRC)))
 DEFS=
 TESTDEFS=-DUNITTEST
-CXXFLAGS=-pedantic-errors -Wall -Wextra -Werror -fPIC -g $(DEFS) $(ARCH) -I../../util -std=c++11 
+CXXFLAGS=-pedantic-errors -Wall -Wextra -Werror -fPIC -g $(DEFS) -std=c++11  -I../../util $(ARCH)
 CFLAGS=-pedantic-errors -Wall -Wextra -fPIC -g $(DEFS) $(ARCH) -I../../util --std=c99
 
 
@@ -32,8 +32,8 @@ utils-test: utils.cc WimpyConfigParser.o
 %-test: %.cc WimpyConfigParser.o
 	${CXX} -g -o $@ $(TESTDEFS) $(CXXFLAGS) $< utils.o WimpyConfigParser.o
 
-
 %.o: %.cc
 	${CXX} -c -o $@  $(CXXFLAGS) $< 
+
 utils.o: utils.cc utils.h 
 WebAPI.o: WebAPI.cc WebAPI.h 

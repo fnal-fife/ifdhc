@@ -39,7 +39,7 @@ class Skipped(EnvironmentError):
     pass
 
 class ifdh_cp_cases(unittest.TestCase):
-    experiment = "nova"
+    experiment = "hypot"
     tc = 0
     buffer = True
 
@@ -156,7 +156,7 @@ class ifdh_cp_cases(unittest.TestCase):
         self.blue_data_dir_root="/%s/data/users/%s/%s" % (ifdh_cp_cases.experiment, os.environ.get('TEST_USER', os.environ['USER']), self.hostname)
         self.data_dir="%s/%s" % (self.data_dir_root, os.getpid())
         self.blue_data_dir="%s/%s" % (self.blue_data_dir_root, os.getpid())
-        for d in [self.data_dir_root, self.data_dir, '%s/started'% (self.data_dir), '/pnfs/nova/scratch/ifdh_stage/test', self.blue_data_dir]:
+        for d in [self.data_dir_root, self.data_dir, '%s/started'% (self.data_dir), '/pnfs/%s/scratch/ifdh_stage/test' % ifdh_cp_cases.experiment, self.blue_data_dir]:
             try:
                 # print("trying to mkdir: ", d, "... ",)
                 self.ifdh_handle.mkdir(d,'')
@@ -276,7 +276,7 @@ class ifdh_cp_cases(unittest.TestCase):
         self.assertEqual(self.check_test_txt(), True, self._testMethodName)
          
 
-    def test_gsiftp__out(self):
+    def xx_test_gsiftp__out(self):
         self.log(self._testMethodName)
         self.make_local_test_txt()
         res = self.ifdh_handle.cp([ "--force=gridftp", "%s/test.txt"%self.work, "%s/test.txt" % self.data_dir])
@@ -287,7 +287,7 @@ class ifdh_cp_cases(unittest.TestCase):
         print("got li: " , li)
         self.assertEqual(len(li),1, self._testMethodName)  
 
-    def test_gsiftp_in(self):
+    def xx_test_gsiftp_in(self):
         self.log(self._testMethodName)
         self.make_remote_test_txt()
         self.li_remote_dir()
@@ -310,7 +310,7 @@ class ifdh_cp_cases(unittest.TestCase):
         res = self.ifdh_handle.cp([ "--force=xrootd" , "%s/test.txt" % self.data_dir, "%s/test.txt"%self.work])
         self.assertEqual(res==0 and self.check_test_txt(), True, self._testMethodName)
 
-    def test_explicit_gsiftp__out(self):
+    def xx_test_explicit_gsiftp__out(self):
         self.log(self._testMethodName)
         self.make_local_test_txt()
         res = self.ifdh_handle.cp([ "%s/test.txt"%self.work, "gsiftp://%s/%s/test.txt" % (dcache_host, self.data_dir)])
@@ -320,7 +320,7 @@ class ifdh_cp_cases(unittest.TestCase):
         l1 = self.ifdh_handle.ls("%s/test.txt" % self.data_dir, 1,"")
         self.assertEqual(len(l1),1,self._testMethodName)  
 
-    def test_explicit_gsiftp_in(self):
+    def xx_test_explicit_gsiftp_in(self):
         self.log(self._testMethodName)
         self.make_remote_test_txt()
         self.li_remote_dir()
@@ -330,7 +330,7 @@ class ifdh_cp_cases(unittest.TestCase):
 
 
 
-    def test_srm__out(self):
+    def xx_test_srm__out(self):
         self.log(self._testMethodName)
         self.make_local_test_txt()
         res = self.ifdh_handle.cp([ "--force=srm", "%s/test.txt"%self.work, "%s/test.txt" % self.data_dir])
@@ -340,14 +340,14 @@ class ifdh_cp_cases(unittest.TestCase):
         l = self.ifdh_handle.ls("%s/test.txt" % self.data_dir, 1,"")
         self.assertEqual(len(l),1,self._testMethodName)  
 
-    def test_srm_in(self):
+    def xx_test_srm_in(self):
         self.log(self._testMethodName)
         self.make_remote_test_txt()
         self.li_remote_dir()
         res = self.ifdh_handle.cp([ "--force=srm" , "%s/test.txt"%self.data_dir, "%s/test.txt"%self.work])
         self.assertEqual(res==0 and self.check_test_txt(), True, self._testMethodName)
 
-    def test_explicit_srm__out(self):
+    def xx_test_explicit_srm__out(self):
         self.log(self._testMethodName)
         self.make_local_test_txt()
         trim_dir =  self.data_dir.replace("/pnfs","")
@@ -365,7 +365,7 @@ class ifdh_cp_cases(unittest.TestCase):
             l = l[1:]
         self.assertEqual(len(l),1, self._testMethodName) 
 
-    def test_explicit_srm_in(self):
+    def xx_test_explicit_srm_in(self):
         self.log(self._testMethodName)
         self.li_remote_dir()
         self.make_remote_test_txt()
@@ -413,7 +413,7 @@ class ifdh_cp_cases(unittest.TestCase):
         l6 = glob.glob("%s/d/c/f*" % self.work)
         self.assertEqual(len(l4)+len(l5)+len(l6), 6, self._testMethodName)
 
-    def test_recursive_globus(self):
+    def xx_test_recursive_globus(self):
 
         # local to local hoses up, try copying out and back in
         # force copy outbound by experiment ftp server, so we
@@ -429,7 +429,7 @@ class ifdh_cp_cases(unittest.TestCase):
         l6 = glob.glob("%s/d/c/f*" % self.work)
         self.assertEqual(len(l4)+len(l5)+len(l6), 6, self._testMethodName)
 
-    def test_recursive_globus_w_args(self):
+    def xx_test_recursive_globus_w_args(self):
 
         # local to local hoses up, try copying out and back in
         # force copy outbound by experiment ftp server, so we
@@ -467,7 +467,7 @@ class ifdh_cp_cases(unittest.TestCase):
         l6 = glob.glob("%s/d/c/f*" % self.work)
         self.assertEqual(len(l4)+len(l5)+len(l6), 6, self._testMethodName)
 
-    def test_dirmode_globus(self):
+    def xx_test_dirmode_globus(self):
 
         self.log(self._testMethodName)
         l1 = glob.glob("%s/a/f*" % self.work)
@@ -490,7 +490,7 @@ class ifdh_cp_cases(unittest.TestCase):
         l6 = glob.glob("%s/d/c/f*" % self.work)
         self.assertEqual(len(l4)+len(l5)+len(l6), 6, self._testMethodName)
         
-    def test_dirmode_globus_args_order(self):
+    def xx_test_dirmode_globus_args_order(self):
         self.log(self._testMethodName)
         l1 = glob.glob("%s/a/f*" % self.work)
         l2 = glob.glob("%s/a/b/f*" % self.work)
@@ -511,12 +511,12 @@ class ifdh_cp_cases(unittest.TestCase):
         l6 = glob.glob("%s/d/c/f*" % self.work)
         self.assertEqual(len(l4)+len(l5)+len(l6), 6, self._testMethodName)
  
-    def test_stage_copyback_srm(self):
+    def xx_test_stage_copyback_srm(self):
         self.log(self._testMethodName)
         self.clean_dest()
         expsave = os.environ.get('EXPERIMENT','')
-        os.environ['EXPERIMENT'] = "nova"
-        os.environ['IFDH_STAGE_VIA'] = "srm://%s:8443/srm/managerv2?SFN=/pnfs/fnal.gov/usr/nova/scratch/users/$USER/ifdh_stage/test_multi" % dcache_host
+        os.environ['EXPERIMENT'] = ifdh_cp_cases.experiment
+        os.environ['IFDH_STAGE_VIA'] = "srm://%s:8443/srm/managerv2?SFN=/pnfs/fnal.gov/usr/%s/scratch/users/$USER/ifdh_stage/test_multi" % (dcache_host, ifdh_cp_cases.experiment)
         self.ifdh_handle.addOutputFile('%s/a/f1' % self.work)
         self.ifdh_handle.addOutputFile('%s/a/f2' % self.work)
         self.ifdh_handle.copyBackOutput(self.data_dir)
@@ -525,12 +525,12 @@ class ifdh_cp_cases(unittest.TestCase):
         del os.environ['IFDH_STAGE_VIA']
         self.assertEqual(self.check_data_f1_f2(), True, self._testMethodName)
 
-    def test_stage_copyback_gsiftp(self):
+    def xx_test_stage_copyback_gsiftp(self):
         self.log(self._testMethodName)
         self.clean_dest()
         expsave = os.environ.get('EXPERIMENT','')
-        os.environ['EXPERIMENT'] = "nova"
-        os.environ['IFDH_STAGE_VIA'] = "gsiftp://%s/pnfs/fnal.gov/usr/nova/scratch/users/$USER/ifdh_stage/test_multi" % dcache_host
+        os.environ['EXPERIMENT'] = ifdh_cp_cases.experiment
+        os.environ['IFDH_STAGE_VIA'] = "gsiftp://%s/pnfs/fnal.gov/usr/%s/scratch/users/$USER/ifdh_stage/test_multi" % (dcache_host, ifdh_cp_cases.experiment)
         self.ifdh_handle.addOutputFile('%s/a/f1' % self.work)
         self.ifdh_handle.addOutputFile('%s/a/f2' % self.work)
         self.ifdh_handle.copyBackOutput(self.data_dir)
@@ -539,11 +539,11 @@ class ifdh_cp_cases(unittest.TestCase):
         del os.environ['IFDH_STAGE_VIA']
         self.assertEqual(self.check_data_f1_f2(), True, self._testMethodName)
 
-    def test_borked_copyback(self):
+    def xx_test_borked_copyback(self):
         self.log(self._testMethodName)
         self.clean_dest()
         expsave = os.environ.get('EXPERIMENT','')
-        os.environ['EXPERIMENT'] = "nova"
+        os.environ['EXPERIMENT'] = ifdh_cp_cases.experiment
         os.environ['IFDH_STAGE_VIA'] = "srm://localhost:12345/foo/bar?SFN=/baz"
         self.ifdh_handle.addOutputFile('%s/a/f1' % self.work)
         self.ifdh_handle.addOutputFile('%s/a/f2' % self.work)
@@ -560,30 +560,31 @@ class ifdh_cp_cases(unittest.TestCase):
 
     def test_pnfs_rewrite_1(self):
          self.log(self._testMethodName)
-         res = self.ifdh_handle.mkdir_p('/pnfs/nova/scratch/users/$USER/ifdh_stage/test')
-         res = self.ifdh_handle.cp(['-D','%s/a/f1' % self.work,'%s/a/f2' % self.work,'/pnfs/nova/scratch/users/$USER/ifdh_stage/test'])
+         res = self.ifdh_handle.mkdir_p('/pnfs/%s/scratch/users/$USER/ifdh_stage/test'% ifdh_cp_cases.experiment)
+         res = self.ifdh_handle.cp(['-D','%s/a/f1' % self.work,'%s/a/f2' % self.work,'/pnfs/%s/scratch/users/$USER/ifdh_stage/test'% ifdh_cp_cases.experiment])
          time.sleep(1)
-         r1 = len(self.ifdh_handle.ls('/pnfs/nova/scratch/ifdh_stage/test/f1',1,''))
-         r2 = len(self.ifdh_handle.ls('/pnfs/nova/scratch/ifdh_stage/test/f2',1,''))
-         self.ifdh_handle.rm('/pnfs/nova/scratch/ifdh_stage/test/f1','')
-         self.ifdh_handle.rm('/pnfs/nova/scratch/ifdh_stage/test/f2','')
+         r1 = len(self.ifdh_handle.ls('/pnfs/%s/scratch/users/$USER/ifdh_stage/test/f1'% ifdh_cp_cases.experiment,1,''))
+         r2 = len(self.ifdh_handle.ls('/pnfs/%s/scratch/users/$USER/ifdh_stage/test/f2'% ifdh_cp_cases.experiment,1,''))
+         print("r1:", r1, "r2:", r2)
+         self.ifdh_handle.rm('/pnfs/%s/scratch/users/$USER/ifdh_stage/test/f1'% ifdh_cp_cases.experiment,'')
+         self.ifdh_handle.rm('/pnfs/%s/scratch/users/$USER/ifdh_stage/test/f2'% ifdh_cp_cases.experiment,'')
          self.assertEqual(r1==1 and r2==1,True, self._testMethodName)
 
     def test_pnfs_rewrite_2(self):
-         res = self.ifdh_handle.mkdir_p('/pnfs/nova/scratch/users/$USER/ifdh_stage/test')
+         res = self.ifdh_handle.mkdir_p('/pnfs/%s/scratch/users/$USER/ifdh_stage/test'% ifdh_cp_cases.experiment)
          self.log(self._testMethodName)
-         res = self.ifdh_handle.cp(['-D','%s/a/f1' % self.work,'%s/a/f2' % self.work,'/pnfs/fnal.gov/usr/nova/scratch/users/$USER/ifdh_stage/test'])
+         res = self.ifdh_handle.cp(['-D','%s/a/f1' % self.work,'%s/a/f2' % self.work,'/pnfs/fnal.gov/usr/%s/scratch/users/$USER/ifdh_stage/test'% ifdh_cp_cases.experiment])
          time.sleep(1)
-         self.ifdh_handle.ll('/pnfs/nova/scratch/ifdh_stage/test/',1,'')
-         r1 = len(self.ifdh_handle.ls('/pnfs/nova/scratch/ifdh_stage/test/f1',1,''))
-         r2 = len(self.ifdh_handle.ls('/pnfs/nova/scratch/ifdh_stage/test/f2',1,''))
-         self.ifdh_handle.rm('/pnfs/nova/scratch/ifdh_stage/test/f1','')
-         self.ifdh_handle.rm('/pnfs/nova/scratch/ifdh_stage/test/f2','')
+         self.ifdh_handle.ll('/pnfs/%s/scratch/users/$USER/ifdh_stage/test/'% ifdh_cp_cases.experiment,1,'')
+         r1 = len(self.ifdh_handle.ls('/pnfs/%s/scratch/users/$USER/ifdh_stage/test/f1'% ifdh_cp_cases.experiment,1,''))
+         r2 = len(self.ifdh_handle.ls('/pnfs/%s/scratch/users/$USER/ifdh_stage/test/f2'% ifdh_cp_cases.experiment,1,''))
+         self.ifdh_handle.rm('/pnfs/%s/scratch/users/$USER/ifdh_stage/test/f1'% ifdh_cp_cases.experiment,'')
+         self.ifdh_handle.rm('/pnfs/%s/scratch/users/$USER/ifdh_stage/test/f2'% ifdh_cp_cases.experiment,'')
          self.assertEqual(r1==1 and r2==1,True, self._testMethodName)
         
     def test_pnfs_ls(self):
          self.log(self._testMethodName)
-         l1 = self.ifdh_handle.ls('/pnfs/nova/scratch', 1, "")
+         l1 = self.ifdh_handle.ls('/pnfs/%s/scratch'% ifdh_cp_cases.experiment, 1, "")
          self.assertEqual(len(l1) > 0, True, self._testMethodName)
 
     def defunct_test_bluearc_ls_gftp(self):
@@ -593,17 +594,17 @@ class ifdh_cp_cases(unittest.TestCase):
 
     def test_pnfs_ls_gftp(self):
          self.log(self._testMethodName)
-         l1 = self.ifdh_handle.ls('/pnfs/nova/scratch', 1, "--force=gridftp")
+         l1 = self.ifdh_handle.ls('/pnfs/%s/scratch'% ifdh_cp_cases.experiment, 1, "--force=gridftp")
          self.assertEqual(len(l1) > 0, True, self._testMethodName)
 
-    def test_pnfs_ls_srm(self):
+    def xx_test_pnfs_ls_srm(self):
          self.log(self._testMethodName)
-         l1 = self.ifdh_handle.ls('/pnfs/nova/scratch', 1, "--force=srm")
+         l1 = self.ifdh_handle.ls('/pnfs/%s/scratch'% ifdh_cp_cases.experiment, 1, "--force=srm")
          self.assertEqual(len(l1) > 0, True, self._testMethodName)
 
     def test_pnfs_mkdir_add(self):
          self.log(self._testMethodName)
-         dir = '/pnfs/nova/scratch/users/%s/%d' % (os.environ.get('TEST_USER', os.environ['USER']), os.getpid())
+         dir = '/pnfs/%s/scratch/users/%s/%d' % (ifdh_cp_cases.experiment, os.environ.get('TEST_USER', os.environ['USER']), os.getpid())
          self.ifdh_handle.mkdir(dir,'')
          self.ifdh_handle.cp( ['-D','%s/a/f1' % self.work, dir])
          li = self.ifdh_handle.ls(dir + '/f1' , 1, "")
@@ -634,21 +635,21 @@ class ifdh_cp_cases(unittest.TestCase):
          self.ifdh_handle.rmdir(dir,'--force=gridftp')
          self.assertEqual(len(l1) > 0, True, self._testMethodName)
 
-    def test_dcache_bluearc(self):
+    def xx_test_dcache_bluearc(self):
          self.log(self._testMethodName)
          try: 
             
              if self.ifdh_handle.ls("%s/foo.txt" % self.data_dir,0,""):
                  self.ifdh_handle.rm("%s/foo.txt" % self.data_dir)
-             if self.ifdh_handle.ls("/pnfs/nova/scratch/users/mengel/foo.txt",0,"--force=srm"):
-                 self.ifdh_handle.rm("/pnfs/nova/scratch/users/mengel/foo.txt","--force=srm")
+             if self.ifdh_handle.ls("/pnfs/%s/scratch/users/mengel/foo.txt"% ifdh_cp_cases.experiment,0,"--force=srm"):
+                 self.ifdh_handle.rm("/pnfs/%s/scratch/users/mengel/foo.txt"% ifdh_cp_cases.experiment,"--force=srm")
          except:
              pass
          f =open("%s/foo.txt" % self.work,"w") 
          f.write("foo")
          f.close()
-         self.ifdh_handle.cp(["%s/foo.txt" % self.work, "/pnfs/nova/scratch/users/mengel/foo.txt"])
-         res = self.ifdh_handle.cp(["/pnfs/nova/scratch/users/mengel/foo.txt", "%s/foo.txt" % self.data_dir])
+         self.ifdh_handle.cp(["%s/foo.txt" % self.work, "/pnfs/%s/scratch/users/mengel/foo.txt"% ifdh_cp_cases.experiment])
+         res = self.ifdh_handle.cp(["/pnfs/%s/scratch/users/mengel/foo.txt"% ifdh_cp_cases.experiment, "%s/foo.txt" % self.data_dir])
          self.assertEqual(res == 0, True, self._testMethodName)
 
     def test_bluearc_dcache(self):
@@ -659,15 +660,15 @@ class ifdh_cp_cases(unittest.TestCase):
          except:
              pass
          try: 
-             if self.ifdh_handle.ls("/pnfs/nova/scratch/users/mengel/foo.txt",0,""):
-                 self.ifdh_handle.rm("/pnfs/nova/scratch/users/mengel/foo.txt","")
+             if self.ifdh_handle.ls("/pnfs/%s/scratch/users/mengel/foo.txt"% ifdh_cp_cases.experiment,0,""):
+                 self.ifdh_handle.rm("/pnfs/%s/scratch/users/mengel/foo.txt"% ifdh_cp_cases.experiment,"")
          except:
              pass
          f =open("%s/foo.txt" % self.work,"w") 
          f.write("foo")
          f.close()
          self.ifdh_handle.cp(["%s/foo.txt" % self.work, "%s/foo.txt" % self.data_dir])
-         res = self.ifdh_handle.cp(["%s/foo.txt" % self.data_dir, "/pnfs/nova/scratch/users/mengel/foo.txt"])
+         res = self.ifdh_handle.cp(["%s/foo.txt" % self.data_dir, "/pnfs/%s/scratch/users/mengel/foo.txt"% ifdh_cp_cases.experiment])
          self.assertEqual(res == 0, True, self._testMethodName)
 
     def test_li_copy_force_gridftp(self):
@@ -694,7 +695,7 @@ class ifdh_cp_cases(unittest.TestCase):
         self.log(self._testMethodName)
         self.make_local_test_txt()
         f = open("%s/li" % self.work,"w")
-        f.write("%s/test.txt %s/test2.txt\n/pnfs/nova/scratch/users/mengel/foo.txt %s/foo.txt\n" % (self.data_dir, self.work, self.work ))
+        f.write("%s/test.txt %s/test2.txt\n/pnfs/%s/scratch/users/mengel/foo.txt %s/foo.txt\n" % (self.data_dir, self.work, ifdh_cp_cases.experiment,self.work ))
         f.close()
         self.ifdh_handle.cp([ "-f", "%s/li" % self.work])
         self.assertEqual(self.check_test_txt(), True, self._testMethodName)

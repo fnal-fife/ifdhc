@@ -58,7 +58,7 @@ class retrycases(unittest.TestCase):
         except:
             pass
         sys.stdout.flush()
-        self.exp = 'nova'
+        self.exp = 'hypot'
 
     def tearDown(self):
         pass

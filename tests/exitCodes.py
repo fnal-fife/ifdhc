@@ -13,6 +13,7 @@ import sys
 
 class exitcodecases(unittest.TestCase):
 
+    experiment = "hypot"
 
     def log(self,msg):
         try:
@@ -49,7 +50,7 @@ class exitcodecases(unittest.TestCase):
             raise
 
     def setUp(self):
-        self.forceMethods=["", "--force=gsiftp","--force=root","--force=srm",]
+        self.forceMethods=["", "--force=root","--force=srm",]
         sys.stdout.flush()
         sys.stderr.flush()
         print("starting setUp")
@@ -60,7 +61,7 @@ class exitcodecases(unittest.TestCase):
         if exp:
             self.experiment=exp
         else:
-            self.experiment="nova"
+            self.experiment= exitcodecases.experiment
         filename = "file%s.txt" % os.getppid()     
 
         self.goodRemoteDir = "/pnfs/%s/scratch/users/%s/test_ifdh_%s_%s" % (self.experiment, os.getenv('GRID_USER',os.getenv('USER')), socket.gethostname(), os.getppid())

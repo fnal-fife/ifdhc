@@ -9,13 +9,11 @@ import sys
 from tempfile import NamedTemporaryFile
 
 
-base_uri_fmt = "http://samweb.fnal.gov:8480/sam/%s/api"
-
 class Skipped(EnvironmentError):
     pass
 
 class aux_file_cases(unittest.TestCase):
-    experiment = "nova"
+    experiment = "hypot"
     tc = 0
     buffer = True
 
@@ -28,16 +26,6 @@ class aux_file_cases(unittest.TestCase):
             print("%s - continuing"%sys.exc_info()[1])
             pass
 
-    def mk_remote_dir(self,dir,opts=''):
-        try:
-            os.system('uberftp -mkdir "gsiftp://fg-bestman1.fnal.gov:2811%s" > /dev/null 2>&1' % (dir))
-        except:
-            pass
-        try:
-            os.system('uberftp -chmod 775 "gsiftp://fg-bestman1.fnal.gov:2811%s" > /dev/null 2>&1' % (dir))
-        except:
-            pass
-
     def assertEqual(self,a,b,test=None):
         try:
             super(aux_file_cases,self).assertEqual(a,b)
@@ -46,15 +34,10 @@ class aux_file_cases(unittest.TestCase):
             self.log("FAIL %s  assertEqual(%s,%s)"%(test,a,b))
             raise
 
-
-    def dirlog(self,msg):
-        self.log(msg)
-        self.mk_remote_dir('%s/%s'%(self.data_dir,msg))
-
     def setUp(self):
         print("-----setup----")
         os.environ['EXPERIMENT'] =  aux_file_cases.experiment
-        self.ifdh_handle = ifdh.ifdh(base_uri_fmt % aux_file_cases.experiment)
+        self.ifdh_handle = ifdh.ifdh()
         self.hostname = socket.gethostname()
         self.work="%s/work%d" % (os.environ.get('TMPDIR','/tmp'),os.getpid())
         self.data_dir_root="/grid/data/%s/%s" % (os.environ.get('TEST_USER', os.environ['USER']), self.hostname)

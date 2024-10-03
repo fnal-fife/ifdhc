@@ -593,6 +593,7 @@ WebAPI::WebAPI(std::string url, int postflag, std::string postdata, int maxretri
          }
          if (_status == 303) {
             //redirected, but to a GET...
+            postdata = "";
             postflag = 0;
          }
 

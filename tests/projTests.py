@@ -19,14 +19,21 @@ else:
 
 class SAMCases(unittest.TestCase):
     counter = 0			# overall state
+<<<<<<< Updated upstream
     testfile = None		# filename that exists there
+=======
+    test_file =  "a9d1b4da-74ad-4c4f-8d72-c9e6507531b8-d.fcl"
+    test_file2 = "e0d98f93-e5a3-41de-bf2d-207d57ea8b53-c.fcl"
+>>>>>>> Stashed changes
     testdataset = "gen_cfg"  # dataset that exists there with one file in it
     experiment = None           # experiment/station/group name
     curproject = None		# project we've started
     curconsumer = None		# consumer we've started
 
     def setUp(self):
-        self.ifdh_handle = ifdh.ifdh(base_uri_fmt % SAMCases.experiment)
+        os.environ["EXPERIMENT"] = SAMCases.experiment
+        self.ifdh_handle = ifdh.ifdh()
+        self.ifdh_handle.set_debug("2")
         self.hostname = socket.gethostname()
           
     def tearDown(self):
@@ -108,8 +115,10 @@ class SAMCases(unittest.TestCase):
         
     def test_2_locate_found(self):
         self.log(self._testMethodName)
-        list = self.ifdh_handle.locateFile(SAMCases.test_file)
-        self.assertNotEqual(len(list), 0,self._testMethodName)
+        flist = self.ifdh_handle.locateFile(SAMCases.test_file)
+        self.log("Locating: %s in %s yeilds %s" % (
+            SAMCases.test_file, os.environ["EXPERIMENT"], repr(flist)))
+        self.assertNotEqual(len(flist), 0,self._testMethodName)
 
     def test_2_locate_multi_found(self):
         self.log(self._testMethodName)
@@ -129,7 +138,11 @@ class SAMCases(unittest.TestCase):
     def test_4_startproject(self):
         self.log(self._testMethodName)
         SAMCases.curproject = "testproj%s_%d_%d" % (self.hostname, os.getpid(),time.time())
-        url =  self.ifdh_handle.startProject(SAMCases.curproject,SAMCases.experiment, SAMCases.defname, os.environ.get('TEST_USER', os.environ['USER']), SAMCases.experiment)
+        if SAMCases.experiment == "hypot":
+           exp = "samdev"
+        else:
+           exp = SAMCases.experiment
+        url =  self.ifdh_handle.startProject(SAMCases.curproject,exp, SAMCases.defname, os.environ.get('TEST_USER', os.environ['USER']), exp)
         self.assertNotEqual(url, '',self._testMethodName)
 
     def test_5_startclient(self):

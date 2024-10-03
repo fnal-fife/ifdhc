@@ -191,15 +191,11 @@ ifdh::do_url_lst(int postflag,...) {
 
 int 
 ifdh::declareFile(string json_metadata) {
-  // debug...
-  WebAPI::_debug = 1;
   return do_url_int(2,ssl_uri(_baseuri).c_str(),"files","",json_metadata.c_str(),"","","");
 }
 
 int 
 ifdh::modifyMetadata(string filename, string json_metadata) {
-  // debug...
-  WebAPI::_debug = 1;
   return do_url_int(2,ssl_uri(_baseuri).c_str(),"files","name",filename.c_str(),"metadata","",json_metadata.c_str(),"","","");
 }
 
@@ -226,7 +222,7 @@ ifdh::takeSnapshot( string name ) {
 
 string 
 ifdh::describeDefinition( string name) {
-  return do_url_str(0,ssl_uri(_baseuri).c_str(),"definitions", "name", name.c_str(), "describe",  "","");
+  return do_url_str(0,ssl_uri(_baseuri).c_str(),"definitions", "name", name.c_str(),  "","");
 }
 
 vector<string> 

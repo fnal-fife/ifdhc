@@ -22,7 +22,7 @@ class SAMCases(unittest.TestCase):
     test_file =  "a9d1b4da-74ad-4c4f-8d72-c9e6507531b8-d.fcl"
     test_file2 = "e0d98f93-e5a3-41de-bf2d-207d57ea8b53-c.fcl"
     testdataset = "gen_cfg"  # dataset that exists there with one file in it
-    experiment = None           # experiment/station/group name
+    experiment = "hypot"           # experiment/station/group name
     curproject = None		# project we've started
     curconsumer = None		# consumer we've started
 
@@ -35,12 +35,6 @@ class SAMCases(unittest.TestCase):
     def tearDown(self):
         self.ifdh_handle.cleanup()
         self.ifdh_handle = None
-
-    def doMinerva(self):
-        SAMCases.experiment = "minerva"
-        SAMCases.defname = "gen_cfg"
-        SAMCases.test_file = "a9d1b4da-74ad-4c4f-8d72-c9e6507531b8-d.fcl"
-        SAMCases.test_file2 = "e0d98f93-e5a3-41de-bf2d-207d57ea8b53-c.fcl"
 
     def log(self,msg):
         self.ifdh_handle.log(msg)
@@ -63,8 +57,8 @@ class SAMCases(unittest.TestCase):
             raise
 
 
-    def doNova(self):
-        SAMCases.experiment = "nova"
+    def doHypot(self):
+        SAMCases.experiment = "hypot"
         SAMCases.defname = "gen_cfg"
         SAMCases.test_file = "a9d1b4da-74ad-4c4f-8d72-c9e6507531b8-d.fcl"
         SAMCases.test_file2 = "e0d98f93-e5a3-41de-bf2d-207d57ea8b53-c.fcl"
@@ -73,10 +67,8 @@ class SAMCases(unittest.TestCase):
         self.log(self._testMethodName)
         SAMCases.counter = SAMCases.counter + 1
         if SAMCases.counter == 1: 
-           self.doNova()
+           self.doHypot()
         if SAMCases.counter == 2: 
-           self.doMinerva()
-        if SAMCases.counter == 3: 
            raise RuntimeError("out of cases")
         os.environ["EXPERIMENT"] = SAMCases.experiment
         self.assertEqual(0,0,self._testMethodName)

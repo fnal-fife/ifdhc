@@ -54,7 +54,7 @@ class argparsecases(unittest.TestCase):
         self.ifdh_handle = ifdh.ifdh()
         os.environ['IFDH_CP_MAXRETRIES'] = "0"
         sys.stdout.flush()
-        self.exp = 'nova'
+        self.exp = 'hypot'
 
     def tearDown(self):
         pass

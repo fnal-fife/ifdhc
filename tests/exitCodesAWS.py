@@ -13,6 +13,7 @@ import sys
 
 class exitcodecases(unittest.TestCase):
 
+    experiment = "hypot"
 
     def log(self,msg):
         try:
@@ -55,7 +56,7 @@ class exitcodecases(unittest.TestCase):
         if exp:
             self.experiment=exp
         else:
-            self.experiment="nova"
+            self.experiment=exitcodecases.experiment
         filename = "file%s.txt" % os.getpid()     
         self.goodRemoteDir = "s3://test_ifdh_%s_%s/" % ( socket.gethostname(), os.getpid())
         self.goodRemoteFile = "%s%s" % (self.goodRemoteDir, filename)

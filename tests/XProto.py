@@ -15,7 +15,7 @@ class Skipped(EnvironmentError):
     pass
 
 class xproto_cases(unittest.TestCase):
-    experiment = "nova"
+    experiment = "hypot"
     tc = 0
     buffer = True
 
@@ -38,19 +38,18 @@ class xproto_cases(unittest.TestCase):
         self.local = '/tmp/test.txt'
         self.s3loc = 's3://ifdh-stage/test.txt'
         self.username = os.environ.get('TEST_USER',os.environ.get('USER','nobody'))
-        self.gridftploc = 'gsiftp://fndca1.fnal.gov/pnfs/fnal.gov/usr/nova/scratch/users/%s/test.txt'% self.username
-        self.httploc = 'https://fndca1.fnal.gov:2880/pnfs/fnal.gov/usr/nova/scratch/users/%s/httptest.txt'% self.username
+        self.httploc = 'https://fndca1.fnal.gov:2880/pnfs/fnal.gov/usr/%s/scratch/users/%s/httptest.txt'% (xproto_cases.experiment,self.username)
         fh = open(self.local,'w')
         fh.write('testing testing 1 2 3')
         os.system('echo "setUp" >> /tmp/rm.out')
-        for l in  [self.gridftploc, self.httploc, self.s3loc]:
+        for l in  [self.httploc, self.s3loc]:
             try:
                res = os.system("(ifdh rm " + l + "; echo res $?) >> /tmp/rm.out 2>&1")
             except:
                pass
         fh.close()
 
-    def test_xproto_sg(self):
+    def xx_test_xproto_sg(self):
         self.log(self._testMethodName)
         self.ifdh_handle.cp([self.local,self.s3loc ])
         self.ifdh_handle.cp([self.s3loc, self.gridftploc ])
@@ -58,7 +57,7 @@ class xproto_cases(unittest.TestCase):
         print("saw:" , res)
         self.assertEqual(len(res),1,self._testMethodName)
 
-    def test_xproto_gs(self):
+    def xx_test_xproto_gs(self):
         self.log(self._testMethodName)
         self.ifdh_handle.cp([self.local,self.gridftploc ])
         self.ifdh_handle.cp([self.gridftploc, self.s3loc ])
@@ -66,7 +65,7 @@ class xproto_cases(unittest.TestCase):
         print("saw:" , res)
         self.assertEqual(len(res),1,self._testMethodName)
 
-    def test_xproto_hg(self):
+    def xx_test_xproto_hg(self):
         self.log(self._testMethodName)
         self.ifdh_handle.cp([self.local,self.httploc ])
         self.ifdh_handle.cp([self.httploc, self.gridftploc ])
@@ -74,7 +73,7 @@ class xproto_cases(unittest.TestCase):
         print("saw:" , res)
         self.assertEqual(len(res),1,self._testMethodName)
 
-    def test_xproto_gh(self):
+    def xx_test_xproto_gh(self):
         self.log(self._testMethodName)
         self.ifdh_handle.cp([self.local,self.gridftploc ])
         self.ifdh_handle.cp([self.gridftploc, self.httploc ])

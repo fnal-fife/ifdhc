@@ -19,12 +19,8 @@ else:
 
 class SAMCases(unittest.TestCase):
     counter = 0			# overall state
-<<<<<<< Updated upstream
-    testfile = None		# filename that exists there
-=======
     test_file =  "a9d1b4da-74ad-4c4f-8d72-c9e6507531b8-d.fcl"
     test_file2 = "e0d98f93-e5a3-41de-bf2d-207d57ea8b53-c.fcl"
->>>>>>> Stashed changes
     testdataset = "gen_cfg"  # dataset that exists there with one file in it
     experiment = None           # experiment/station/group name
     curproject = None		# project we've started

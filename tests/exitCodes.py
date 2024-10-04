@@ -60,7 +60,7 @@ class exitcodecases(unittest.TestCase):
         if exp:
             self.experiment=exp
         else:
-            self.experiment="nova"
+            self.experiment="hypot"
         filename = "file%s.txt" % os.getppid()     
 
         self.goodRemoteDir = "/pnfs/%s/scratch/users/%s/test_ifdh_%s_%s" % (self.experiment, os.getenv('GRID_USER',os.getenv('USER')), socket.gethostname(), os.getppid())

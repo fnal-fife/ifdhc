@@ -36,7 +36,7 @@ PYMOD_OBJS=$(ALL_OBJS) ifdh_pybindgen.o
 ifeq ($(UNAME),Darwin)
 LDLIBS=-lz -lcrypto
 else
-LDLIBS=-lz -luuid -lcrypto
+LDLIBS=-lz -luuid
 endif
 DIRS=python
 ALL=ifdh python/ifdh.$(SHLIB) libifdh.$(SHLIB) libifdh.a

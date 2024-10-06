@@ -1,12 +1,12 @@
 #import unittest2 as unittest
 import unittest
-import ifdh
 import socket
 import os
 import time
 import glob
 import sys
 from tempfile import NamedTemporaryFile
+import hypot_test_env
 
 
 class Skipped(EnvironmentError):
@@ -35,6 +35,8 @@ class aux_file_cases(unittest.TestCase):
             raise
 
     def setUp(self):
+        hypot_test_env.hypot_test_env()
+        import ifdh
         print("-----setup----")
         os.environ['EXPERIMENT'] =  aux_file_cases.experiment
         self.ifdh_handle = ifdh.ifdh()

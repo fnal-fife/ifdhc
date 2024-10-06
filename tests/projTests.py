@@ -1,10 +1,10 @@
 #import unittest2 as unittest
 import unittest
-import ifdh
 import socket
 import os
 import time
 import sys
+import hypot_test_env
 
 #
 # flag to use development sam instances
@@ -27,6 +27,8 @@ class SAMCases(unittest.TestCase):
     curconsumer = None		# consumer we've started
 
     def setUp(self):
+        hypot_test_env.hypot_test_env()
+        import ifdh
         os.environ["EXPERIMENT"] = SAMCases.experiment
         self.ifdh_handle = ifdh.ifdh()
         self.ifdh_handle.set_debug("2")

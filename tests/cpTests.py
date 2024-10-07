@@ -1,25 +1,18 @@
 #import unittest2 as unittest
 import unittest
 import contextlib
-import ifdh
 import socket
 import os
 import time
 import glob
 import sys
+import hypot_test_env
 from tempfile import NamedTemporaryFile
 try:
    import configparser as ConfigParser
 except:
    import ConfigParser
 
-base_uri_fmt = "https://samweb.fnal.gov:8483/sam/%s/api"
-
-# get our dcache host from the config file so we can test
-# alternate dcache instances...
-cp = ConfigParser.ConfigParser()
-cp.read(os.environ["IFDHC_CONFIG_DIR"]+"/ifdh.cfg")
-#dcache_host = cp.get('location dcache_stken', 'prefix_srm').replace("srm://","").replace("/pnfs/fnal.gov/usr/","")
 dcache_host = "fndcadoor.fnal.gov"
 
 @contextlib.contextmanager
@@ -140,16 +133,18 @@ class ifdh_cp_cases(unittest.TestCase):
 
        
     def setUp(self):
+        hypot_test_env.hypot_test_env()
         with redir_stderr_fd() as dupedstderr:
              self.setUp_impl()
 
     def setUp_impl(self):
+        import ifdh
         print("-----setup----")
         os.environ['IFDH_CP_MAXRETRIES'] = "0"
         os.environ['EXPERIMENT'] =  ifdh_cp_cases.experiment
         os.environ['SAVE_CPN_DIR'] = os.environ.get('CPN_DIR','')
         os.environ['CPN_DIR'] = '/no/such/dir'
-        self.ifdh_handle = ifdh.ifdh(base_uri_fmt % ifdh_cp_cases.experiment)
+        self.ifdh_handle = ifdh.ifdh()
         self.hostname = socket.gethostname()
         self.work="%s/work%d" % (os.environ.get('TMPDIR','/tmp'),os.getpid())
         self.data_dir_root="/pnfs/fnal.gov/usr/%s/scratch/users/%s/%s" % (ifdh_cp_cases.experiment, os.environ.get('TEST_USER', os.environ['USER']), self.hostname)

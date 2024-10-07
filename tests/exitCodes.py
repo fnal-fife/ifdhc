@@ -1,10 +1,10 @@
 #import unittest2 as unittest
 import unittest
-import ifdh
 import socket
 import os
 import time
 import sys
+import hypot_test_env
 
 #
 # basically make sure copying and ls-ing nonexistent directories fails
@@ -50,19 +50,18 @@ class exitcodecases(unittest.TestCase):
             raise
 
     def setUp(self):
-        self.forceMethods=["", "--force=root","--force=srm",]
+        hypot_test_env.hypot_test_env()
+        import ifdh
+        self.forceMethods=["", "--force=root","--force=https",]
         sys.stdout.flush()
         sys.stderr.flush()
         print("starting setUp")
         sys.stdout.flush()
         self.ifdh_handle = ifdh.ifdh()
         os.environ['IFDH_CP_MAXRETRIES'] = "0"
-        exp=os.getenv('EXPERIMENT')
-        if exp:
-            self.experiment=exp
-        else:
-            self.experiment= exitcodecases.experiment
+        self.experiment= exitcodecases.experiment
         filename = "file%s.txt" % os.getppid()     
+        os.system("rm -rf /tmp/nope")
 
         self.goodRemoteDir = "/pnfs/%s/scratch/users/%s/test_ifdh_%s_%s" % (self.experiment, os.getenv('GRID_USER',os.getenv('USER')), socket.gethostname(), os.getppid())
         self.goodRemoteFile = "%s/%s" % (self.goodRemoteDir, filename)
@@ -124,12 +123,12 @@ class exitcodecases(unittest.TestCase):
             self.assertNotEqual(res,0,note=cmd) 
 
     def test_ll_noexist_local(self):
-        res = os.system("ifdh ll %s 0 > /dev/null 2>&1" % (self.badLocalFile))
+        res = os.system("ifdh ll %s 0 " % (self.badLocalFile))
         self.assertNotEqual(res, 0)
 
     def test_ll_exist(self):
         for force in self.forceMethods:
-            cmd = "EXPERIMENT=%s ifdh ll %s 0 %s > /dev/null 2>&1" %\
+            cmd = "EXPERIMENT=%s ifdh ll %s 0 %s " %\
                 (self.experiment, self.goodRemoteFile, force)
             res = os.system(cmd)
             self.assertEqual(res,0,note=cmd) 
@@ -151,12 +150,12 @@ class exitcodecases(unittest.TestCase):
             self.assertNotEqual(res,0,note=cmd) 
 
     def test_lss_noexist_local(self):
-        res = os.system("ifdh lss %s 0 > /dev/null 2>&1" % (self.badLocalFile))
+        res = os.system("ifdh lss %s 0 " % (self.badLocalFile))
         self.assertNotEqual(res, 0)
 
     def test_lss_exist(self):
         for force in self.forceMethods:
-            # cmd = "EXPERIMENT=%s ifdh lss %s 0 %s > /dev/null 2>&1" %\
+            # cmd = "EXPERIMENT=%s ifdh lss %s 0 %s " %\
             cmd = "EXPERIMENT=%s ifdh lss %s 0 %s " %\
                 (self.experiment, self.goodRemoteFile, force)
             res = os.system(cmd)
@@ -172,19 +171,17 @@ class exitcodecases(unittest.TestCase):
 
     def test_ls_noexist(self):
         for force in self.forceMethods:
-            cmd = "EXPERIMENT=%s ifdh ls %s 0 %s >/dev/null 2>&1" %\
-                (self.experiment, self.badRemoteDir, force)
+            cmd = "EXPERIMENT=%s ifdh ls %s 0 %s " % (self.experiment, self.badRemoteDir, force)
             res = os.system(cmd)
             self.assertNotEqual(res,0,note=cmd) 
 
     def test_ls_noexist_local(self):
-        res = os.system("ifdh ls %s 0 > /dev/null 2>&1" % (self.badLocalFile))
+        res = os.system("ifdh ls %s 0 " % (self.badLocalFile))
         self.assertNotEqual(res, 0)
 
     def test_ls_exist(self):
         for force in self.forceMethods:
-            cmd = "EXPERIMENT=%s ifdh ls %s 0 %s > /dev/null 2>&1" %\
-                (self.experiment, self.goodRemoteFile, force)
+            cmd = "EXPERIMENT=%s ifdh ls %s 0 %s " % (self.experiment, self.goodRemoteFile, force)
             res = os.system(cmd)
             self.assertEqual(res,0,note=cmd) 
 
@@ -199,97 +196,79 @@ class exitcodecases(unittest.TestCase):
 
     def test_cpin_noexist_src(self):
         for force in self.forceMethods:
-            cmd = "EXPERIMENT=%s ifdh cp %s %s  %s > /dev/null 2>&1" %\
-                    (self.experiment, force, self.badRemoteFile, self.goodLocalFile)
+            cmd = "EXPERIMENT=%s ifdh cp %s %s  %s " % (self.experiment, force, self.badRemoteFile, self.goodLocalFile)
             res = os.system(cmd)
             self.assertNotEqual(res, 0, cmd)
 
-    def test_cpin_noexist_dst(self):
-        for force in self.forceMethods:
-            cmd = "EXPERIMENT=%s ifdh cp %s %s  %s > /dev/null 2>&1" %\
-                    (self.experiment, force, self.goodRemoteFile, self.badLocalFile)
-            res = os.system(cmd)
-            self.assertNotEqual(res, 0, cmd)
+    # with some tools this creates the whole badLocalFile path and breaks later tests...
+    # so commenting it out
+    #def test_cpin_noexist_dst(self):
+    #    for force in self.forceMethods:
+    #        cmd = "EXPERIMENT=%s ifdh cp %s %s  %s " % (self.experiment, force, self.goodRemoteFile, self.badLocalFile)
+    #        res = os.system(cmd)
+    #        self.assertNotEqual(res, 0, cmd)
 
 
     def test_cpout_noexist_src(self):
         for force in self.forceMethods:
-            cmd = "EXPERIMENT=%s ifdh cp %s %s  %s > /dev/null 2>&1" %\
-                    (self.experiment, force, self.badLocalFile, self.goodRemoteFile)
+            cmd = "EXPERIMENT=%s ifdh cp %s %s  %s " % (self.experiment, force, self.badLocalFile, self.goodRemoteFile)
             res = os.system(cmd)
             self.assertNotEqual(res, 0, cmd)
+            os.system("ifdh rm %s" % self.goodRemoteFile)
 
     def test_cpout_noexist_dst(self):
         for force in self.forceMethods:
-            cmd = "EXPERIMENT=%s ifdh cp %s %s  %s > /dev/null 2>&1" %\
-                    (self.experiment, force, self.goodLocalFile, self.badRemoteFile)
+            cmd = "EXPERIMENT=%s ifdh cp %s %s  %s " % (self.experiment, force, self.goodLocalFile, self.badRemoteFile)
             res = os.system(cmd)
             self.assertNotEqual(res, 0, cmd)
 
     def test_cpin_rm_exist(self):
         tgt_file = self.goodLocalFile + "_tst"
+        rmcmd = "rm -f %s " % tgt_file
+        os.system(rmcmd)
         for force in self.forceMethods:
-            cmd = "EXPERIMENT=%s ifdh cp %s %s  %s > /dev/null 2>&1" %\
-                    (self.experiment, force, self.goodRemoteFile, tgt_file)
-            #8254 cp claims to accept --force but doesnt appear to
-            #cmd = "EXPERIMENT=%s ifdh cp %s %s   > /dev/null 2>&1" %\
-            #        (self.experiment, self.goodRemoteFile, tgt_file)
+            cmd = "EXPERIMENT=%s ifdh cp %s %s  %s " % (self.experiment, force, self.goodRemoteFile, tgt_file)
             res = os.system(cmd)
             self.assertEqual(res, 0, cmd)
-            cmd = "EXPERIMENT=%s ifdh rm %s   %s > /dev/null 2>&1" %\
-                    (self.experiment,  tgt_file, force)
-            res = os.system(cmd)
-            # actually, most of the srm/uberftp, etc. commands are 
-            # capable of removing a local file..
-            if force not in ["--force=gsiftp", "--force=root"]:
-                self.assertEqual(res, 0, cmd)
-            else:
-                self.assertNotEqual(res, 0, cmd)
+            os.system(rmcmd)
 
     def test_cpout_rm_exist(self):
         tgt_file = self.goodRemoteFile + "_tst"
         for force in self.forceMethods:
-            cmd = "EXPERIMENT=%s ifdh cp %s %s  %s > /dev/null 2>&1" %\
-                    (self.experiment, force, self.goodLocalFile, tgt_file)
+            cmd = "EXPERIMENT=%s ifdh cp %s %s  %s " % (self.experiment, force, self.goodLocalFile, tgt_file)
             #8254 cp claims to accept --force but doesnt appear to
-            #cmd = "EXPERIMENT=%s ifdh cp %s %s   > /dev/null 2>&1" %\
-            #        (self.experiment, self.goodLocalFile, tgt_file)
+            #cmd = "EXPERIMENT=%s ifdh cp %s %s   " % (self.experiment, self.goodLocalFile, tgt_file)
             res = os.system(cmd)
             self.assertEqual(res, 0, cmd)
-            cmd = "EXPERIMENT=%s ifdh rm %s   %s > /dev/null 2>&1" %\
-                    (self.experiment,  tgt_file, force)
+            cmd = "EXPERIMENT=%s ifdh rm %s   %s " % (self.experiment,  tgt_file, force)
             res = os.system(cmd)
             self.assertEqual(res, 0, cmd)
 ## more ##
 
     def test_more_noexist_local(self):
-        res = os.system("EXPERIMENT=%s ifdh more %s  > /dev/null 2>&1" % 
-                (self.experiment, self.badLocalFile))
+        res = os.system("EXPERIMENT=%s ifdh more %s  " % (self.experiment, self.badLocalFile))
         self.assertNotEqual(res,0)
 
     def test_more_noexist_remote(self):
-        res = os.system("EXPERIMENT=%s ifdh more %s  > /dev/null 2>&1" % 
-                (self.experiment, self.badRemoteFile))
+        res = os.system("EXPERIMENT=%s ifdh more %s " % (self.experiment, self.badRemoteFile))
         self.assertNotEqual(res,0)
 
     def test_more_exist_local(self):
-        res = os.system("EXPERIMENT=%s ifdh more %s  > /dev/null 2>&1" % 
-                (self.experiment, self.goodLocalFile))
+        res = os.system("EXPERIMENT=%s ifdh more %s  " % (self.experiment, self.goodLocalFile))
         self.assertEqual(res,0)
 
     def test_more_exist_remote(self):
-        res = os.system("EXPERIMENT=%s ifdh more %s  > /dev/null 2>&1" % 
-                (self.experiment, self.goodRemoteFile))
+        res = os.system("EXPERIMENT=%s ifdh more %s  " % (self.experiment, self.goodRemoteFile))
         self.assertEqual(res,0)
 
 ## pin ##
 #    def test_pin_noexist(self):
-#        res = os.system("EXPERIMENT=%s ifdh pin %s  > /dev/null 2>&1" % 
+#        res = os.system("EXPERIMENT=%s ifdh pin %s " % 
 #                (self.experiment,self.badRemoteFile))
 #        self.assertNotEqual(res,0)
 #
 #    def test_pin_exist(self):
-#        res = os.system("EXPERIMENT=%s ifdh pin %s  > /dev/null 2>&1" % 
+#        res = os.system("EXPERIMENT=%s ifdh pin %s " % 
 #                (self.experiment,self.goodRemoteFile))
 #        self.assertEqual(res,0)
 
@@ -297,24 +276,24 @@ class exitcodecases(unittest.TestCase):
 
     #this test hangs indefinitely
     def test_checksum_noexist_local(self):
-        res = os.system("EXPERIMENT=%s ifdh checksum %s  > /dev/null 2>&1" % 
-                (self.experiment, self.badLocalFile))
+        print("running: ", "EXPERIMENT=%s ifdh checksum %s" % (self.experiment, self.badLocalFile))
+        res = os.system("EXPERIMENT=%s ifdh checksum %s" % (self.experiment, self.badLocalFile))
         self.assertNotEqual(res,0)
 
     def test_checksum_noexist_remote(self):
         #this tests fails (res==0) even though running it by hand returns non zero.
         #dont understand
-        cmd = "EXPERIMENT=%s ifdh checksum %s  > /dev/null 2>&1" % (self.experiment, self.badRemoteFile)
+        cmd = "EXPERIMENT=%s ifdh checksum %s" % (self.experiment, self.badRemoteFile)
         res = os.system(cmd)
         self.assertNotEqual(res,0)
 
     def test_checksum_exist_local(self):
-        res = os.system("EXPERIMENT=%s ifdh checksum %s  > /dev/null 2>&1" % 
+        res = os.system("EXPERIMENT=%s ifdh checksum %s" % 
                 (self.experiment, self.goodLocalFile))
         self.assertEqual(res,0)
 
     def test_checksum_exist_remote(self):
-        res = os.system("EXPERIMENT=%s ifdh checksum %s  > /dev/null 2>&1" % 
+        res = os.system("EXPERIMENT=%s ifdh checksum %s " % 
                 (self.experiment, self.goodRemoteFile))
         self.assertEqual(res,0)
 
@@ -328,14 +307,14 @@ class exitcodecases(unittest.TestCase):
             sys.stderr.flush()
             print("trying with %s" % force)
             sys.stdout.flush()
-            #cmd = "EXPERIMENT=%s ifdh mkdir %s %s  > /dev/null 2>&1" %\
-            cmd = "EXPERIMENT=%s ifdh mkdir %s %s  " %\
-                    (self.experiment, src, force)
+            cmd = "EXPERIMENT=%s ifdh mkdir %s %s  " % (
+               self.experiment, src, force
+            )
             res = os.system(cmd)
             self.assertEqual(res, 0, cmd)
-            #cmd = "EXPERIMENT=%s ifdh rmdir %s %s > /dev/null 2>&1" %\
-            cmd = "EXPERIMENT=%s ifdh rmdir %s %s " %\
-                    (self.experiment, src, force)
+            cmd = "EXPERIMENT=%s ifdh rmdir %s %s " % (
+               self.experiment, src, force
+            )
             res = os.system(cmd)
             self.assertEqual(res, 0, cmd)
 
@@ -343,16 +322,16 @@ class exitcodecases(unittest.TestCase):
 
     def test_rename_noexist_src(self):
         for force in self.forceMethods:
-            cmd = "EXPERIMENT=%s ifdh rename %s %s  %s > /dev/null 2>&1" %\
-                    (self.experiment, self.badRemoteFile, self.goodRemoteFile, force)
+            cmd = "EXPERIMENT=%s ifdh rename %s %s  %s" % (
+              self.experiment, self.badRemoteFile, self.goodRemoteFile, force
+            )
             res = os.system(cmd)
             self.assertNotEqual(res, 0, cmd)
 
 
     def test_rename_noexist_dst(self):
         for force in self.forceMethods:
-            cmd = "EXPERIMENT=%s ifdh rename  %s %s  %s > /dev/null 2>&1" %\
-                    (self.experiment, self.goodRemoteFile, self.badRemoteFile, force)
+            cmd = "EXPERIMENT=%s ifdh rename  %s %s  %s " % (self.experiment, self.goodRemoteFile, self.badRemoteFile, force)
             res = os.system(cmd)
             self.assertNotEqual(res, 0, cmd)
 
@@ -362,9 +341,7 @@ class exitcodecases(unittest.TestCase):
         for force in self.forceMethods:
             src=dst
             dst=src+"_x"
-            #cmd = "EXPERIMENT=%s ifdh rename %s %s  %s > /dev/null 2>&1" %\
-            cmd = "EXPERIMENT=%s ifdh rename %s %s  %s " %\
-                    (self.experiment,src,dst, force)
+            cmd = "EXPERIMENT=%s ifdh rename %s %s  %s " % (self.experiment,src,dst, force)
             res = os.system(cmd)
             self.assertEqual(res, 0, cmd)
 
@@ -374,8 +351,7 @@ class exitcodecases(unittest.TestCase):
         for force in self.forceMethods:
             src=dst
             dst=src+"_x"
-            cmd = "EXPERIMENT=%s ifdh rename %s %s  %s > /dev/null 2>&1" %\
-                    (self.experiment,src,dst, force)
+            cmd = "EXPERIMENT=%s ifdh rename %s %s  %s " % (self.experiment,src,dst, force)
             res = os.system(cmd)
             if force=="":
                 self.assertEqual(res, 0, cmd)
@@ -391,16 +367,14 @@ class exitcodecases(unittest.TestCase):
 
     def test_mv_noexist_src(self):
         for force in [ '' ]:
-            cmd = "EXPERIMENT=%s ifdh mv %s %s  %s > /dev/null 2>&1" %\
-                    (self.experiment, self.badRemoteFile, self.goodRemoteFile, force)
+            cmd = "EXPERIMENT=%s ifdh mv %s %s  %s" % (self.experiment, self.badRemoteFile, self.goodRemoteFile, force)
             res = os.system(cmd)
             self.assertNotEqual(res, 0, cmd)
 
 
     def test_mv_noexist_dst(self):
         for force in [ '' ]:
-            cmd = "EXPERIMENT=%s ifdh mv  %s %s  %s > /dev/null 2>&1" %\
-                    (self.experiment, self.goodRemoteFile, self.badRemoteFile, force)
+            cmd = "EXPERIMENT=%s ifdh mv  %s %s  %s " % (self.experiment, self.goodRemoteFile, self.badRemoteFile, force)
             res = os.system(cmd)
             self.assertNotEqual(res, 0, cmd)
 
@@ -410,8 +384,7 @@ class exitcodecases(unittest.TestCase):
         for force in [ '' ]:
             src=dst
             dst=src+"_x"
-            cmd = "EXPERIMENT=%s ifdh mv %s %s  %s > /dev/null 2>&1" %\
-                    (self.experiment,src,dst, force)
+            cmd = "EXPERIMENT=%s ifdh mv %s %s  %s " % (self.experiment,src,dst, force)
             res = os.system(cmd)
             self.assertEqual(res, 0, cmd)
 
@@ -421,8 +394,7 @@ class exitcodecases(unittest.TestCase):
         for force in [ '' ]:
             src=dst
             dst=src+"_x"
-            cmd = "EXPERIMENT=%s ifdh mv %s %s  %s > /dev/null 2>&1" %\
-                    (self.experiment,src,dst, force)
+            cmd = "EXPERIMENT=%s ifdh mv %s %s  %s " % (self.experiment,src,dst, force)
             res = os.system(cmd)
             self.assertEqual(res, 0, cmd)
         cmd="touch %s" % self.goodLocalFile

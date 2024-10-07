@@ -1,10 +1,10 @@
 #import unittest2 as unittest
 import unittest
-import ifdh
 import socket
 import os
 import time
 import sys
+import hypot_test_env
 
 #
 # basically make sure copying and ls-ing nonexistent directories fails
@@ -49,6 +49,8 @@ class retrycases(unittest.TestCase):
             raise
 
     def setUp(self):
+        hypot_test_env.hypot_test_env()
+        import ifdh
         sys.stdout.flush()
         sys.stderr.flush()
         self.ifdh_handle = ifdh.ifdh()

@@ -962,7 +962,7 @@ get_grid_credentials_if_needed() {
             std::cerr << (time(&gt)?ctime(&gt):"") << " ";
             std::cerr << "Error: exit code " << res << " from htgettoken... later actions will likely fail\n";
         }
-    } else { 
+    } else if (tokens_enabled) { 
         found = true;
         found_token = true;
     }

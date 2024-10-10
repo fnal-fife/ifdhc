@@ -158,8 +158,10 @@ do_gfal() {
    gfalopts="$1"
    src="$2"
    dst="$3"
+   if ${IFDH_HTTP_TRIM_PATHS:-true}; then
    unset PYTHONHOME; unset PYTHONPATH; unset LD_LIBRARY_PATH; unset GFAL_PLUGIN_DIR; unset GFAL_CONFIG_DIR;
    PATH=/bin:/usr/bin
+   fi
    if [ -r "${BEARER_TOKEN_FILE}" ]
    then
       export BEARER_TOKEN=`cat ${BEARER_TOKEN_FILE}`

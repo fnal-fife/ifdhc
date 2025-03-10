@@ -31,6 +31,9 @@ done
 
 args="'$host' $args"
 
+# set BEARER_TOKEN for older versions
+[ -s ${BEARER_TOKEN_FILE:-/dev/null} ] && export BEARER_TOKEN=`cat ${BEARER_TOKEN_FILE}`
+
 #
 # annoyingly xrdfs does not do ls of files, it gives
 # an error, so if we're asked to ls something that is

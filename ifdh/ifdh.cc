@@ -537,10 +537,11 @@ ifdh::setStatus(string projecturi, string processid, string status) {
    }
 }
 
-ifdh::declareFile(string json_metadata) {
-    if (getenv("IFDH_DEFAULT_METACAT_DATASET")) {
-        std::string dataset(getenv("IFDH_DEFAULT_METACAT_DATASET"));
-        json res = metacat_file_declare( datset, json_metadata);
+int
+ifdh::declareFile(std::string json_metadata) {
+    if (getenv("IFDH_METACAT_DATASET")) {
+        std::string dataset(getenv("IFDH_METACAT_DATASET"));
+        json res = metacat_file_declare( dataset, json_metadata);
         return (int)res[json("something")];
     } else {
         return sam_declareFile(json_metadata);

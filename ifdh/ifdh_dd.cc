@@ -404,6 +404,33 @@ ifdh::dd_file_done(int project_id, std::string file_did) {
     return res;
 }
 
+json
+ifdh::metacat_file_declare(std::string dataset, std::string json_metadata) {
+    json md( json::loads(json_metadata)), res;
+    // convert 'did' to namespace, name
+    //
+    if (md.has_item("did")) {
+        std::vector<std::string> did_parts = split(md["did"], ':');
+        md["namespace"] = json(did_parts[0].c_str());
+        md["name"] = json(did_parts[1].c_str());
+    }
+    // make list containing single metadata
+    std::vector<json> mdv;
+    mdv[0] = md;
+    json mdl(new json_list(mdv));
+    // call 
+    std::string url = get_metacat_url() + "data/declare_files?dataset=" + dataset;
+    std::string auth_header("X-Authentication-Token: ");
+    auth_header += _dd_mc_session_tok; 
+    WebAPI wa(url, 1, mdl.dumps(),  3, -1, "", auth_header);
+    if ( wa.getStatus() == 200 ) {
+         res = json::load(wa.data());
+    } else {
+         res = json(new json_null);
+    }
+    return res;
+}
+
 json 
 ifdh::dd_file_failed(int project_id, std::string file_did, bool retry) {
 

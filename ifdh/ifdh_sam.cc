@@ -190,7 +190,7 @@ ifdh::do_url_lst(int postflag,...) {
 }
 
 int 
-ifdh::declareFile(string json_metadata) {
+ifdh::sam_declareFile(string json_metadata) {
   return do_url_int(2,ssl_uri(_baseuri).c_str(),"files","",json_metadata.c_str(),"","","");
 }
 

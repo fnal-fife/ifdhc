@@ -192,10 +192,12 @@ class ifdh {
         json dd_file_failed(int project_id, std::string file_did, bool retry);
         std::string dd_worker_id(std::string new_id="", std::string worker_id_file="");
         json metacat_query(std::string, bool, bool);
+        json metacat_file_declare(std::string dataset, std::string json_metadata);
 	std::string sam_findProject( std::string name, std::string station);
 	int sam_setStatus(std::string projecturi, std::string processid, std::string status);
 	std::string sam_updateFileStatus(std::string projecturi, std::string processid, std::string filename, std::string status);
 	std::string sam_establishProcess(std::string projecturi,  std::string appname, std::string appversion, std::string location, std::string user, std::string appfamily = "", std::string description = "", int filelimit = -1, std::string schemas = "");
+	int sam_declareFile( std::string json_metadata);
 
     private:
         IFile lookup_loc(std::string url) ;

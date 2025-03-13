@@ -154,6 +154,9 @@ ifdh::metacat_query( std::string query, bool meta, bool provenance ) {
     std::string data, line;
     std::string sep, rsep;
 
+    if (_dd_mc_session_tok == "" ) {
+        dd_mc_authenticate();
+    }
     url += "/data/query?with_meta=" ;
     url += (meta ? "yes" : "no");
     url += "&with_provenance=";
@@ -237,6 +240,9 @@ json
 ifdh::dd_next_file_json(int project_id, std::string cpu_site, std::string worker_id, long int timeout, int stagger) {
     json res;
 
+    if (_dd_mc_session_tok == "" ) {
+        dd_mc_authenticate();
+    }
     if (stagger) {
        sleep(stagger * rand() / RAND_MAX);
     }
@@ -256,7 +262,6 @@ ifdh::dd_next_file_json(int project_id, std::string cpu_site, std::string worker
     if ( timeout ) {
         timeout += time(0);
     }
-    WebAPI::_debug = 1;
 
     if (_dd_mc_session_tok == "" ) {
         dd_mc_authenticate();
@@ -406,6 +411,9 @@ ifdh::dd_file_done(int project_id, std::string file_did) {
 
 json
 ifdh::metacat_file_declare(std::string dataset, std::string json_metadata) {
+    if (_dd_mc_session_tok == "" ) {
+        dd_mc_authenticate();
+    }
     json md( json::loads(json_metadata)), res;
     // convert 'did' to namespace, name
     //
@@ -416,15 +424,17 @@ ifdh::metacat_file_declare(std::string dataset, std::string json_metadata) {
     }
     // make list containing single metadata
     std::vector<json> mdv;
-    mdv[0] = md;
+    mdv.push_back(md);
     json mdl(new json_list(mdv));
     // call 
-    std::string url = get_metacat_url() + "data/declare_files?dataset=" + dataset;
+    std::string url = get_metacat_url() + "/data/declare_files?dataset=" + dataset;
     std::string auth_header("X-Authentication-Token: ");
     auth_header += _dd_mc_session_tok; 
     WebAPI wa(url, 1, mdl.dumps(),  3, -1, "", auth_header);
     if ( wa.getStatus() == 200 ) {
-         res = json::load(wa.data());
+         std::string resp;
+         std::getline(wa.data(), resp, '\01');
+         res = json::loads(resp);
     } else {
          res = json(new json_null);
     }

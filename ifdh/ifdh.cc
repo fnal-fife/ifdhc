@@ -542,7 +542,13 @@ ifdh::declareFile(std::string json_metadata) {
     if (getenv("IFDH_METACAT_DATASET")) {
         std::string dataset(getenv("IFDH_METACAT_DATASET"));
         json res = metacat_file_declare( dataset, json_metadata);
-        return (int)res[json("something")];
+        json jfid = json("fid");
+        // success is zero, so we're succesful if we have a file-id ...
+        if (res[0].has_item(jfid))  {
+            return 0;
+        } else {
+            return 1;
+        }
     } else {
         return sam_declareFile(json_metadata);
     }

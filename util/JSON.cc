@@ -1,6 +1,7 @@
 #include "JSON.h"
 #include <sstream>
 #include <stdexcept>
+#include <iomanip>
 
 namespace ifdh_util_ns {
 
@@ -259,7 +260,12 @@ json_str::operator  std::string ()
 void
 json_num::dump (std::ostream & os) const
 {
+    os << std::setiosflags(std::ios::fixed);
+    if ((double)(int)(val)  == val) {
+         os << std::setprecision(0);
+    }
     os << val;
+    os << std::resetiosflags;
 }
 
 json json_num::load (std::istream & is)
@@ -533,9 +539,10 @@ main ()
     std::string tn ("null");
     std::string ta ("\"foo\"");
     std::string t1 ("[1, 22, 333]");
-    std::string t2 ("{\"a\": 1, \"bb\":22, \"ccc\": 333}");
+    std::string t2 ("{\"a\": 1, \"bb\":22.515, \"ccc\": 333}");
     std::string t3 ("{\"a\": \"x\", \"bb\":\"y\" , \"ccc\": 333}");
     std::string t4 ("{\"handle\": {\"project_id\": 231, \"namespace\": \"mengel\", \"name\": \"b.fcl\", \"state\": \"reserved\", \"worker_id\": \"ff9f9f85-e3af-4380-a46f-71ff9e74c56e\", \"attempts\": 1, \"attributes\": {}, \"reserved_since\": 1699037171.101709, \"replicas\": {\"FNAL_DCACHE\": {\"name\": \"b.fcl\", \"namespace\": \"mengel\", \"path\": \"/pnfs/fnal.gov/usr/hypot/rucio/mengel/9b/78/b.fcl\", \"url\": \"https://fndcadoor.fnal.gov:2880/pnfs/fnal.gov/usr/hypot/rucio/mengel/9b/78/b.fcl\", \"rse\": \"FNAL_DCACHE\", \"preference\": 100, \"available\": true, \"rse_available\": true}}, \"project_attributes\": {}}, \"reason\": \"reserved\", \"retry\": false}");
+    std::string t5 ("[{\"fid\": \"gpNhEpfKSRa9KVxR\", \"namespace\": \"hypotpro\", \"name\": \"hypotpro_declad_test_1741838148_5.txt\", \"retired\": false, \"retired_by\": null, \"updated_by\": null, \"retired_timestamp\": null, \"updated_timestamp\": null, \"created_timestamp\": null, \"checksums\": {\"adler32\": \"b80d1098\"}, \"size\": 481, \"creator\": \"mengel\", \"metadata\": {\"core.file_type\": \"test\", \"core.run_type\": \"test\", \"core.runs\": [10000011], \"dh.type\": \"other\", \"fn.configuration\": \"c20240226\", \"fn.description\": \"declad_test3\", \"fn.format\": \"txt\", \"fn.owner\": \"hypotraw\", \"fn.tier\": \"etc\", \"rs.runs\": [10000011]}}]");
 
     json r;
 
@@ -608,6 +615,12 @@ main ()
     r = json::loads (t4);
     std::cout << "t4: " << t4 << "\n";
     std::cout << "t4out: ";
+    r.dump (std::cout);
+    std::cout << "\n";
+
+    r = json::loads(t5);
+    std::cout << "t5: " << t5 << "\n";
+    std::cout << "t5out: ";
     r.dump (std::cout);
     std::cout << "\n";
 

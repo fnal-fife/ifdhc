@@ -908,7 +908,6 @@ get_grid_credentials_if_needed() {
         }
     }
 
-    bool found_token;
     if (tokens_enabled && !check_grid_credentials_tokens() && have_kerberos_creds() ) {
         ifdh::_debug && std::cerr << "no grid credentials: tokens:\n";
         setenv("BEARER_TOKEN_FILE", tokenfile.str().c_str(),1);
@@ -955,7 +954,6 @@ get_grid_credentials_if_needed() {
 
         if (res == 0) {
            found = true;
-           found_token = true;
         }
 
         if ((!WIFEXITED(res) ||  0 != WEXITSTATUS(res)) && res != 256) {
@@ -964,27 +962,11 @@ get_grid_credentials_if_needed() {
         }
     } else if (tokens_enabled) { 
         found = true;
-        found_token = true;
     }
   
     if (!found) {
         std::cerr << (time(&gt)?ctime(&gt):"") << " ";
         std::cerr << "Notice: Unable to find valid grid or kerberos credentials. Later actions will likely fail."<< endl;
-    }
-    if( found_token ) {
-        //
-        // turns out gfal utilities *only* believe 
-        // BEARER_TOKEN in the environment and do not read
-        // BEARER_TOKEN_FILE, etc... 
-        // https://dmc-docs.web.cern.ch/dmc-docs/developers/bearer-tokens.html
-        // so read the token file and set BEARER_TOKEN, as well.
-        //
-        const int maxtoken = 8192;
-        static char tokenbuf[maxtoken+1];
-        std::ifstream btf(tokenfile.str().c_str());
-        btf.read(tokenbuf, maxtoken);
-        btf.close();
-        setenv("BEARER_TOKEN", tokenbuf, 1);
     }
 }
 

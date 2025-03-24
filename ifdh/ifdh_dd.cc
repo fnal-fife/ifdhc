@@ -467,6 +467,29 @@ ifdh::dd_file_failed(int project_id, std::string file_did, bool retry) {
     return res;
 }
 
+// string versions for python wrapping
+std::string ifdh::dd_create_project_s( std::vector<std::string> files, std::map<std::string, std::string> common_attributes, std::map<std::string, std::string> project_attributes, std::string query, int worker_timeout, int idle_timeout, std::vector<std::string> users, std::vector<std::string> roles) {
+    return dd_create_project(files, common_attributes, project_attributes, query, worker_timeout, idle_timeout, users, roles).dumps();
+}
+std::string ifdh::dd_next_file_json_s(int project_id, std::string cpu_site, std::string worker_id, long int timeout, int stagger) {
+    return  dd_next_file_json(project_id, cpu_site, worker_id, timeout, stagger).dumps();
+}
+std::string ifdh::dd_get_project_s(int project_id, bool with_files, bool with_replicas) {
+    return dd_get_project(project_id, with_files, with_replicas).dumps();
+}
+std::string ifdh::dd_file_done_s(int project_id, std::string file_did) {
+    return dd_file_done(project_id, file_did).dumps();
+}
+std::string ifdh::dd_file_failed_s(int project_id, std::string file_did, bool retry) {
+    return dd_file_failed(project_id, file_did, retry).dumps();
+}
+std::string ifdh::metacat_query_s(std::string qs, bool meta , bool provenance) {
+    return metacat_query(qs, meta, provenance).dumps();
+}
+std::string ifdh::metacat_file_declare_s(std::string dataset, std::string json_metadata) {
+    return metacat_file_declare(dataset, json_metadata).dumps();
+}
+
 }
 
 #ifdef UNITTEST

@@ -198,6 +198,13 @@ class ifdh {
 	std::string sam_updateFileStatus(std::string projecturi, std::string processid, std::string filename, std::string status);
 	std::string sam_establishProcess(std::string projecturi,  std::string appname, std::string appversion, std::string location, std::string user, std::string appfamily = "", std::string description = "", int filelimit = -1, std::string schemas = "");
 	int sam_declareFile( std::string json_metadata);
+        std::string dd_create_project_s( std::vector<std::string> files, std::map<std::string, std::string> common_attributes, std::map<std::string, std::string> project_attributes, std::string query, int worker_timeout, int idle_timeout, std::vector<std::string> users, std::vector<std::string> roles);
+        std::string dd_next_file_json_s(int project_id, std::string cpu_site="", std::string worker_id="", long int timeout=0, int stagger=0);
+        std::string dd_get_project_s(int project_id, bool with_files, bool with_replicas);
+        std::string dd_file_done_s(int project_id, std::string file_did);
+        std::string dd_file_failed_s(int project_id, std::string file_did, bool retry);
+        std::string metacat_query_s(std::string, bool, bool);
+        std::string metacat_file_declare_s(std::string dataset, std::string json_metadata);
 
     private:
         IFile lookup_loc(std::string url) ;

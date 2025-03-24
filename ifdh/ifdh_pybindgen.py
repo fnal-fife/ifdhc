@@ -20,6 +20,7 @@ pair.add_instance_attribute('second','long')
 mod.add_container('std::vector<ifdh_lss_pair>','ifdh_lss_pair','vector',auto_convert="PyList_Type")
 mod.add_container('std::vector<std::string>','std::string','vector',auto_convert="PyTuple_Type")
 mod.add_container('std::map<std::string,std::vector<std::string> >',['std::string','std::vector<std::string>'],'map')
+mod.add_container('std::map<std::string,std::string>',['std::string','std::string'],'map')
 
 klass = mod.add_class("ifdh")
 klass.add_constructor([param('std::string','baseuri',default_value='""')])
@@ -79,19 +80,17 @@ klass.add_method('takeSnapshot',retval('std::string'),[param('std::string','name
 klass.add_method('projectStatus',retval('std::string'),[param('std::string','projecturi')],throw=[std_logicerror])
 klass.add_method('addFileLocation',retval('int'),[param('std::string','filename'),param('std::string','location')],throw=[std_logicerror])
 klass.add_method('dd_mc_authenticate',retval('void'),[],throw=[std_logicerror])
-klass.add_method('dd_create_project', retval('json'), [param('std::vector<std::string>','files'),param('std::map<std::string, std::string>'),'common_attributes',param('std::map<std::string, std::string>','project_attributes'),param('std::string','query'),param('int','worker_timeout'),param('int','idle_timeout'),param('std::vector<std::string>','users'),param('std::vector<std::string>','roles')], throw=[std_logicerror])
-klass.add_method('json dd_next_file_json', [param('int','project_id'), param('std::string', 'cpu_site', default_value=""),param('std::string','worker_id',default_value=''),param('long int','timeout', default_value=0),param('int','stagger', default_value=0)])
-klass.add_method
+klass.add_method('dd_create_project_s', retval('std::string'), [param('std::vector<std::string>','files'),param('std::map<std::string, std::string>','common_attributes'),param('std::map<std::string, std::string>','project_attributes'),param('std::string','query'),param('int','worker_timeout'),param('int','idle_timeout'),param('std::vector<std::string>','users'),param('std::vector<std::string>','roles')], throw=[std_logicerror])
+klass.add_method('dd_next_file_json_s', retval('std::string'), [param('int','project_id'), param('std::string', 'cpu_site', default_value=""),param('std::string','worker_id',default_value=''),param('long int','timeout', default_value="0"),param('int','stagger', default_value="0")])
+klass.add_method("dd_next_file_url", retval("std::string") ,[param("int","project_id"),param("std::string","cpu_site", default_value=""),param("std::string","worker_id", default_value=""),param("long int","timeout", default_value="0"),param("int","stagger", default_value="0")])
+
 """ stil to convert...
-        std::string dd_next_file_url(int project_id, std::string cpu_site="", std::string worker_id="", long int timeout=0, int stagger=0);
-        json dd_get_project(int project_id, bool with_files, bool with_replicas);
-        json dd_file_done(int project_id, std::string file_did);
-        json dd_file_failed(int project_id, std::string file_did, bool retry);
+        std::string dd_get_project_s(int project_id, bool with_files, bool with_replicas);
+        std::string dd_file_done_s(int project_id, std::string file_did);
+        std::string dd_file_failed_s(int project_id, std::string file_did, bool retry);
         std::string dd_worker_id(std::string new_id="", std::string worker_id_file="");
-        json metacat_query(std::string, bool, bool);
-        json metacat_file_declare(std::string dataset, std::string json_metadata);
-        std::string _dd_mc_session_tok;
-        std::string _dd_worker_id;
+        std::string metacat_query_s(std::string, bool, bool);
+        std::string metacat_file_declare_s(std::string dataset, std::string json_metadata);
 """
 
 

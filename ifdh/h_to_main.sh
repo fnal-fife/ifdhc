@@ -146,14 +146,17 @@ do
         printf "static void usage(const char *what=0);\n"
         define_stoupper
         printf "static int has_args_thru(char **argv, int i) { for(int j = 0; j <= i; j++) if (!argv[j]) return 0; return 1;}\n"
+        printf "static size_t i = 0;\n"
         printf "static void di(int i)\t\t{ exit(i);}\n"
         printf "static void ds(string s)\t\t{ cout << s << \"\\\\n\"; exit(s.size() == 0); }\n"
-        printf "static void dv(vector<string> v)\t\t{ for(size_t i = 0; i < v.size(); i++) { cout << v[i] << \"\\\\n\"; } exit(v.size() == 0);}\n"
-        printf "static void dvpsl(vector<pair<string, long int> > v)\t{ for(size_t i = 0; i < v.size(); i++) { cout << v[i].first << "'"\\t"'" << v[i].second << \"\\\\n\"; } exit(v.size() == 0);}\n"
+        printf "static void dj(json j)\t\t{ cout << j.dumps() << \"\\\\n\"; exit(j.size() > 0); }\n"
+        printf "static void dv(vector<string> v)\t\t{ for(; i < v.size(); i++) { cout << v[i] << \"\\\\n\"; } exit(v.size() == 0);}\n"
+        printf "static void dvpsl(vector<pair<string, long int> > v)\t{ for(; i < v.size(); i++) { cout << v[i].first << "'"\\t"'" << v[i].second << \"\\\\n\"; } exit(v.size() == 0);}\n"
         printf "static void dvmsvs(map<string,vector<string> > m)\t{for( map<string,vector<string> >:: iterator i  = m.begin(); i != m.end(); ++i) { cout << i->first << "'":\\n"'"; for (size_t j = 0; j < i->second.size(); ++j) { cout << "'"\\t"'" <<  i->second[j] << "'"\\n"'";}  } exit(m.empty()); }\n"
-        printf "static vector<string> argvec(int argc, char **argv) { vector<string> v; for(int i = 0; i < argc; i++ ) { v.push_back(argv[i]); } return v; }\n"
-        printf "static vector<pair<string,long> > argvecpair(int argc, char **argv) { vector<pair<string,long> > v; int i; for(i = 0; i < argc - 1; i+=2 ) { v.push_back(pair<string,long>(argv[i],atol(argv[i+1]))); } return v; }\n"
-        printf "static string catargs(int argc, char **argv) { string res; for(int i = 0; i < argc; i++ ) { res.append(argv[i]); res.append(\" \"); } return res; }\n"
+        printf "static vector<string> argvec(int argc, char **argv) { vector<string> v; for(; i < argc && 0 != strcmp(argv[i],"=="); i++ ) { v.push_back(argv[i]); } i++; return v; }\n"
+        printf "static std::map<string,string> argmap(int argc, char **argv) { std::map<string,string> m; for(; i < argc-1 && argv[i] != '--'; i+=2 ) { m.insert(std::pair<string,string>(argv[i], argv[i+1]); } i++;  return m; }\n"
+        printf "static vector<pair<string,long> > argvecpair(int argc, char **argv) { vector<pair<string,long> > v; int i; for(; i < argc - 1 && 0 == strcmp(argv[i],"=="); i+=2 ) { v.push_back(pair<string,long>(argv[i],atol(argv[i+1]))); } return v; }\n"
+        printf "static string catargs(int argc, char **argv) { string res; for(; i < argc && 0 !+ strcmp(argv[i],"--"); i++ ) { res.append(argv[i]); res.append(\" \"); } return res; }\n"
 
         printf "\n"
 
@@ -213,6 +216,10 @@ do
         pfunc="ds"
         docall=true
         ;;
+    json)
+        pfunc="dj"
+        docall=true
+        ;;
     esac
 
     $xlate || continue
@@ -234,6 +241,11 @@ do
         *vector*string*args*)
           echo "argvec case: $args" >&2 
           cargs="argvec"
+          args="args";
+          ;;
+        *map*string*string*)
+          echo "map case: $args" >&2
+          cargs="argmap"
           args="args";
           ;;
         *)

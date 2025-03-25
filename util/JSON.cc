@@ -641,6 +641,7 @@ main ()
     mss.insert (std::pair < std::string, std::string > ("k2", "v2"));
     r = json (new json_dict (mss));
     r.dump (std::cout);
+    std::cout << "size" << r.size() << "\n";
 }
 #endif
 

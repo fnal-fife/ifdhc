@@ -4,51 +4,6 @@
 #include <stddef.h>
 
 
-#if PY_VERSION_HEX < 0x020400F0
-
-#define PyEval_ThreadsInitialized() 1
-
-#define Py_CLEAR(op)				\
-        do {                            	\
-                if (op) {			\
-                        PyObject *tmp = (PyObject *)(op);	\
-                        (op) = NULL;		\
-                        Py_DECREF(tmp);		\
-                }				\
-        } while (0)
-
-
-#define Py_VISIT(op)							\
-        do { 								\
-                if (op) {						\
-                        int vret = visit((PyObject *)(op), arg);	\
-                        if (vret)					\
-                                return vret;				\
-                }							\
-        } while (0)
-
-#endif
-
-
-
-#if PY_VERSION_HEX < 0x020500F0
-
-typedef int Py_ssize_t;
-# define PY_SSIZE_T_MAX INT_MAX
-# define PY_SSIZE_T_MIN INT_MIN
-typedef inquiry lenfunc;
-typedef intargfunc ssizeargfunc;
-typedef intobjargproc ssizeobjargproc;
-
-#endif
-
-
-#ifndef PyVarObject_HEAD_INIT
-#define PyVarObject_HEAD_INIT(type, size) \
-        PyObject_HEAD_INIT(type) size,
-#endif
-
-
 #if PY_VERSION_HEX >= 0x03000000
 #if PY_VERSION_HEX >= 0x03050000
 typedef PyAsyncMethods* cmpfunc;
@@ -76,6 +31,10 @@ typedef enum _PyBindGenWrapperFlags {
    PYBINDGEN_WRAPPER_FLAG_NONE = 0,
    PYBINDGEN_WRAPPER_FLAG_OBJECT_NOT_OWNED = (1<<0),
 } PyBindGenWrapperFlags;
+#endif
+
+#if PY_VERSION_HEX >= 0x03070000 && !defined(PyEval_ThreadsInitialized)
+#define PyEval_ThreadsInitialized() 1
 #endif
 
 
@@ -156,6 +115,24 @@ extern PyTypeObject Pystd__map__lt__std__string_std__vector__lt__std__string__gt
 extern PyTypeObject Pystd__map__lt__std__string_std__vector__lt__std__string__gt_____gt__Iter_Type;
 
 int _wrap_convert_py2c__std__map__lt___std__string__std__vector__lt___std__string___gt_____gt__(PyObject *arg, std::map<std::string,std::vector<std::string> > *container);
+
+typedef struct {
+    PyObject_HEAD
+    std::map<std::string,std::string> *obj;
+} Pystd__map__lt__std__string_std__string__gt__;
+
+
+typedef struct {
+    PyObject_HEAD
+    Pystd__map__lt__std__string_std__string__gt__ *container;
+    std::map<std::string,std::string>::iterator *iterator;
+} Pystd__map__lt__std__string_std__string__gt__Iter;
+
+
+extern PyTypeObject Pystd__map__lt__std__string_std__string__gt___Type;
+extern PyTypeObject Pystd__map__lt__std__string_std__string__gt__Iter_Type;
+
+int _wrap_convert_py2c__std__map__lt___std__string__std__string___gt__(PyObject *arg, std::map<std::string,std::string> *container);
 
 extern PyTypeObject *Pystd__logic_error_Type;
 
@@ -296,7 +273,7 @@ int _wrap_PyIfdh_nsIfdh_lss_pair__tp_init(PyIfdh_nsIfdh_lss_pair *self, PyObject
 
 
 static PyObject*
-_wrap_PyIfdh_nsIfdh_lss_pair__copy__(PyIfdh_nsIfdh_lss_pair *self)
+_wrap_PyIfdh_nsIfdh_lss_pair__copy__(PyIfdh_nsIfdh_lss_pair *self, PyObject *PYBINDGEN_UNUSED(_args))
 {
 
     PyIfdh_nsIfdh_lss_pair *py_copy;
@@ -1077,7 +1054,7 @@ _wrap_PyIfdh_nsIfdh_setStatus(PyIfdh_nsIfdh *self, PyObject *args, PyObject *kwa
 
 
 PyObject *
-_wrap_PyIfdh_nsIfdh_cleanup(PyIfdh_nsIfdh *self)
+_wrap_PyIfdh_nsIfdh_cleanup(PyIfdh_nsIfdh *self, PyObject *PYBINDGEN_UNUSED(_args), PyObject *PYBINDGEN_UNUSED(_kwargs))
 {
     PyObject *py_retval;
     int retval;
@@ -1525,7 +1502,7 @@ _wrap_PyIfdh_nsIfdh_mkdir_p(PyIfdh_nsIfdh *self, PyObject *args, PyObject *kwarg
 
 
 PyObject *
-_wrap_PyIfdh_nsIfdh_getProxy(PyIfdh_nsIfdh *self)
+_wrap_PyIfdh_nsIfdh_getProxy(PyIfdh_nsIfdh *self, PyObject *PYBINDGEN_UNUSED(_args), PyObject *PYBINDGEN_UNUSED(_kwargs))
 {
     PyObject *py_retval;
     std::string retval;
@@ -1543,7 +1520,7 @@ _wrap_PyIfdh_nsIfdh_getProxy(PyIfdh_nsIfdh *self)
 
 
 PyObject *
-_wrap_PyIfdh_nsIfdh_getToken(PyIfdh_nsIfdh *self)
+_wrap_PyIfdh_nsIfdh_getToken(PyIfdh_nsIfdh *self, PyObject *PYBINDGEN_UNUSED(_args), PyObject *PYBINDGEN_UNUSED(_kwargs))
 {
     PyObject *py_retval;
     std::string retval;
@@ -1660,7 +1637,7 @@ _wrap_PyIfdh_nsIfdh_getUrl(PyIfdh_nsIfdh *self, PyObject *args, PyObject *kwargs
 
 
 PyObject *
-_wrap_PyIfdh_nsIfdh_getErrorText(PyIfdh_nsIfdh *self)
+_wrap_PyIfdh_nsIfdh_getErrorText(PyIfdh_nsIfdh *self, PyObject *PYBINDGEN_UNUSED(_args), PyObject *PYBINDGEN_UNUSED(_kwargs))
 {
     PyObject *py_retval;
     std::string retval;
@@ -1750,6 +1727,288 @@ _wrap_PyIfdh_nsIfdh_addFileLocation(PyIfdh_nsIfdh *self, PyObject *args, PyObjec
     return py_retval;
 }
 
+
+PyObject *
+_wrap_PyIfdh_nsIfdh_dd_mc_authenticate(PyIfdh_nsIfdh *self, PyObject *PYBINDGEN_UNUSED(_args), PyObject *PYBINDGEN_UNUSED(_kwargs))
+{
+    PyObject *py_retval;
+
+    try
+    {
+        self->obj->dd_mc_authenticate();
+    } catch (std::logic_error const &exc) {
+        PyErr_SetString((PyObject *) Pystd__logic_error_Type, exc.what());
+        return NULL;
+    }
+    Py_INCREF(Py_None);
+    py_retval = Py_None;
+    return py_retval;
+}
+
+
+PyObject *
+_wrap_PyIfdh_nsIfdh_dd_create_project_s(PyIfdh_nsIfdh *self, PyObject *args, PyObject *kwargs)
+{
+    PyObject *py_retval;
+    std::string retval;
+    std::vector<std::string> files_value;
+    std::map<std::string,std::string> common_attributes_value;
+    std::map<std::string,std::string> project_attributes_value;
+    const char *query;
+    Py_ssize_t query_len;
+    int worker_timeout;
+    int idle_timeout;
+    std::vector<std::string> users_value;
+    std::vector<std::string> roles_value;
+    const char *keywords[] = {"files", "common_attributes", "project_attributes", "query", "worker_timeout", "idle_timeout", "users", "roles", NULL};
+
+    if (!PyArg_ParseTupleAndKeywords(args, kwargs, (char *) "O&O&O&s#iiO&O&", (char **) keywords, _wrap_convert_py2c__std__vector__lt___std__string___gt__, &files_value, _wrap_convert_py2c__std__map__lt___std__string__std__string___gt__, &common_attributes_value, _wrap_convert_py2c__std__map__lt___std__string__std__string___gt__, &project_attributes_value, &query, &query_len, &worker_timeout, &idle_timeout, _wrap_convert_py2c__std__vector__lt___std__string___gt__, &users_value, _wrap_convert_py2c__std__vector__lt___std__string___gt__, &roles_value)) {
+        return NULL;
+    }
+    try
+    {
+        retval = self->obj->dd_create_project_s(files_value, common_attributes_value, project_attributes_value, std::string(query, query_len), worker_timeout, idle_timeout, users_value, roles_value);
+    } catch (std::logic_error const &exc) {
+        PyErr_SetString((PyObject *) Pystd__logic_error_Type, exc.what());
+        return NULL;
+    }
+    py_retval = Py_BuildValue((char *) "s#", (retval).c_str(), (retval).size());
+    return py_retval;
+}
+
+
+PyObject *
+_wrap_PyIfdh_nsIfdh_dd_next_file_json_s(PyIfdh_nsIfdh *self, PyObject *args, PyObject *kwargs)
+{
+    PyObject *py_retval;
+    std::string retval;
+    int project_id;
+    const char *cpu_site = NULL;
+    Py_ssize_t cpu_site_len;
+    const char *worker_id = NULL;
+    Py_ssize_t worker_id_len;
+    long int timeout = 0;
+    int stagger = 0;
+    const char *keywords[] = {"project_id", "cpu_site", "worker_id", "timeout", "stagger", NULL};
+
+    if (!PyArg_ParseTupleAndKeywords(args, kwargs, (char *) "i|s#s#li", (char **) keywords, &project_id, &cpu_site, &cpu_site_len, &worker_id, &worker_id_len, &timeout, &stagger)) {
+        return NULL;
+    }
+    retval = self->obj->dd_next_file_json_s(project_id, (cpu_site ? std::string(cpu_site, cpu_site_len) : ), (worker_id ? std::string(worker_id, worker_id_len) : ), timeout, stagger);
+    py_retval = Py_BuildValue((char *) "s#", (retval).c_str(), (retval).size());
+    return py_retval;
+}
+
+
+PyObject *
+_wrap_PyIfdh_nsIfdh_dd_next_file_url(PyIfdh_nsIfdh *self, PyObject *args, PyObject *kwargs)
+{
+    PyObject *py_retval;
+    std::string retval;
+    int project_id;
+    const char *cpu_site = NULL;
+    Py_ssize_t cpu_site_len;
+    const char *worker_id = NULL;
+    Py_ssize_t worker_id_len;
+    long int timeout = 0;
+    int stagger = 0;
+    const char *keywords[] = {"project_id", "cpu_site", "worker_id", "timeout", "stagger", NULL};
+
+    if (!PyArg_ParseTupleAndKeywords(args, kwargs, (char *) "i|s#s#li", (char **) keywords, &project_id, &cpu_site, &cpu_site_len, &worker_id, &worker_id_len, &timeout, &stagger)) {
+        return NULL;
+    }
+    retval = self->obj->dd_next_file_url(project_id, (cpu_site ? std::string(cpu_site, cpu_site_len) : ), (worker_id ? std::string(worker_id, worker_id_len) : ), timeout, stagger);
+    py_retval = Py_BuildValue((char *) "s#", (retval).c_str(), (retval).size());
+    return py_retval;
+}
+
+
+
+PyObject *
+_wrap_PyIfdh_nsIfdh_dd_get_project_s__0(PyIfdh_nsIfdh *self, PyObject *args, PyObject *kwargs, PyObject **return_exception)
+{
+    PyObject *py_retval;
+    std::string retval;
+    int project_id;
+    bool with_files;
+    PyObject *py_with_files;
+    bool with_replicas;
+    PyObject *py_with_replicas;
+    const char *keywords[] = {"project_id", "with_files", "with_replicas", NULL};
+
+    if (!PyArg_ParseTupleAndKeywords(args, kwargs, (char *) "iOO", (char **) keywords, &project_id, &py_with_files, &py_with_replicas)) {
+        {
+            PyObject *exc_type, *traceback;
+            PyErr_Fetch(&exc_type, return_exception, &traceback);
+            Py_XDECREF(exc_type);
+            Py_XDECREF(traceback);
+        }
+        return NULL;
+    }
+    with_files = (bool) PyObject_IsTrue(py_with_files);
+    with_replicas = (bool) PyObject_IsTrue(py_with_replicas);
+    retval = self->obj->dd_get_project_s(project_id, with_files, with_replicas);
+    py_retval = Py_BuildValue((char *) "s#", (retval).c_str(), (retval).size());
+    return py_retval;
+}
+
+PyObject *
+_wrap_PyIfdh_nsIfdh_dd_get_project_s__1(PyIfdh_nsIfdh *self, PyObject *args, PyObject *kwargs, PyObject **return_exception)
+{
+    PyObject *py_retval;
+    std::string retval;
+    int project_id;
+    bool with_files;
+    PyObject *py_with_files;
+    bool with_replicas;
+    PyObject *py_with_replicas;
+    const char *keywords[] = {"project_id", "with_files", "with_replicas", NULL};
+
+    if (!PyArg_ParseTupleAndKeywords(args, kwargs, (char *) "iOO", (char **) keywords, &project_id, &py_with_files, &py_with_replicas)) {
+        {
+            PyObject *exc_type, *traceback;
+            PyErr_Fetch(&exc_type, return_exception, &traceback);
+            Py_XDECREF(exc_type);
+            Py_XDECREF(traceback);
+        }
+        return NULL;
+    }
+    with_files = (bool) PyObject_IsTrue(py_with_files);
+    with_replicas = (bool) PyObject_IsTrue(py_with_replicas);
+    retval = self->obj->dd_get_project_s(project_id, with_files, with_replicas);
+    py_retval = Py_BuildValue((char *) "s#", (retval).c_str(), (retval).size());
+    return py_retval;
+}
+
+PyObject * _wrap_PyIfdh_nsIfdh_dd_get_project_s(PyIfdh_nsIfdh *self, PyObject *args, PyObject *kwargs)
+{
+    PyObject * retval;
+    PyObject *error_list;
+    PyObject *exceptions[2] = {0,};
+    retval = _wrap_PyIfdh_nsIfdh_dd_get_project_s__0(self, args, kwargs, &exceptions[0]);
+    if (!exceptions[0]) {
+        return retval;
+    }
+    retval = _wrap_PyIfdh_nsIfdh_dd_get_project_s__1(self, args, kwargs, &exceptions[1]);
+    if (!exceptions[1]) {
+        Py_DECREF(exceptions[0]);
+        return retval;
+    }
+    error_list = PyList_New(2);
+    PyList_SET_ITEM(error_list, 0, PyObject_Str(exceptions[0]));
+    Py_DECREF(exceptions[0]);
+    PyList_SET_ITEM(error_list, 1, PyObject_Str(exceptions[1]));
+    Py_DECREF(exceptions[1]);
+    PyErr_SetObject(PyExc_TypeError, error_list);
+    Py_DECREF(error_list);
+    return NULL;
+}
+
+
+PyObject *
+_wrap_PyIfdh_nsIfdh_dd_file_done_s(PyIfdh_nsIfdh *self, PyObject *args, PyObject *kwargs)
+{
+    PyObject *py_retval;
+    std::string retval;
+    int project_id;
+    const char *file_did;
+    Py_ssize_t file_did_len;
+    const char *keywords[] = {"project_id", "file_did", NULL};
+
+    if (!PyArg_ParseTupleAndKeywords(args, kwargs, (char *) "is#", (char **) keywords, &project_id, &file_did, &file_did_len)) {
+        return NULL;
+    }
+    retval = self->obj->dd_file_done_s(project_id, std::string(file_did, file_did_len));
+    py_retval = Py_BuildValue((char *) "s#", (retval).c_str(), (retval).size());
+    return py_retval;
+}
+
+
+PyObject *
+_wrap_PyIfdh_nsIfdh_dd_file_failed_s(PyIfdh_nsIfdh *self, PyObject *args, PyObject *kwargs)
+{
+    PyObject *py_retval;
+    std::string retval;
+    int project_id;
+    const char *file_did;
+    Py_ssize_t file_did_len;
+    bool retry;
+    PyObject *py_retry;
+    const char *keywords[] = {"project_id", "file_did", "retry", NULL};
+
+    if (!PyArg_ParseTupleAndKeywords(args, kwargs, (char *) "is#O", (char **) keywords, &project_id, &file_did, &file_did_len, &py_retry)) {
+        return NULL;
+    }
+    retry = (bool) PyObject_IsTrue(py_retry);
+    retval = self->obj->dd_file_failed_s(project_id, std::string(file_did, file_did_len), retry);
+    py_retval = Py_BuildValue((char *) "s#", (retval).c_str(), (retval).size());
+    return py_retval;
+}
+
+
+PyObject *
+_wrap_PyIfdh_nsIfdh_dd_worker_id(PyIfdh_nsIfdh *self, PyObject *args, PyObject *kwargs)
+{
+    PyObject *py_retval;
+    std::string retval;
+    const char *new_id = NULL;
+    Py_ssize_t new_id_len;
+    const char *worker_id_file = NULL;
+    Py_ssize_t worker_id_file_len;
+    const char *keywords[] = {"new_id", "worker_id_file", NULL};
+
+    if (!PyArg_ParseTupleAndKeywords(args, kwargs, (char *) "|s#s#", (char **) keywords, &new_id, &new_id_len, &worker_id_file, &worker_id_file_len)) {
+        return NULL;
+    }
+    retval = self->obj->dd_worker_id((new_id ? std::string(new_id, new_id_len) : ), (worker_id_file ? std::string(worker_id_file, worker_id_file_len) : ));
+    py_retval = Py_BuildValue((char *) "s#", (retval).c_str(), (retval).size());
+    return py_retval;
+}
+
+
+PyObject *
+_wrap_PyIfdh_nsIfdh_metacat_query_s(PyIfdh_nsIfdh *self, PyObject *args, PyObject *kwargs)
+{
+    PyObject *py_retval;
+    std::string retval;
+    const char *query;
+    Py_ssize_t query_len;
+    bool metadata;
+    PyObject *py_metadata;
+    bool provenance;
+    PyObject *py_provenance;
+    const char *keywords[] = {"query", "metadata", "provenance", NULL};
+
+    if (!PyArg_ParseTupleAndKeywords(args, kwargs, (char *) "s#OO", (char **) keywords, &query, &query_len, &py_metadata, &py_provenance)) {
+        return NULL;
+    }
+    metadata = (bool) PyObject_IsTrue(py_metadata);
+    provenance = (bool) PyObject_IsTrue(py_provenance);
+    retval = self->obj->metacat_query_s(std::string(query, query_len), metadata, provenance);
+    py_retval = Py_BuildValue((char *) "s#", (retval).c_str(), (retval).size());
+    return py_retval;
+}
+
+
+PyObject *
+_wrap_PyIfdh_nsIfdh_metacat_file_declare_s(PyIfdh_nsIfdh *self, PyObject *args, PyObject *kwargs)
+{
+    PyObject *py_retval;
+    std::string retval;
+    const char *dataset;
+    Py_ssize_t dataset_len;
+    const char *json_metadata;
+    Py_ssize_t json_metadata_len;
+    const char *keywords[] = {"dataset", "json_metadata", NULL};
+
+    if (!PyArg_ParseTupleAndKeywords(args, kwargs, (char *) "s#s#", (char **) keywords, &dataset, &dataset_len, &json_metadata, &json_metadata_len)) {
+        return NULL;
+    }
+    retval = self->obj->metacat_file_declare_s(std::string(dataset, dataset_len), std::string(json_metadata, json_metadata_len));
+    py_retval = Py_BuildValue((char *) "s#", (retval).c_str(), (retval).size());
+    return py_retval;
+}
+
 static PyMethodDef PyIfdh_nsIfdh_methods[] = {
     {(char *) "set_debug", (PyCFunction) _wrap_PyIfdh_nsIfdh_set_debug, METH_KEYWORDS|METH_VARARGS, "set_debug(s)\n\ntype: s: std::string" },
     {(char *) "set_base_uri", (PyCFunction) _wrap_PyIfdh_nsIfdh_set_base_uri, METH_KEYWORDS|METH_VARARGS, "set_base_uri(baseuri)\n\ntype: baseuri: std::string" },
@@ -1804,6 +2063,16 @@ static PyMethodDef PyIfdh_nsIfdh_methods[] = {
     {(char *) "takeSnapshot", (PyCFunction) _wrap_PyIfdh_nsIfdh_takeSnapshot, METH_KEYWORDS|METH_VARARGS, "takeSnapshot(name)\n\ntype: name: std::string" },
     {(char *) "projectStatus", (PyCFunction) _wrap_PyIfdh_nsIfdh_projectStatus, METH_KEYWORDS|METH_VARARGS, "projectStatus(projecturi)\n\ntype: projecturi: std::string" },
     {(char *) "addFileLocation", (PyCFunction) _wrap_PyIfdh_nsIfdh_addFileLocation, METH_KEYWORDS|METH_VARARGS, "addFileLocation(filename, location)\n\ntype: filename: std::string\ntype: location: std::string" },
+    {(char *) "dd_mc_authenticate", (PyCFunction) _wrap_PyIfdh_nsIfdh_dd_mc_authenticate, METH_NOARGS, "dd_mc_authenticate()\n\n" },
+    {(char *) "dd_create_project_s", (PyCFunction) _wrap_PyIfdh_nsIfdh_dd_create_project_s, METH_KEYWORDS|METH_VARARGS, "dd_create_project_s(files, common_attributes, project_attributes, query, worker_timeout, idle_timeout, users, roles)\n\ntype: files: std::vector< std::string >\ntype: common_attributes: std::map< std::string, std::string >\ntype: project_attributes: std::map< std::string, std::string >\ntype: query: std::string\ntype: worker_timeout: int\ntype: idle_timeout: int\ntype: users: std::vector< std::string >\ntype: roles: std::vector< std::string >" },
+    {(char *) "dd_next_file_json_s", (PyCFunction) _wrap_PyIfdh_nsIfdh_dd_next_file_json_s, METH_KEYWORDS|METH_VARARGS, "dd_next_file_json_s(project_id, cpu_site, worker_id, timeout, stagger)\n\ntype: project_id: int\ntype: cpu_site: std::string\ntype: worker_id: std::string\ntype: timeout: long int\ntype: stagger: int" },
+    {(char *) "dd_next_file_url", (PyCFunction) _wrap_PyIfdh_nsIfdh_dd_next_file_url, METH_KEYWORDS|METH_VARARGS, "dd_next_file_url(project_id, cpu_site, worker_id, timeout, stagger)\n\ntype: project_id: int\ntype: cpu_site: std::string\ntype: worker_id: std::string\ntype: timeout: long int\ntype: stagger: int" },
+    {(char *) "dd_get_project_s", (PyCFunction) _wrap_PyIfdh_nsIfdh_dd_get_project_s, METH_KEYWORDS|METH_VARARGS, NULL },
+    {(char *) "dd_file_done_s", (PyCFunction) _wrap_PyIfdh_nsIfdh_dd_file_done_s, METH_KEYWORDS|METH_VARARGS, "dd_file_done_s(project_id, file_did)\n\ntype: project_id: int\ntype: file_did: std::string" },
+    {(char *) "dd_file_failed_s", (PyCFunction) _wrap_PyIfdh_nsIfdh_dd_file_failed_s, METH_KEYWORDS|METH_VARARGS, "dd_file_failed_s(project_id, file_did, retry)\n\ntype: project_id: int\ntype: file_did: std::string\ntype: retry: bool" },
+    {(char *) "dd_worker_id", (PyCFunction) _wrap_PyIfdh_nsIfdh_dd_worker_id, METH_KEYWORDS|METH_VARARGS, "dd_worker_id(new_id, worker_id_file)\n\ntype: new_id: std::string\ntype: worker_id_file: std::string" },
+    {(char *) "metacat_query_s", (PyCFunction) _wrap_PyIfdh_nsIfdh_metacat_query_s, METH_KEYWORDS|METH_VARARGS, "metacat_query_s(query, metadata, provenance)\n\ntype: query: std::string\ntype: metadata: bool\ntype: provenance: bool" },
+    {(char *) "metacat_file_declare_s", (PyCFunction) _wrap_PyIfdh_nsIfdh_metacat_file_declare_s, METH_KEYWORDS|METH_VARARGS, "metacat_file_declare_s(dataset, json_metadata)\n\ntype: dataset: std::string\ntype: json_metadata: std::string" },
     {NULL, NULL, 0, NULL}
 };
 
@@ -2462,7 +2731,8 @@ static PyObject* _wrap_Pystd__map__lt__std__string_std__vector__lt__std__string_
     ++(*self->iterator);
     py_std__vector__lt__std__string__gt__ = PyObject_New(Pystd__vector__lt__std__string__gt__, &Pystd__vector__lt__std__string__gt___Type);
     py_std__vector__lt__std__string__gt__->obj = new std::vector<std::string>(iter->second);
-    py_retval = Py_BuildValue((char *) "(s#,N)", (iter->first).c_str(), (iter->first).size(), py_std__vector__lt__std__string__gt__);
+    py_retval = Py_BuildValue((char *) "s#N", (iter->first).c_str(), (iter->first).size(), py_std__vector__lt__std__string__gt__);
+    py_retval = PyType_Type.tp_call((PyObject*)&PyTuple_Type,Py_BuildValue("(O)",py_retval),Py_BuildValue("{}"));
     return py_retval;
 }
 
@@ -2646,6 +2916,260 @@ PyTypeObject Pystd__map__lt__std__string_std__vector__lt__std__string__gt_____gt
 };
 
 
+
+
+static void
+Pystd__map__lt__std__string_std__string__gt__Iter__tp_clear(Pystd__map__lt__std__string_std__string__gt__Iter *self)
+{
+    Py_CLEAR(self->container);
+    delete self->iterator;
+    self->iterator = NULL;
+
+}
+
+
+static int
+Pystd__map__lt__std__string_std__string__gt__Iter__tp_traverse(Pystd__map__lt__std__string_std__string__gt__Iter *self, visitproc visit, void *arg)
+{
+    Py_VISIT((PyObject *) self->container);
+    return 0;
+}
+
+
+static void
+_wrap_Pystd__map__lt__std__string_std__string__gt____tp_dealloc(Pystd__map__lt__std__string_std__string__gt__ *self)
+{
+    delete self->obj;
+    self->obj = NULL;
+
+    Py_TYPE(self)->tp_free((PyObject*)self);
+}
+
+
+static void
+_wrap_Pystd__map__lt__std__string_std__string__gt__Iter__tp_dealloc(Pystd__map__lt__std__string_std__string__gt__Iter *self)
+{
+    Py_CLEAR(self->container);
+    delete self->iterator;
+    self->iterator = NULL;
+
+    Py_TYPE(self)->tp_free((PyObject*)self);
+}
+
+
+static PyObject*
+_wrap_Pystd__map__lt__std__string_std__string__gt____tp_iter(Pystd__map__lt__std__string_std__string__gt__ *self)
+{
+    Pystd__map__lt__std__string_std__string__gt__Iter *iter = PyObject_GC_New(Pystd__map__lt__std__string_std__string__gt__Iter, &Pystd__map__lt__std__string_std__string__gt__Iter_Type);
+    Py_INCREF(self);
+    iter->container = self;
+    iter->iterator = new std::map<std::string,std::string>::iterator(self->obj->begin());
+    return (PyObject*) iter;
+}
+
+
+static PyObject*
+_wrap_Pystd__map__lt__std__string_std__string__gt__Iter__tp_iter(Pystd__map__lt__std__string_std__string__gt__Iter *self)
+{
+    Py_INCREF(self);
+    return (PyObject*) self;
+}
+
+static PyObject* _wrap_Pystd__map__lt__std__string_std__string__gt__Iter__tp_iternext(Pystd__map__lt__std__string_std__string__gt__Iter *self)
+{
+    PyObject *py_retval;
+    std::map<std::string,std::string>::iterator iter;
+
+    iter = *self->iterator;
+    if (iter == self->container->obj->end()) {
+        PyErr_SetNone(PyExc_StopIteration);
+        return NULL;
+    }
+    ++(*self->iterator);
+    py_retval = Py_BuildValue((char *) "s#s#", (iter->first).c_str(), (iter->first).size(), (iter->second).c_str(), (iter->second).size());
+    return py_retval;
+}
+
+int _wrap_convert_py2c__std__map__lt___std__string__std__string___gt__(PyObject *arg, std::map<std::string,std::string> *container)
+{
+    if (PyObject_IsInstance(arg, (PyObject*) &Pystd__map__lt__std__string_std__string__gt___Type)) {
+        *container = *((Pystd__map__lt__std__string_std__string__gt__*)arg)->obj;
+    } else if (PyList_Check(arg)) {
+        container->clear();
+        Py_ssize_t size = PyList_Size(arg);
+        for (Py_ssize_t i = 0; i < size; i++) {
+            PyObject *tup = PyList_GET_ITEM(arg, i);
+            if (!PyTuple_Check(tup) || PyTuple_Size(tup) != 2) {
+                PyErr_SetString(PyExc_TypeError, "items must be tuples with two elements");
+                return 0;
+            }
+            std::pair< std::string, std::string > item;
+            if (!_wrap_convert_py2c__std__string(PyTuple_GET_ITEM(tup, 0), &item.first)) {
+                return 0;
+            }
+            if (!_wrap_convert_py2c__std__string(PyTuple_GET_ITEM(tup, 1), &item.second)) {
+                return 0;
+            }
+            container->insert(item);
+        }
+    } else if (PyTuple_Check(arg)) {
+        container->clear();
+        Py_ssize_t size = PyTuple_Size(arg);
+        for (Py_ssize_t i = 0; i < size; i++) {
+            PyObject *tup = PyTuple_GET_ITEM(arg, i);
+            if (!PyTuple_Check(tup) || PyTuple_Size(tup) != 2) {
+                PyErr_SetString(PyExc_TypeError, "items must be tuples with two elements");
+                return 0;
+            }
+            std::pair< std::string, std::string > item;
+            if (!_wrap_convert_py2c__std__string(PyTuple_GET_ITEM(tup, 0), &item.first)) {
+                return 0;
+            }
+            if (!_wrap_convert_py2c__std__string(PyTuple_GET_ITEM(tup, 1), &item.second)) {
+                return 0;
+            }
+            container->insert(item);
+        }
+    } else {
+        PyErr_SetString(PyExc_TypeError, "parameter must be None, a Std__map__lt__std__string_std__string__gt__ instance, or a list of std::string");
+        return 0;
+    }
+    return 1;
+}
+
+
+static int
+_wrap_Pystd__map__lt__std__string_std__string__gt____tp_init(Pystd__map__lt__std__string_std__string__gt__ *self, PyObject *args, PyObject *kwargs)
+{
+    const char *keywords[] = {"arg", NULL};
+    PyObject *arg = NULL;
+
+    if (!PyArg_ParseTupleAndKeywords(args, kwargs, (char *) "|O", (char **) keywords, &arg)) {
+        return -1;
+    }
+
+    self->obj = new std::map<std::string,std::string>;
+
+    if (arg == NULL)
+        return 0;
+
+    if (!_wrap_convert_py2c__std__map__lt___std__string__std__string___gt__(arg, self->obj)) {
+        delete self->obj;
+        self->obj = NULL;
+        return -1;
+    }
+    return 0;
+}
+
+PyTypeObject Pystd__map__lt__std__string_std__string__gt___Type = {
+    PyVarObject_HEAD_INIT(NULL, 0)
+    (char *) "ifdh.Std__map__lt__std__string_std__string__gt__",            /* tp_name */
+    sizeof(Pystd__map__lt__std__string_std__string__gt__),                  /* tp_basicsize */
+    0,                                 /* tp_itemsize */
+    /* methods */
+    (destructor)_wrap_Pystd__map__lt__std__string_std__string__gt____tp_dealloc,        /* tp_dealloc */
+    (printfunc)0,                      /* tp_print */
+    (getattrfunc)NULL,       /* tp_getattr */
+    (setattrfunc)NULL,       /* tp_setattr */
+#if PY_MAJOR_VERSION >= 3
+    NULL,
+#else
+    (cmpfunc)NULL,           /* tp_compare */
+#endif
+    (reprfunc)NULL,             /* tp_repr */
+    (PyNumberMethods*)NULL,     /* tp_as_number */
+    (PySequenceMethods*)NULL, /* tp_as_sequence */
+    (PyMappingMethods*)NULL,   /* tp_as_mapping */
+    (hashfunc)NULL,             /* tp_hash */
+    (ternaryfunc)NULL,          /* tp_call */
+    (reprfunc)NULL,              /* tp_str */
+    (getattrofunc)NULL,     /* tp_getattro */
+    (setattrofunc)NULL,     /* tp_setattro */
+    (PyBufferProcs*)NULL,  /* tp_as_buffer */
+    Py_TPFLAGS_DEFAULT,                      /* tp_flags */
+    NULL,                        /* Documentation string */
+    (traverseproc)NULL,     /* tp_traverse */
+    (inquiry)NULL,             /* tp_clear */
+    (richcmpfunc)NULL,   /* tp_richcompare */
+    0,             /* tp_weaklistoffset */
+    (getiterfunc)_wrap_Pystd__map__lt__std__string_std__string__gt____tp_iter,          /* tp_iter */
+    (iternextfunc)NULL,     /* tp_iternext */
+    (struct PyMethodDef*)NULL, /* tp_methods */
+    (struct PyMemberDef*)0,              /* tp_members */
+    NULL,                     /* tp_getset */
+    NULL,                              /* tp_base */
+    NULL,                              /* tp_dict */
+    (descrgetfunc)NULL,    /* tp_descr_get */
+    (descrsetfunc)NULL,    /* tp_descr_set */
+    0,                 /* tp_dictoffset */
+    (initproc)_wrap_Pystd__map__lt__std__string_std__string__gt____tp_init,             /* tp_init */
+    (allocfunc)PyType_GenericAlloc,           /* tp_alloc */
+    (newfunc)PyType_GenericNew,               /* tp_new */
+    (freefunc)0,             /* tp_free */
+    (inquiry)NULL,             /* tp_is_gc */
+    NULL,                              /* tp_bases */
+    NULL,                              /* tp_mro */
+    NULL,                              /* tp_cache */
+    NULL,                              /* tp_subclasses */
+    NULL,                              /* tp_weaklist */
+    (destructor) NULL                  /* tp_del */
+};
+
+PyTypeObject Pystd__map__lt__std__string_std__string__gt__Iter_Type = {
+    PyVarObject_HEAD_INIT(NULL, 0)
+    (char *) "ifdh.Std__map__lt__std__string_std__string__gt__Iter",            /* tp_name */
+    sizeof(Pystd__map__lt__std__string_std__string__gt__Iter),                  /* tp_basicsize */
+    0,                                 /* tp_itemsize */
+    /* methods */
+    (destructor)_wrap_Pystd__map__lt__std__string_std__string__gt__Iter__tp_dealloc,        /* tp_dealloc */
+    (printfunc)0,                      /* tp_print */
+    (getattrfunc)NULL,       /* tp_getattr */
+    (setattrfunc)NULL,       /* tp_setattr */
+#if PY_MAJOR_VERSION >= 3
+    NULL,
+#else
+    (cmpfunc)NULL,           /* tp_compare */
+#endif
+    (reprfunc)NULL,             /* tp_repr */
+    (PyNumberMethods*)NULL,     /* tp_as_number */
+    (PySequenceMethods*)NULL, /* tp_as_sequence */
+    (PyMappingMethods*)NULL,   /* tp_as_mapping */
+    (hashfunc)NULL,             /* tp_hash */
+    (ternaryfunc)NULL,          /* tp_call */
+    (reprfunc)NULL,              /* tp_str */
+    (getattrofunc)NULL,     /* tp_getattro */
+    (setattrofunc)NULL,     /* tp_setattro */
+    (PyBufferProcs*)NULL,  /* tp_as_buffer */
+    Py_TPFLAGS_DEFAULT|Py_TPFLAGS_HAVE_GC,                      /* tp_flags */
+    NULL,                        /* Documentation string */
+    (traverseproc)Pystd__map__lt__std__string_std__string__gt__Iter__tp_traverse,     /* tp_traverse */
+    (inquiry)Pystd__map__lt__std__string_std__string__gt__Iter__tp_clear,             /* tp_clear */
+    (richcmpfunc)NULL,   /* tp_richcompare */
+    0,             /* tp_weaklistoffset */
+    (getiterfunc)_wrap_Pystd__map__lt__std__string_std__string__gt__Iter__tp_iter,          /* tp_iter */
+    (iternextfunc)_wrap_Pystd__map__lt__std__string_std__string__gt__Iter__tp_iternext,     /* tp_iternext */
+    (struct PyMethodDef*)NULL, /* tp_methods */
+    (struct PyMemberDef*)0,              /* tp_members */
+    NULL,                     /* tp_getset */
+    NULL,                              /* tp_base */
+    NULL,                              /* tp_dict */
+    (descrgetfunc)NULL,    /* tp_descr_get */
+    (descrsetfunc)NULL,    /* tp_descr_set */
+    0,                 /* tp_dictoffset */
+    (initproc)NULL,             /* tp_init */
+    (allocfunc)PyType_GenericAlloc,           /* tp_alloc */
+    (newfunc)PyType_GenericNew,               /* tp_new */
+    (freefunc)0,             /* tp_free */
+    (inquiry)NULL,             /* tp_is_gc */
+    NULL,                              /* tp_bases */
+    NULL,                              /* tp_mro */
+    NULL,                              /* tp_cache */
+    NULL,                              /* tp_subclasses */
+    NULL,                              /* tp_weaklist */
+    (destructor) NULL                  /* tp_del */
+};
+
+
 /* --- exceptions --- */
 
 
@@ -2727,6 +3251,15 @@ MOD_INIT(ifdh)
     }
     PyModule_AddObject(m, (char *) "Std__map__lt__std__string_std__vector__lt__std__string__gt_____gt__", (PyObject *) &Pystd__map__lt__std__string_std__vector__lt__std__string__gt_____gt___Type);
     PyModule_AddObject(m, (char *) "Std__map__lt__std__string_std__vector__lt__std__string__gt_____gt__Iter", (PyObject *) &Pystd__map__lt__std__string_std__vector__lt__std__string__gt_____gt__Iter_Type);
+    /* Register the 'std::map<std::string,std::string>' class */
+    if (PyType_Ready(&Pystd__map__lt__std__string_std__string__gt___Type)) {
+        return MOD_ERROR;
+    }
+    if (PyType_Ready(&Pystd__map__lt__std__string_std__string__gt__Iter_Type)) {
+        return MOD_ERROR;
+    }
+    PyModule_AddObject(m, (char *) "Std__map__lt__std__string_std__string__gt__", (PyObject *) &Pystd__map__lt__std__string_std__string__gt___Type);
+    PyModule_AddObject(m, (char *) "Std__map__lt__std__string_std__string__gt__Iter", (PyObject *) &Pystd__map__lt__std__string_std__string__gt__Iter_Type);
     /* Register the 'std::logic_error' exception */
     if ((Pystd__logic_error_Type = (PyTypeObject*) PyErr_NewException((char*)"ifdh.logic_error", NULL, NULL)) == NULL) {
         return MOD_ERROR;

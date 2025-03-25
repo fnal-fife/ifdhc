@@ -33,6 +33,7 @@ class json_storage {
     virtual bool is_string() {return false;}
     virtual bool is_number() {return false;}
     virtual bool has_item(json&) {return false;}
+    virtual int  size() { return 0; }
 };
 
 class json {
@@ -65,6 +66,7 @@ class json {
     virtual bool is_number() {return pval->is_number();}
     virtual bool has_item(json& j) {return pval->has_item(j);}
     virtual bool has_item(const char *cs) {json jcs(cs); return pval->has_item(jcs);}
+    virtual int  size() {return pval->size();}
 };
 
 bool operator < (const json, const json);
@@ -87,6 +89,7 @@ class json_str : public json_storage {
     operator std::string();
     ~json_str();
     virtual bool is_string() {return true;}
+    virtual int size() { return val.size(); }
 };
 
 class json_num : public json_storage {
@@ -99,6 +102,7 @@ class json_num : public json_storage {
     operator double(); 
     ~json_num();
     virtual bool is_number() {return true;}
+    virtual int size() { return 1; }
 };
 class json_bool : public json_storage {
     bool val;
@@ -110,6 +114,7 @@ class json_bool : public json_storage {
     operator bool(); 
     ~json_bool();
     virtual bool is_bool() {return true;}
+    virtual int size() { return 1; }
 };
 
 class json_list : public json_storage {
@@ -124,6 +129,7 @@ class json_list : public json_storage {
     ~json_list();
     virtual bool is_list() {return true;}
     virtual bool has_item(json& j) const {return j.is_number() && (double)j < val.size();}
+    virtual int  size() {return val.size();}
 };
 
 class json_dict : public json_storage {
@@ -139,6 +145,7 @@ class json_dict : public json_storage {
     ~json_dict();
     virtual bool is_dict() {return true;}
     virtual bool has_item(json& j) {try{ val.at(j); return true;}  catch(const std::out_of_range& ex) {return false; }}
+    virtual int  size() {return val.size();}
 };
 
 }

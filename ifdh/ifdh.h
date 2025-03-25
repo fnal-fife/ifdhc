@@ -183,7 +183,9 @@ class ifdh {
         // get a Token for the current experiment if needed, 
         // return the path
         std::string getToken();
+        // authenticate for data dispatcher / metacat
         void dd_mc_authenticate();
+        // create a project file1 file2 -- key value key value -- 
         json dd_create_project( std::vector<std::string> files, std::map<std::string, std::string> common_attributes, std::map<std::string, std::string> project_attributes, std::string query, int worker_timeout, int idle_timeout, std::vector<std::string> users, std::vector<std::string> roles);
         json dd_next_file_json(int project_id, std::string cpu_site="", std::string worker_id="", long int timeout=0, int stagger=0);
         std::string dd_next_file_url(int project_id, std::string cpu_site="", std::string worker_id="", long int timeout=0, int stagger=0);
@@ -198,7 +200,7 @@ class ifdh {
 	std::string sam_updateFileStatus(std::string projecturi, std::string processid, std::string filename, std::string status);
 	std::string sam_establishProcess(std::string projecturi,  std::string appname, std::string appversion, std::string location, std::string user, std::string appfamily = "", std::string description = "", int filelimit = -1, std::string schemas = "");
 	int sam_declareFile( std::string json_metadata);
-        std::string dd_create_project_s( std::vector<std::string> files, std::map<std::string, std::string> common_attributes, std::map<std::string, std::string> project_attributes, std::string query, int worker_timeout, int idle_timeout, std::vector<std::string> users, std::vector<std::string> roles);
+        std::string dd_create_project_s( std::vector<std::string> files, std::map<std::string,std::string> common_attributes, std::map<std::string, std::string> project_attributes, std::string query, int worker_timeout, int idle_timeout, std::vector<std::string> users, std::vector<std::string> roles);
         std::string dd_next_file_json_s(int project_id, std::string cpu_site="", std::string worker_id="", long int timeout=0, int stagger=0);
         std::string dd_get_project_s(int project_id, bool with_files, bool with_replicas);
         std::string dd_file_done_s(int project_id, std::string file_did);

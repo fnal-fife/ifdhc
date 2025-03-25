@@ -83,17 +83,12 @@ klass.add_method('dd_mc_authenticate',retval('void'),[],throw=[std_logicerror])
 klass.add_method('dd_create_project_s', retval('std::string'), [param('std::vector<std::string>','files'),param('std::map<std::string, std::string>','common_attributes'),param('std::map<std::string, std::string>','project_attributes'),param('std::string','query'),param('int','worker_timeout'),param('int','idle_timeout'),param('std::vector<std::string>','users'),param('std::vector<std::string>','roles')], throw=[std_logicerror])
 klass.add_method('dd_next_file_json_s', retval('std::string'), [param('int','project_id'), param('std::string', 'cpu_site', default_value=""),param('std::string','worker_id',default_value=''),param('long int','timeout', default_value="0"),param('int','stagger', default_value="0")])
 klass.add_method("dd_next_file_url", retval("std::string") ,[param("int","project_id"),param("std::string","cpu_site", default_value=""),param("std::string","worker_id", default_value=""),param("long int","timeout", default_value="0"),param("int","stagger", default_value="0")])
-
-""" stil to convert...
-        std::string dd_get_project_s(int project_id, bool with_files, bool with_replicas);
-        std::string dd_file_done_s(int project_id, std::string file_did);
-        std::string dd_file_failed_s(int project_id, std::string file_did, bool retry);
-        std::string dd_worker_id(std::string new_id="", std::string worker_id_file="");
-        std::string metacat_query_s(std::string, bool, bool);
-        std::string metacat_file_declare_s(std::string dataset, std::string json_metadata);
-"""
-
-
-
+klass.add_method('dd_get_project_s', retval("std::string"), [param('int','project_id'),param('bool','with_files'),param('bool','with_replicas')])
+klass.add_method('dd_get_project_s', retval('std::string'), [param('int', 'project_id'),param('bool','with_files'), param('bool','with_replicas')])
+klass.add_method('dd_file_done_s', retval('std::string'), [param('int','project_id'),param('std::string','file_did')])
+klass.add_method('dd_file_failed_s', retval('std::string'), [param('int','project_id'),param('std::string','file_did'),param('bool','retry')])
+klass.add_method('dd_worker_id', retval('std::string'), [param('std::string','new_id',default_value=""),param('std::string','worker_id_file',default_value="")])
+klass.add_method('metacat_query_s', retval('std::string'), [param('std::string','query'),param('bool','metadata'), param('bool','provenance')])
+klass.add_method('metacat_file_declare_s', retval('std::string'), [param('std::string','dataset'), param('std::string','json_metadata')])
 
 mod.generate(sys.stdout)

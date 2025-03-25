@@ -153,10 +153,12 @@ do
         printf "static void dv(vector<string> v)\t\t{ for(; i < v.size(); i++) { cout << v[i] << \"\\\\n\"; } exit(v.size() == 0);}\n"
         printf "static void dvpsl(vector<pair<string, long int> > v)\t{ for(; i < v.size(); i++) { cout << v[i].first << "'"\\t"'" << v[i].second << \"\\\\n\"; } exit(v.size() == 0);}\n"
         printf "static void dvmsvs(map<string,vector<string> > m)\t{for( map<string,vector<string> >:: iterator i  = m.begin(); i != m.end(); ++i) { cout << i->first << "'":\\n"'"; for (size_t j = 0; j < i->second.size(); ++j) { cout << "'"\\t"'" <<  i->second[j] << "'"\\n"'";}  } exit(m.empty()); }\n"
-        printf "static vector<string> argvec(int argc, char **argv) { vector<string> v; for(; i < argc && 0 != strcmp(argv[i],"=="); i++ ) { v.push_back(argv[i]); } i++; return v; }\n"
-        printf "static std::map<string,string> argmap(int argc, char **argv) { std::map<string,string> m; for(; i < argc-1 && argv[i] != '--'; i+=2 ) { m.insert(std::pair<string,string>(argv[i], argv[i+1]); } i++;  return m; }\n"
-        printf "static vector<pair<string,long> > argvecpair(int argc, char **argv) { vector<pair<string,long> > v; int i; for(; i < argc - 1 && 0 == strcmp(argv[i],"=="); i+=2 ) { v.push_back(pair<string,long>(argv[i],atol(argv[i+1]))); } return v; }\n"
-        printf "static string catargs(int argc, char **argv) { string res; for(; i < argc && 0 !+ strcmp(argv[i],"--"); i++ ) { res.append(argv[i]); res.append(\" \"); } return res; }\n"
+        printf "static vector<string> argvec(int argc, char **argv) { vector<string> v; for(; i < (size_t)argc && 0 != strcmp(argv[i],\"--\"); i++ ) { v.push_back(argv[i]); } i += (i!=(size_t)argv); return v; }\n"
+        printf "static std::map<string,string> argmap(int argc, char **argv) { std::map<string,string> m; for(; i < (size_t)argc-1 && 0 != strcmp(argv[i],\"--\"); i+=2 ) { m.insert(std::pair<string,string>(argv[i], argv[i+1])); } i += (i!=(size_t)argv);  return m; }\n"
+        printf "static vector<pair<string,long> > argvecpair(int argc, char **argv) { vector<pair<string,long> > v; for(; i < (size_t)argc - 1 && 0 == strcmp(argv[i],\"--\"); i+=2 ) { v.push_back(pair<string,long>(argv[i],atol(argv[i+1]))); } return v; }\n"
+        printf "static string catargs(int argc, char **argv) { string res; for(; i < (size_t)argc && 0 != strcmp(argv[i],\"--\"); i++ ) { res.append(argv[i]); res.append(\" \"); } return res; }\n"
+        printf "static const char *nextarg(char **argv) { const char *res; if(has_args_thru(argv,i)) res = argv[i]; else res=\"\"; i=i+1; return res;}\n"
+
 
         printf "\n"
 
@@ -238,20 +240,21 @@ do
           cargs="argvecpair"
           args="args";
           ;;
+        *map*string*string*)
+          echo "map case: $args" >&2
+          cargs=`echo $args | perl -pe 's/std::vector<std::string> ([a-z]*)/svs_$1/g; s/std::map<std::string std::string> ([a-z]*)/mssss_$1/g; s/std::string ([a-z]*)/nxs/g; s/= ".*?"//g; s/= 0//g; s/= -1//g; s/;.*//; s/(long )?int ([a-z]*)/nxatol_$2/g; s/bool ([a-z]*)/nxatob_$1/g;'`
+          args="args";
+          echo "after: cargs $cargs" >&2
+          ;;
         *vector*string*args*)
           echo "argvec case: $args" >&2 
           cargs="argvec"
           args="args";
           ;;
-        *map*string*string*)
-          echo "map case: $args" >&2
-          cargs="argmap"
-          args="args";
-          ;;
         *)
           echo "usual case: $args" >&2 
-          cargs=`echo $args | perl -pe 's/std::string//g; s/= ".*?"//g; s/= 0//g; s/= -1//g; s/;.*//; s/(long )?int ([a-z]*)/atol_$2/g;'`
-          args=`echo $args | perl -pe 's/std::string//g; s/= ".*?"//g; s/= 0//g; s/= -1//g; s/;.*//; s/(long )?int//g;'`
+          cargs=`echo $args | perl -pe 's/std::string//g; s/= ".*?"//g; s/= 0//g; s/= -1//g; s/;.*//; s/(long )?int ([a-z]*)/atol_$2/g; s/bool ([a-z]*)/atob_$1/g;'`
+          args=`echo $args | perl -pe 's/std::string//g; s/= ".*?"//g; s/= 0//g; s/= -1//g; s/;.*//; s/(long )?int//g, s/bool//g;'`
           ;;
         esac
         echo "cargs are now: $cargs" >&2
@@ -266,19 +269,43 @@ do
             case "$a" in
             catargs*)
                  echo "saw catargs case" >&2
-                 printf "catargs(argc-2,argv+2)"
+                 printf "$sep catargs(argc-2,argv+2)"
                  ;;
             argvecpair*)
                  echo "saw argvecpair case" >&2
-                 printf "argvecpair(argc-2,argv+2), (1==argc%%2)?argv[argc-1]:\"\" "
+                 printf "$sep argvecpair(argc-2,argv+2), (1==argc%%2)?argv[argc-1]:\"\" "
+                 ;;
+            svs*)
+                 echo "saw argvec case" >&2
+                 printf "$sep argvec(argc,argv)"
+                 ;;
+            msss*)
+                 echo "saw msss case" >&2
+                 printf "$sep argmap(argc,argv)"
                  ;;
             argvec*)
                  echo "saw argvec case" >&2
-                 printf "argvec(argc-2,argv+2)"
+                 printf "$sep argvec(argc-2,argv+2)"
                  ;;
             atol*)
                  echo "saw atol case" >&2
                  printf "$sep has_args_thru(argv,$i)?atol(argv[$i]):-1"; 
+                 ;;
+            atob*)
+                 echo "saw atob case" >&2
+                 printf "$sep has_args_thru(argv,$i)?bool(atol(argv[$i])):false"; 
+                 ;;
+            nxatol*)
+                 echo "saw nxatol case" >&2
+                 printf "$sep atol(nextarg(argv))"; 
+                 ;;
+            nxatob*)
+                 echo "saw nxatob case" >&2
+                 printf "$sep bool(atol(nextarg(argv))"; 
+                 ;;
+            nxs*)
+                 echo "saw nxs case" >&2
+                 printf "$sep nextarg(argv)"; 
                  ;;
             *)
                  printf "$sep has_args_thru(argv,$i)?argv[$i]:\"\""; 

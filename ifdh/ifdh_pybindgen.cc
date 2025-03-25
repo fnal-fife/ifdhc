@@ -1794,7 +1794,7 @@ _wrap_PyIfdh_nsIfdh_dd_next_file_json_s(PyIfdh_nsIfdh *self, PyObject *args, PyO
     if (!PyArg_ParseTupleAndKeywords(args, kwargs, (char *) "i|s#s#li", (char **) keywords, &project_id, &cpu_site, &cpu_site_len, &worker_id, &worker_id_len, &timeout, &stagger)) {
         return NULL;
     }
-    retval = self->obj->dd_next_file_json_s(project_id, (cpu_site ? std::string(cpu_site, cpu_site_len) : ), (worker_id ? std::string(worker_id, worker_id_len) : ), timeout, stagger);
+    retval = self->obj->dd_next_file_json_s(project_id, (cpu_site ? std::string(cpu_site, cpu_site_len) : "" ), (worker_id ? std::string(worker_id, worker_id_len) : "" ), timeout, stagger);
     py_retval = Py_BuildValue((char *) "s#", (retval).c_str(), (retval).size());
     return py_retval;
 }
@@ -1817,7 +1817,7 @@ _wrap_PyIfdh_nsIfdh_dd_next_file_url(PyIfdh_nsIfdh *self, PyObject *args, PyObje
     if (!PyArg_ParseTupleAndKeywords(args, kwargs, (char *) "i|s#s#li", (char **) keywords, &project_id, &cpu_site, &cpu_site_len, &worker_id, &worker_id_len, &timeout, &stagger)) {
         return NULL;
     }
-    retval = self->obj->dd_next_file_url(project_id, (cpu_site ? std::string(cpu_site, cpu_site_len) : ), (worker_id ? std::string(worker_id, worker_id_len) : ), timeout, stagger);
+    retval = self->obj->dd_next_file_url(project_id, (cpu_site ? std::string(cpu_site, cpu_site_len) : ""), (worker_id ? std::string(worker_id, worker_id_len) : "" ), timeout, stagger);
     py_retval = Py_BuildValue((char *) "s#", (retval).c_str(), (retval).size());
     return py_retval;
 }
@@ -1960,7 +1960,7 @@ _wrap_PyIfdh_nsIfdh_dd_worker_id(PyIfdh_nsIfdh *self, PyObject *args, PyObject *
     if (!PyArg_ParseTupleAndKeywords(args, kwargs, (char *) "|s#s#", (char **) keywords, &new_id, &new_id_len, &worker_id_file, &worker_id_file_len)) {
         return NULL;
     }
-    retval = self->obj->dd_worker_id((new_id ? std::string(new_id, new_id_len) : ), (worker_id_file ? std::string(worker_id_file, worker_id_file_len) : ));
+    retval = self->obj->dd_worker_id((new_id ? std::string(new_id, new_id_len) : "" ), (worker_id_file ? std::string(worker_id_file, worker_id_file_len) : "" ));
     py_retval = Py_BuildValue((char *) "s#", (retval).c_str(), (retval).size());
     return py_retval;
 }

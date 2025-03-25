@@ -185,27 +185,47 @@ class ifdh {
         std::string getToken();
         // authenticate for data dispatcher / metacat
         void dd_mc_authenticate();
-        // create a project file1 file2 -- key value key value -- 
+        // create a project file1 file2 ... -- key value key value ... -- w_timeout i_timeout users -- roles
         json dd_create_project( std::vector<std::string> files, std::map<std::string, std::string> common_attributes, std::map<std::string, std::string> project_attributes, std::string query, int worker_timeout, int idle_timeout, std::vector<std::string> users, std::vector<std::string> roles);
+        // json next file 
         json dd_next_file_json(int project_id, std::string cpu_site="", std::string worker_id="", long int timeout=0, int stagger=0);
+        // string(url) next file
         std::string dd_next_file_url(int project_id, std::string cpu_site="", std::string worker_id="", long int timeout=0, int stagger=0);
+        // get project info
         json dd_get_project(int project_id, bool with_files, bool with_replicas);
+        // report successfully done with file
         json dd_file_done(int project_id, std::string file_did);
+        // report failed file
         json dd_file_failed(int project_id, std::string file_did, bool retry);
+        // get or set worker id
         std::string dd_worker_id(std::string new_id="", std::string worker_id_file="");
-        json metacat_query(std::string, bool, bool);
+        // query metacat for data
+        json metacat_query(std::string query, bool metadata, bool provenance);
+        // declare file 
         json metacat_file_declare(std::string dataset, std::string json_metadata);
+        // find project in SAM
 	std::string sam_findProject( std::string name, std::string station);
+        // set status in SAM
 	int sam_setStatus(std::string projecturi, std::string processid, std::string status);
+        // update file status in SAM
 	std::string sam_updateFileStatus(std::string projecturi, std::string processid, std::string filename, std::string status);
+        // establish process in SAM
 	std::string sam_establishProcess(std::string projecturi,  std::string appname, std::string appversion, std::string location, std::string user, std::string appfamily = "", std::string description = "", int filelimit = -1, std::string schemas = "");
+        // delcare file to sam
 	int sam_declareFile( std::string json_metadata);
+        // create data dsipatcher string of json result
         std::string dd_create_project_s( std::vector<std::string> files, std::map<std::string,std::string> common_attributes, std::map<std::string, std::string> project_attributes, std::string query, int worker_timeout, int idle_timeout, std::vector<std::string> users, std::vector<std::string> roles);
+        // next file string of json result
         std::string dd_next_file_json_s(int project_id, std::string cpu_site="", std::string worker_id="", long int timeout=0, int stagger=0);
+        // get project info string of json result
         std::string dd_get_project_s(int project_id, bool with_files, bool with_replicas);
+        // report succesfully done with file
         std::string dd_file_done_s(int project_id, std::string file_did);
+        // report failed file
         std::string dd_file_failed_s(int project_id, std::string file_did, bool retry);
-        std::string metacat_query_s(std::string, bool, bool);
+        // query metacat, string of json result
+        std::string metacat_query_s(std::string query, bool metadata, bool provenance);
+        // declare a file string of json result
         std::string metacat_file_declare_s(std::string dataset, std::string json_metadata);
 
     private:

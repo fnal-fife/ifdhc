@@ -194,8 +194,6 @@ ifdh::dd_create_project(
      if (_dd_mc_session_tok == "" ) {
          dd_mc_authenticate();
      }
-     std::string auth_header("X-Authentication-Token: ");
-     auth_header += _dd_mc_session_tok; 
 
      if (files.empty()) {
          if (!query.empty()) {
@@ -223,9 +221,14 @@ ifdh::dd_create_project(
      msj.insert( std::pair<std::string,json >( "users", json(new json_list(users))));
      msj.insert( std::pair<std::string,json >( "roles", json(new json_list(roles))));
      json qj(new json_dict(msj));
+
+     std::string auth_header("X-Authentication-Token: ");
+     auth_header += _dd_mc_session_tok; 
+
      WebAPI wa(get_dd_url()+"/create_project", 1, qj.dumps(),  3, -1, "", auth_header);
      res = json::load(wa.data());
      return res;
+
 }
 
 char *
@@ -519,20 +522,20 @@ main() {
    std::cout << "project_id: " << project_id << "\n";
 
    std::string worker_id = handle-> dd_worker_id();
-   std::string file_url = handle->dd_next_file_url(project_id, "bel-kwinih.fnal.gov", worker_id, 0, 0);
+   std::string file_url = handle->dd_next_file_url(project_id, "bel-kwinith.fnal.gov", worker_id, 0, 0);
    
    std::cout << "file_url: " << file_url << "\n";
 
    handle->dd_file_done(project_id, "");
 
-   file_url = handle->dd_next_file_url(project_id, "bel-kwinih.fnal.gov", worker_id, 0, 0);
+   file_url = handle->dd_next_file_url(project_id, "bel-kwinith.fnal.gov", worker_id, 0, 0);
    while (!file_url.empty()) {
    
        std::cout << "file_url: " << file_url << "\n";
 
        handle->dd_file_done(project_id, "");
 
-       file_url = handle->dd_next_file_url(project_id, "bel-kwinih.fnal.gov", worker_id, 0, 0);
+       file_url = handle->dd_next_file_url(project_id, "bel-kwinith.fnal.gov", worker_id, 0, 0);
    }
 
    delete handle;

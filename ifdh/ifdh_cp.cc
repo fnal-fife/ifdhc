@@ -658,7 +658,7 @@ check_grid_credentials_tokens() {
         int r1;
         
         std::string tokenfile = default_token_file();
-        r1 = stat(tokenfile), &sbuf);
+        r1 = stat(tokenfile.c_str(), &sbuf);
         if (r1 == 0 && sbuf.st_size > 200) {
             ifdh::_debug && std::cerr << "Found token file " << tokenfile << "\n";
             setenv("BEARER_TOKEN_FILE", tokenfile.c_str(), 1);
@@ -666,7 +666,7 @@ check_grid_credentials_tokens() {
         }
 
         std::string cmd = "decode_token.sh -e exp ";
-        cmd += tokenfile.str();
+        cmd += tokenfile;
         cmd += " 2>/dev/null";
         ifdh::_debug && std::cerr << "running: " << cmd << "\n";
         std::cerr.flush();

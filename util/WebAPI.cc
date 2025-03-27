@@ -66,8 +66,15 @@ static char *get_bearer_token() {
         return NULL;
     default:
         // haven't looked yet...
+        //
+        // if BEARER_TOKEN_FILE isn't set and the default location exists, set BEARER_TOKEN_FILE to it
+        if ( 0 == access(default_token_file().c_str(), R_OK) && getenv("BEARER_TOKEN_FILE") == 0) {
+           setenv("BEARER_TOKEN_FILE", default_token_file().c_str(), 1);
+        }
+
+        // now if BEARER_TOKEN_FILE is set, fetch the token
         if (getenv("BEARER_TOKEN_FILE") != 0) {
-             
+
             fd = open(getenv("BEARER_TOKEN_FILE"),O_RDONLY);
 
             if (fd >= 0) {
@@ -85,7 +92,7 @@ static char *get_bearer_token() {
                     return tokenbuf;
                 }
             }
-        }
+        } 
         // remember we don't have one for next time
         have_token = 2;
         return 0;
@@ -268,6 +275,9 @@ WebAPI::WebAPI(std::string url, int postflag, std::string postdata, int maxretri
 
          // note that this retry limit includes 303 redirects, 503 errors, DNS fails, and connect errors...
 	 if (retries > maxretries+1) {
+             // don't lose debug messages..
+             std::cerr << "retries " << retries << " maxretries " << maxretries << "\n";
+             std::cerr.flush();
 	     throw(WebAPIException(url,"FetchError: Retry count exceeded"));
 	 }
 
@@ -662,7 +672,7 @@ test_WebAPI_fetchurl() {
    }
    
    try {
-      WebAPI ds3("https://samweb.fnal.gov:8483/sam/samdev/api/files/list?dims=defname%3Agen_cfg+++minus+++file_name+++c47fe3af-8fdb-4a5a-a110-3f3d52f3cfea-a.fcl+++minus++++file_name+++a9d1b4da-73ad-4c4f-8d72-c9e6507531b8-d.fcl&format=plain");
+      WebAPI ds3("https://samdev.fnal.gov:8483/sam/samdev/api/files/list?dims=defname%3Agen_cfg+++minus+++file_name+++c47fe3af-8fdb-4a5a-a110-3f3d52f3cfea-a.fcl+++minus++++file_name+++a9d1b4da-73ad-4c4f-8d72-c9e6507531b8-d.fcl&format=plain");
       while(!ds3.data().eof()) {
 	    getline(ds3.data(), line);
 

@@ -639,6 +639,7 @@ check_grid_credentials_proxies() {
     return found;
 }
 
+
 bool 
 check_grid_credentials_tokens() {
     static char buf[512];
@@ -656,24 +657,11 @@ check_grid_credentials_tokens() {
         struct stat sbuf;
         int r1;
         
-        std::stringstream tokenfile;
-        char *btfenv = getenv("BEARER_TOKEN_FILE");
-        char *xdgrtenv = getenv("XDG_RUNTIME_DIR");
-
-        if (btfenv) {
-           tokenfile << btfenv;
-        } else {
-           if (xdgrtenv) {
-               tokenfile << xdgrtenv;
-           } else {
-               tokenfile << "/run/user/" << getuid();
-           }
-           tokenfile << "/bt_u" << getuid();
-        }
-        r1 = stat(tokenfile.str().c_str(), &sbuf);
+        std::string tokenfile = default_token_file();
+        r1 = stat(tokenfile), &sbuf);
         if (r1 == 0 && sbuf.st_size > 200) {
-            ifdh::_debug && std::cerr << "Found token file " << tokenfile.str() << "\n";
-            setenv("BEARER_TOKEN_FILE", tokenfile.str().c_str(), 1);
+            ifdh::_debug && std::cerr << "Found token file " << tokenfile << "\n";
+            setenv("BEARER_TOKEN_FILE", tokenfile.c_str(), 1);
             found = true;
         }
 

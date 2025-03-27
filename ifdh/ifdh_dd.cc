@@ -504,7 +504,7 @@ main() {
 
    ifdh *handle = new ifdh();
    handle->_debug = 1;
-   std::cout << "calling dd_mc_auithenticate()\n"; std::cout.flush();
+   std::cout << "calling dd_mc_authenticate()\n"; std::cout.flush();
    handle->dd_mc_authenticate();
    wid = handle->dd_worker_id();
    std::vector<std::string> emptyvec;

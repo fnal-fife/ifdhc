@@ -102,7 +102,13 @@ do_url_2(int postflag, va_list ap) {
        get_grid_credentials_if_needed();
     }
 
-    if (ifdh::_debug) std::cerr << "calling WebAPI with url: " << urls << " and postdata: " << postdatas << "\n";
+    if (ifdh::_debug) {
+        std::cerr << "calling WebAPI with url: " << urls << " and postdata: " << postdatas << "\n";
+        if (ifdh::_debug > 1) {
+            ifdh_util_ns::WebAPI::_debug = 1;
+            std::cerr << "Set WebAPI::debug to " <<ifdh_util_ns::WebAPI::_debug << "\n";
+        }
+    }
 
     return new WebAPI(urls, postflag, postdatas);
 }
@@ -190,7 +196,7 @@ ifdh::do_url_lst(int postflag,...) {
 }
 
 int 
-ifdh::declareFile(string json_metadata) {
+ifdh::sam_declareFile(string json_metadata) {
   return do_url_int(2,ssl_uri(_baseuri).c_str(),"files","",json_metadata.c_str(),"","","");
 }
 
@@ -256,7 +262,7 @@ ifdh::dumpStation( string name, string what ) {
 
 // projects
 string ifdh::startProject( string name, string station,  string defname_or_id,  string user,  string group) {
-
+  
   if (name == "" && getenv("SAM_PROJECT"))
       name = getenv("SAM_PROJECT}");
 
@@ -264,6 +270,7 @@ string ifdh::startProject( string name, string station,  string defname_or_id,  
       station = getenv("SAM_STATION}");
 
   return do_url_str(1,ssl_uri(_baseuri).c_str(),"startProject","","name",name.c_str(),"station",station.c_str(),"defname",defname_or_id.c_str(),"username",user.c_str(),"group",group.c_str(),"","");
+
 }
 
 string 

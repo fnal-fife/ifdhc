@@ -54,42 +54,36 @@ WebAPI::encode(std::string s) {
 
 static char *get_bearer_token() {
     static char tokenbuf[8192];
-    static int have_token;
     int fd, res;
 
-    switch(have_token) {
-    case 1:
-        // we already got it
-        return tokenbuf;
-    case 2:
-        // we already didn't find it
-        return NULL;
-    default:
-        // haven't looked yet...
-        if (getenv("BEARER_TOKEN_FILE") != 0) {
-             
-            fd = open(getenv("BEARER_TOKEN_FILE"),O_RDONLY);
+    // haven't looked yet...
+    //
+    // if BEARER_TOKEN_FILE isn't set and the default location exists, set BEARER_TOKEN_FILE to it
+    if ( 0 == access(default_token_file().c_str(), R_OK) && getenv("BEARER_TOKEN_FILE") == 0) {
+       setenv("BEARER_TOKEN_FILE", default_token_file().c_str(), 1);
+    }
 
-            if (fd >= 0) {
-                res = read(fd, tokenbuf, 8192);
-                close(fd);
-                if (res > 512) {
-                    // BEARER_TOKEN_FILE gave us an actual file that's
-                    // a reasonable size, so go with it.
-                    
-                    have_token = 1;
-                    // trim trailing newline...
-                    if (tokenbuf[res-1] == '\n') {
-                       tokenbuf[res-1] = 0;
-                    }
-                    return tokenbuf;
+    // now if BEARER_TOKEN_FILE is set, fetch the token
+    if (getenv("BEARER_TOKEN_FILE") != 0) {
+
+        fd = open(getenv("BEARER_TOKEN_FILE"),O_RDONLY);
+
+        if (fd >= 0) {
+            res = read(fd, tokenbuf, 8192);
+            close(fd);
+            if (res > 512) {
+                // BEARER_TOKEN_FILE gave us an actual file that's
+                // a reasonable size, so go with it.
+                
+                // trim trailing newline...
+                if (tokenbuf[res-1] == '\n') {
+                   tokenbuf[res-1] = 0;
                 }
+                return tokenbuf;
             }
         }
-        // remember we don't have one for next time
-        have_token = 2;
-        return 0;
-    }
+    } 
+    return 0;
 }
 
 void
@@ -268,6 +262,9 @@ WebAPI::WebAPI(std::string url, int postflag, std::string postdata, int maxretri
 
          // note that this retry limit includes 303 redirects, 503 errors, DNS fails, and connect errors...
 	 if (retries > maxretries+1) {
+             // don't lose debug messages..
+             std::cerr << "retries " << retries << " maxretries " << maxretries << "\n";
+             std::cerr.flush();
 	     throw(WebAPIException(url,"FetchError: Retry count exceeded"));
 	 }
 
@@ -350,6 +347,7 @@ WebAPI::WebAPI(std::string url, int postflag, std::string postdata, int maxretri
                // okay so its not in /usr/bin, is it anywhere in PATH?
                char cmdbuf[64];
                sprintf(cmdbuf, "%s version > /dev/null", opensslcmd);
+               if(_debug) { std::cerr << "cmdbuf: " << cmdbuf << "\n"; }
                res = system(cmdbuf);
                if ( !(WIFEXITED(res) && 0 == WEXITSTATUS(res)) ) {
                    throw(WebAPIException(url,"1 No openssl executable, cannot do https: calls in this environment"));
@@ -357,12 +355,13 @@ WebAPI::WebAPI(std::string url, int postflag, std::string postdata, int maxretri
             } else {
                throw(WebAPIException(url,"2 No openssl executable, cannot do https: calls in this environment"));
             }
-            if(_debug) { std::cerr << "opensslcmd: " << opensslcmd << "\n"; }
 
 
             int inp[2], outp[2], pid;
             pipe(inp);
             pipe(outp);
+            std::cerr.flush();
+            std::cout.flush();
             if (0 == (pid = fork())) {
                 // child -- run openssl s_client
                 const char *proxy = getenv("X509_USER_PROXY");
@@ -370,7 +369,7 @@ WebAPI::WebAPI(std::string url, int postflag, std::string postdata, int maxretri
 
                 hostport << pu.host << ":" << pu.port;
 
-                _debug && std::cerr << opensslcmd << ' ' << "s_client"<< ' ' << " -CApath /etc/grid-security/certificates" << ' ' << "-connect"<< ' ' << hostport.str().c_str() << " -quiet"; 
+                _debug && std::cerr << "command:" << opensslcmd << ' ' << "s_client"<< ' ' << " -CApath /etc/grid-security/certificates" << ' ' << "-connect"<< ' ' << hostport.str().c_str() << " -quiet"; 
 
                 if (0 != getenv("https_proxy")) {
                     https_proxy = getenv("https_proxy");
@@ -380,7 +379,7 @@ WebAPI::WebAPI(std::string url, int postflag, std::string postdata, int maxretri
 		    std::cerr << " -key " << proxy << " -cert "<< proxy << " -CAfile " << proxy ;
                 }
 
-                std::cerr.flush();
+                _debug && std::cerr.flush();
 
                 // fixup file descriptors so our in/out are pipes
                 close(0);      
@@ -586,7 +585,16 @@ WebAPI::WebAPI(std::string url, int postflag, std::string postdata, int maxretri
          }
 
          if (_status >= 500) {
-	    _debug && std::cerr << "50x error , waiting ...";
+            if (_debug) {
+                std::string line;
+	        std::cerr << "50x error:\n=-=-=-=-=-=-=-=-=-=\n";
+                while(!_fromsite.eof()) {
+                     getline(_fromsite, line);
+                     std::cerr << line;
+                }
+	        std::cerr << "\n=-=-=-=-=-=-=-=-=-=\nwaiting ...";
+                std::cerr.flush();
+            }
             retryafter = random() % (5 << retries);
             sleep(retryafter);
             totaltime += retryafter;
@@ -662,7 +670,7 @@ test_WebAPI_fetchurl() {
    }
    
    try {
-      WebAPI ds3("https://samweb.fnal.gov:8483/sam/samdev/api/files/list?dims=defname%3Agen_cfg+++minus+++file_name+++c47fe3af-8fdb-4a5a-a110-3f3d52f3cfea-a.fcl+++minus++++file_name+++a9d1b4da-73ad-4c4f-8d72-c9e6507531b8-d.fcl&format=plain");
+      WebAPI ds3("https://samdev.fnal.gov:8483/sam/samdev/api/files/list?dims=defname%3Agen_cfg+++minus+++file_name+++c47fe3af-8fdb-4a5a-a110-3f3d52f3cfea-a.fcl+++minus++++file_name+++a9d1b4da-73ad-4c4f-8d72-c9e6507531b8-d.fcl&format=plain");
       while(!ds3.data().eof()) {
 	    getline(ds3.data(), line);
 

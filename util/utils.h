@@ -6,6 +6,8 @@
 
 namespace ifdh_util_ns {
 
+std::string default_token_file();
+
 int find_end(std::string s, char c, int pos, bool quotes = false);
 
 bool has(std::string, std::string);

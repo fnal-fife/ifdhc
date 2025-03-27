@@ -537,6 +537,23 @@ ifdh::setStatus(string projecturi, string processid, string status) {
    }
 }
 
+int
+ifdh::declareFile(std::string json_metadata) {
+    if (getenv("IFDH_METACAT_DATASET")) {
+        std::string dataset(getenv("IFDH_METACAT_DATASET"));
+        json res = metacat_file_declare( dataset, json_metadata);
+        json jfid = json("fid");
+        // success is zero, so we're succesful if we have a file-id ...
+        if (res[0].has_item(jfid))  {
+            return 0;
+        } else {
+            return 1;
+        }
+    } else {
+        return sam_declareFile(json_metadata);
+    }
+}
+
 string 
 ifdh::updateFileStatus(string projecturi, string processid, string filename, string status){
    if (is_dd_project_id(projecturi)) {

@@ -502,11 +502,9 @@ main() {
    std::string wid;
    WebAPI::_debug = 1;
    setenv("EXPERIMENT","hypot",1);
-   setenv("IFDH_TOKEN_ENABLE","1",1);
-   setenv("IFDH_DEBUG","2",1);
 
    ifdh *handle = new ifdh();
-   handle->_debug = 1;
+   handle->_debug = 0;
    std::cout << "calling dd_mc_authenticate()\n"; std::cout.flush();
    handle->dd_mc_authenticate();
    wid = handle->dd_worker_id();
@@ -514,27 +512,34 @@ main() {
    std::map<std::string, std::string> emptymap;
    std::vector<std::string> uservec;
    uservec.push_back(getenv("USER"));
-   std::cout << "calling dd_create_project()\n"; std::cout.flush();
+   std::cout << "calling dd_create_project()\n result:\n=-=-=-=-=-=-=-=-=-=\n"; std::cout.flush();
    res = handle->dd_create_project( emptyvec,  emptymap, emptymap, "files from mengel:gen_cfg", 0, 0, uservec, emptyvec);
    res.dump(std::cout);
-   std::cout << "\n";
+   std::cout << "\n=-=-=-=-=-=-=-=-=-=\n";
    int project_id = res[json("project_id")]; 
    std::cout << "project_id: " << project_id << "\n";
 
    std::string worker_id = handle-> dd_worker_id();
+   std::cout << "calling dd_next_file_url()\n result:\n=-=-=-=-=-=-=-=-=-=\n"; std::cout.flush();
    std::string file_url = handle->dd_next_file_url(project_id, "bel-kwinith.fnal.gov", worker_id, 0, 0);
    
    std::cout << "file_url: " << file_url << "\n";
+   std::cout << "\n=-=-=-=-=-=-=-=-=-=\n";
+   project_id = res[json("project_id")]; 
 
+   std::cout << "calling dd_file_done()\n \n=-=-=-=-=-=-=-=-=-=\n"; std::cout.flush();
    handle->dd_file_done(project_id, "");
 
+   std::cout << "calling dd_next_file_url()\n result:\n=-=-=-=-=-=-=-=-=-=\n"; std::cout.flush();
    file_url = handle->dd_next_file_url(project_id, "bel-kwinith.fnal.gov", worker_id, 0, 0);
    while (!file_url.empty()) {
    
        std::cout << "file_url: " << file_url << "\n";
 
+       std::cout << "calling dd_file_done()\n \n=-=-=-=-=-=-=-=-=-=\n"; std::cout.flush();
        handle->dd_file_done(project_id, "");
 
+       std::cout << "calling dd_next_file_url()\n result:\n=-=-=-=-=-=-=-=-=-=\n"; std::cout.flush();
        file_url = handle->dd_next_file_url(project_id, "bel-kwinith.fnal.gov", worker_id, 0, 0);
    }
 

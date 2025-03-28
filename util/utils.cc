@@ -1,6 +1,7 @@
 #include "utils.h"
 #include <errno.h>
 #include <string.h>
+#include <sstream>
 #include <stdlib.h>
 #include <sys/types.h>
 #include <unistd.h>
@@ -32,6 +33,25 @@ host_matches(std::string hostglob) {
    } else {
        return 0;
    }
+}
+
+std::string
+default_token_file() {
+    std::stringstream tokenfile;
+    char *btfenv = getenv("BEARER_TOKEN_FILE");
+    char *xdgrtenv = getenv("XDG_RUNTIME_DIR");
+
+    if (btfenv) {
+       tokenfile << btfenv;
+    } else {
+       if (xdgrtenv) {
+           tokenfile << xdgrtenv;
+       } else {
+           tokenfile << "/run/user/" << getuid();
+       }
+       tokenfile << "/bt_u" << getuid();
+    }
+    return tokenfile.str().c_str();
 }
 
 std::string parent_dir(std::string path) {

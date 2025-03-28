@@ -6,7 +6,7 @@ def hypot_test_env():
     
     with os.popen("""   
         . /cvmfs/fermilab.opensciencegrid.org/packages/common/setup-env.sh
-        spack load --sh  data-dispatcher@1.27.0 metacat@4.0.1
+        spack load --sh --first  data-dispatcher@1.27.0 os=default_os metacat@4.0.2 os=default_os
     """, "r") as pf:
         for line in pf:
             if line.find("=") > 0 and line.find("export") == 0:

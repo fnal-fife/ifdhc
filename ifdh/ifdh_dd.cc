@@ -154,6 +154,9 @@ ifdh::metacat_query( std::string query, bool meta, bool provenance ) {
     std::string data, line;
     std::string sep, rsep;
 
+    if (_dd_mc_session_tok == "" ) {
+        dd_mc_authenticate();
+    }
     url += "/data/query?with_meta=" ;
     url += (meta ? "yes" : "no");
     url += "&with_provenance=";
@@ -191,8 +194,6 @@ ifdh::dd_create_project(
      if (_dd_mc_session_tok == "" ) {
          dd_mc_authenticate();
      }
-     std::string auth_header("X-Authentication-Token: ");
-     auth_header += _dd_mc_session_tok; 
 
      if (files.empty()) {
          if (!query.empty()) {
@@ -220,9 +221,14 @@ ifdh::dd_create_project(
      msj.insert( std::pair<std::string,json >( "users", json(new json_list(users))));
      msj.insert( std::pair<std::string,json >( "roles", json(new json_list(roles))));
      json qj(new json_dict(msj));
+
+     std::string auth_header("X-Authentication-Token: ");
+     auth_header += _dd_mc_session_tok; 
+
      WebAPI wa(get_dd_url()+"/create_project", 1, qj.dumps(),  3, -1, "", auth_header);
      res = json::load(wa.data());
      return res;
+
 }
 
 char *
@@ -237,6 +243,9 @@ json
 ifdh::dd_next_file_json(int project_id, std::string cpu_site, std::string worker_id, long int timeout, int stagger) {
     json res;
 
+    if (_dd_mc_session_tok == "" ) {
+        dd_mc_authenticate();
+    }
     if (stagger) {
        sleep(stagger * rand() / RAND_MAX);
     }
@@ -256,7 +265,6 @@ ifdh::dd_next_file_json(int project_id, std::string cpu_site, std::string worker
     if ( timeout ) {
         timeout += time(0);
     }
-    WebAPI::_debug = 1;
 
     if (_dd_mc_session_tok == "" ) {
         dd_mc_authenticate();
@@ -404,6 +412,38 @@ ifdh::dd_file_done(int project_id, std::string file_did) {
     return res;
 }
 
+json
+ifdh::metacat_file_declare(std::string dataset, std::string json_metadata) {
+    if (_dd_mc_session_tok == "" ) {
+        dd_mc_authenticate();
+    }
+    json md( json::loads(json_metadata)), res;
+    // convert 'did' to namespace, name
+    //
+    if (md.has_item("did")) {
+        std::vector<std::string> did_parts = split(md["did"], ':');
+        md["namespace"] = json(did_parts[0].c_str());
+        md["name"] = json(did_parts[1].c_str());
+    }
+    // make list containing single metadata
+    std::vector<json> mdv;
+    mdv.push_back(md);
+    json mdl(new json_list(mdv));
+    // call 
+    std::string url = get_metacat_url() + "/data/declare_files?dataset=" + dataset;
+    std::string auth_header("X-Authentication-Token: ");
+    auth_header += _dd_mc_session_tok; 
+    WebAPI wa(url, 1, mdl.dumps(),  3, -1, "", auth_header);
+    if ( wa.getStatus() == 200 ) {
+         std::string resp;
+         std::getline(wa.data(), resp, '\01');
+         res = json::loads(resp);
+    } else {
+         res = json(new json_null);
+    }
+    return res;
+}
+
 json 
 ifdh::dd_file_failed(int project_id, std::string file_did, bool retry) {
 
@@ -430,6 +470,29 @@ ifdh::dd_file_failed(int project_id, std::string file_did, bool retry) {
     return res;
 }
 
+// string versions for python wrapping
+std::string ifdh::dd_create_project_s( std::vector<std::string> files, std::map<std::string, std::string> common_attributes, std::map<std::string, std::string> project_attributes, std::string query, int worker_timeout, int idle_timeout, std::vector<std::string> users, std::vector<std::string> roles) {
+    return dd_create_project(files, common_attributes, project_attributes, query, worker_timeout, idle_timeout, users, roles).dumps();
+}
+std::string ifdh::dd_next_file_json_s(int project_id, std::string cpu_site, std::string worker_id, long int timeout, int stagger) {
+    return  dd_next_file_json(project_id, cpu_site, worker_id, timeout, stagger).dumps();
+}
+std::string ifdh::dd_get_project_s(int project_id, bool with_files, bool with_replicas) {
+    return dd_get_project(project_id, with_files, with_replicas).dumps();
+}
+std::string ifdh::dd_file_done_s(int project_id, std::string file_did) {
+    return dd_file_done(project_id, file_did).dumps();
+}
+std::string ifdh::dd_file_failed_s(int project_id, std::string file_did, bool retry) {
+    return dd_file_failed(project_id, file_did, retry).dumps();
+}
+std::string ifdh::metacat_query_s(std::string qs, bool meta , bool provenance) {
+    return metacat_query(qs, meta, provenance).dumps();
+}
+std::string ifdh::metacat_file_declare_s(std::string dataset, std::string json_metadata) {
+    return metacat_file_declare(dataset, json_metadata).dumps();
+}
+
 }
 
 #ifdef UNITTEST
@@ -439,40 +502,45 @@ main() {
    std::string wid;
    WebAPI::_debug = 1;
    setenv("EXPERIMENT","hypot",1);
-   setenv("IFDH_TOKEN_ENABLE","1",1);
-   setenv("IFDH_DEBUG","2",1);
 
    ifdh *handle = new ifdh();
-   handle->_debug = 1;
-   std::cout << "calling dd_mc_auithenticate()\n"; std::cout.flush();
+   handle->_debug = 0;
+   std::cout << "calling dd_mc_authenticate()\n"; std::cout.flush();
    handle->dd_mc_authenticate();
    wid = handle->dd_worker_id();
    std::vector<std::string> emptyvec;
    std::map<std::string, std::string> emptymap;
    std::vector<std::string> uservec;
    uservec.push_back(getenv("USER"));
-   std::cout << "calling dd_create_project()\n"; std::cout.flush();
+   std::cout << "calling dd_create_project()\n result:\n=-=-=-=-=-=-=-=-=-=\n"; std::cout.flush();
    res = handle->dd_create_project( emptyvec,  emptymap, emptymap, "files from mengel:gen_cfg", 0, 0, uservec, emptyvec);
    res.dump(std::cout);
-   std::cout << "\n";
+   std::cout << "\n=-=-=-=-=-=-=-=-=-=\n";
    int project_id = res[json("project_id")]; 
    std::cout << "project_id: " << project_id << "\n";
 
    std::string worker_id = handle-> dd_worker_id();
-   std::string file_url = handle->dd_next_file_url(project_id, "bel-kwinih.fnal.gov", worker_id, 0, 0);
+   std::cout << "calling dd_next_file_url()\n result:\n=-=-=-=-=-=-=-=-=-=\n"; std::cout.flush();
+   std::string file_url = handle->dd_next_file_url(project_id, "bel-kwinith.fnal.gov", worker_id, 0, 0);
    
    std::cout << "file_url: " << file_url << "\n";
+   std::cout << "\n=-=-=-=-=-=-=-=-=-=\n";
+   project_id = res[json("project_id")]; 
 
+   std::cout << "calling dd_file_done()\n \n=-=-=-=-=-=-=-=-=-=\n"; std::cout.flush();
    handle->dd_file_done(project_id, "");
 
-   file_url = handle->dd_next_file_url(project_id, "bel-kwinih.fnal.gov", worker_id, 0, 0);
+   std::cout << "calling dd_next_file_url()\n result:\n=-=-=-=-=-=-=-=-=-=\n"; std::cout.flush();
+   file_url = handle->dd_next_file_url(project_id, "bel-kwinith.fnal.gov", worker_id, 0, 0);
    while (!file_url.empty()) {
    
        std::cout << "file_url: " << file_url << "\n";
 
+       std::cout << "calling dd_file_done()\n \n=-=-=-=-=-=-=-=-=-=\n"; std::cout.flush();
        handle->dd_file_done(project_id, "");
 
-       file_url = handle->dd_next_file_url(project_id, "bel-kwinih.fnal.gov", worker_id, 0, 0);
+       std::cout << "calling dd_next_file_url()\n result:\n=-=-=-=-=-=-=-=-=-=\n"; std::cout.flush();
+       file_url = handle->dd_next_file_url(project_id, "bel-kwinith.fnal.gov", worker_id, 0, 0);
    }
 
    delete handle;

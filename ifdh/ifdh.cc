@@ -72,52 +72,15 @@ path_ish_append(const char *what, string s1, string s2) {
 void
 check_env() {
     static int checked = 0;
-    static const char *cpn_basedir = "/grid/fermiapp/products/common/prd/cpn";
 
     if (!checked) {
         checked = 1;
 
         srandom(getpid()*getuid());
 
-        // try to find cpn even if it isn't setup
-        if (!getenv("CPN_DIR")) {
-           if (0 == access(cpn_basedir, R_OK)) {
-              for (int i = 10; i > 0; i-- ) {
-                  stringstream setenvbuf;
-                  setenvbuf << cpn_basedir << "/v1_" << i << "/NULL";
-                  if (0 == access(setenvbuf.str().c_str(), R_OK)) {
-                      setenv("CPN_DIR", setenvbuf.str().c_str(), 1);
-                      break;
-                  }
-              }
-           }
-        }
-
         // we do not want it set...
         unsetenv("X509_USER_CERT");
 
-        char *ep;
-
-        if (0 != (ep = getenv("EXPERIMENT")) && 0 == getenv("CPN_LOCK_GROUP")) {
-            setenv("CPN_LOCK_GROUP", ep, 0);
-        }
-              
-        string path(getenv("PATH")?getenv("PATH"):"");
-        char *p;
-
-        if (0 != (p = getenv("VDT_LOCATION"))) {
-            if (string::npos == path.find(p)) {
-               path_prepend(p,"/globus/bin");
-               path_prepend(p,"/srm-client-fermi/bin");
-            }
-        } else if (0 == access("/usr/bin/globus-url-copy", R_OK)) {
-            if (string::npos == path.find("/usr/bin")) {
-               path_prepend("/usr","/bin");
-            }
-        } else {
-             // where is vdt?!?
-             ;
-        }
     }
 
 #ifdef _GNU_LIBC_VERSION_H
@@ -130,9 +93,7 @@ check_env() {
     path_ish_append("LD_LIBRARY_PATH","/usr/lib64","");
     stringstream cvmfs_dir, ocvmfs_dir;
     cvmfs_dir << "/cvmfs/oasis.opensciencegrid.org/mis/osg-wn-client/3.6/current/el" <<  slver << "-x86_64";
-    ocvmfs_dir << "/cvmfs/oasis.opensciencegrid.org/mis/osg-wn-client/3.5/current/el" <<  slver << "-x86_64";
     path_ish_append("PATH",cvmfs_dir.str().c_str(),"/usr/bin");
-    path_ish_append("PATH",ocvmfs_dir.str().c_str(),"/usr/bin");
     path_ish_append("LD_LIBRARY_PATH",cvmfs_dir.str().c_str(),"/usr/lib64");
 #endif
 }

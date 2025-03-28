@@ -1234,7 +1234,7 @@ ifdh::retry_system(const char *cmd_str, int error_expected, cpn_lock &locker, if
             log(logmsg.str());
             std::cerr << (time(&gt)?ctime(&gt):"") << " ";
             std::cerr << logmsg.str();
-            exit(-1);
+            return -1;
         }
 
         if (_errortxt.find("gfal-copy error: 256") != std::string::npos) {

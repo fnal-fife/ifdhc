@@ -2,8 +2,15 @@
 import os
 import sys
 
+hypot_test_env_done=False
+
 def hypot_test_env():
-    
+    global hypot_test_env_done
+   
+    if hypot_test_env_done:
+        return 
+
+    hypot_test_env_done = True
     with os.popen("""   
         . /cvmfs/fermilab.opensciencegrid.org/packages/common/setup-env.sh
         spack load --sh --first  data-dispatcher@1.27.0 os=default_os metacat@4.0.2 os=default_os

@@ -644,6 +644,9 @@ main ()
     r = json (new json_dict (mss));
     r.dump (std::cout);
     std::cout << "size" << r.size() << "\n";
+    std::cout << "mss[\"k0\"]: " << mss["k0"] << "\n";
+    std::string ts1("k1");
+    std::cout << "mss[ts1]: " << mss[ts1] << "\n";
 }
 #endif
 

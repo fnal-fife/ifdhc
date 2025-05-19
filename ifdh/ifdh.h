@@ -42,7 +42,7 @@ class ifdh {
 
         void set_base_uri(std::string baseuri);
 
-        // general file copy using dd, gridftp, or srmcp
+        // general file copy using dd, gfal-copy, or xrdcp...
         // supports:
         //
         // * ifdh cp src1 dest1 [';' src2 dest2 [';'...]]                     
@@ -118,7 +118,7 @@ class ifdh {
         int cleanup();
         // give output files reported with addOutputFile a unique name
         int renameOutput(std::string how);
-        // general file rename using mvn or srmcp
+        // general file rename
         int mv(std::vector<std::string> args);
         // Get a list of directory contents, or check existence of files
         // use recursion_depth== 0 to check directory without contents

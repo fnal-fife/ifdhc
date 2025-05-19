@@ -164,10 +164,6 @@ ifdh::unique_string() {
     uuid_unparse(uuid,uuidbuf);
     return std::string(uuidbuf);
 }
-string cpn_loc  = "cpn";  // just use the one in the PATH -- its a product now
-string fermi_gsiftp  = "gsiftp://fg-bestman1.fnal.gov:2811";
-string bestmanuri = "srm://fg-bestman1.fnal.gov:10443/srm/v2/server?SFN=";
-
 
 
 string datadir() {

@@ -151,8 +151,7 @@ class ifdh {
         std::string checksum(std::string loc);
         // make a directory with intervening directories
         int mkdir_p(std::string loc, std::string force = "", int depth = -1);
-        // get a grid proxy for the current experiment if needed, 
-        // return the path
+        // get a grid proxy and return the path -- deprecated
         std::string getProxy();
         // declare file metadata
 	int declareFile( std::string json_metadata);

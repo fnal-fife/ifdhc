@@ -286,132 +286,6 @@ ifdh::have_stage_subdirs(std::string uri) {
 
 extern std::string datadir();
 
-// file io
-
-int
-cpn_lock::locked() { return _locked; }
-
-void
-cpn_lock::lock() {
-    char buf[512];
-    FILE *pf;
-    int onsite = 0;
-    int parent_pid;
-    int status;
-    struct ifaddrs *ifap, *ifscan;
-
-    if (_locked) {
-        std::cerr << (time(&gt)?ctime(&gt):"") << " ";
-        std::cerr << "ifdh bug: lock() called when already locked\n";
-        return;
-    }
-
-    // check if we're onsite -- don't get locks if not 
-    // Just check for 131.225.* or 2620:6a:0:*
-    
-    if (0 == getifaddrs(&ifap)) {
-       ifdh::_debug && cerr << "Got addrs...\n";
-       for( ifscan = ifap; ifscan ; ifscan = ifscan->ifa_next) {
-           if( ifscan->ifa_addr->sa_family == AF_INET && ifscan->ifa_addr->sa_data[2] == (char)131  && ifscan->ifa_addr->sa_data[3] == (char)225) {
-               ifdh::_debug && cerr << "Saw ipv4 for Fermilab: onsite\n";
-               onsite = 1;
-           }
-           if( ifscan->ifa_addr->sa_family == AF_INET6 && ifscan->ifa_addr->sa_data[6] == 0x26  && ifscan->ifa_addr->sa_data[7] == 0x20 && ifscan->ifa_addr->sa_data[8] == 0x0 && ifscan->ifa_addr->sa_data[9] == 0x6a && ifscan->ifa_addr->sa_data[10] == 0x0 && ifscan->ifa_addr->sa_data[11] == 0x0 ) {
-               ifdh::_debug && cerr << "Saw ipv6 for Fermilab: onsite\n";
-               onsite = 1;
-           }
-       }
-       freeifaddrs(ifap);
-       if (!onsite) {
-          return;
-       }
-    }
-
-    if (!getenv("CPN_DIR") || 0 != access(getenv("CPN_DIR"),R_OK)) {
-        return;
-    }
-
-    // call lock, skip to last line 
-    pf = popen("exec $CPN_DIR/bin/lock","r");
-    if (!pf) {
-        return;
-    }
-    while (!feof(pf) && !ferror(pf)) {
-        if (fgets(buf, 512, pf)) {
-            fputs(buf,stderr);
-            fflush(stderr);
-        }
-    }
-    if (ferror(pf)) {
-        pclose(pf);
-        throw( std::logic_error("Could not get CPN lock: error reading lock output"));
-    }
-    status = pclose(pf);
-    if (WIFSIGNALED(status)) throw( std::logic_error("signalled while  getting lock"));
-
-    // pick lockfile name out of last line
-    std::string lockfilename(buf);
-    size_t pos = lockfilename.rfind(' ');
-    lockfilename = lockfilename.substr(pos+1);
-
-    // trim newline
-    lockfilename = lockfilename.substr(0,lockfilename.length()-1);
-
-    // kick off a backround thread to update the
-    // lock file every minute that we're still running
-
-    if ( lockfilename[0] != '/' || 0 != access(lockfilename.c_str(),W_OK)) {
-        throw( std::logic_error("Could not get CPN lock."));
-    }
- 
-    _locked = 1;
-    _heartbeat_pid = fork();
-    if (_heartbeat_pid == 0) {
-        parent_pid = getppid();
-        while( 0 == kill(parent_pid, 0) ) {
-            // touch our lockfile
-            if ( 0 != utimes(lockfilename.c_str(), NULL)) {
-                perror("Lockfile touch failed");
-                exit(1);
-            }
-            sleep(60);
-        }
-        exit(0);
-    }
-}
-
-void
-cpn_lock::free() {
-    int res, res2;
-    if (!getenv("CPN_DIR") || 0 != access(getenv("CPN_DIR"),R_OK)) {
-        return;
-    }
-    if (_heartbeat_pid < 0) {
-        return;
-    }
-    kill(_heartbeat_pid, 9);
-    waitpid(_heartbeat_pid, &res, 0);
-    res2 = system("exec $CPN_DIR/bin/lock free >&2");
-    _heartbeat_pid = -1;
-    _locked = 0;
-    if (!((WIFSIGNALED(res) && 9 == WTERMSIG(res)) || (WIFEXITED(res) &&WEXITSTATUS(res)==0))) {
-        stringstream basemessage;
-        basemessage <<"lock touch process exited code " << res << " signalled: " << WIFSIGNALED(res) << " signal: " << WTERMSIG(res);
-        throw( std::logic_error(basemessage.str()));
-    }
-    if (WIFSIGNALED(res2)) {
-        throw( std::logic_error("signalled while doing srmping"));
-    }
-}
-
-cpn_lock::cpn_lock() : _heartbeat_pid(-1), _locked(0) { ; }
-
-cpn_lock::~cpn_lock()  {
-
-   if (_heartbeat_pid != -1) {
-       free();
-   }
-}
 
 std::vector<std::string> expandfile( std::string fname, std::vector<std::string> oldargs, unsigned int oldcount, unsigned int oldcount2) {
   std::vector<std::string> res;
@@ -1195,11 +1069,10 @@ my_system(const char *cmd, std::string &errortxt) {
 }
 
 int
-ifdh::retry_system(const char *cmd_str, int error_expected, cpn_lock &locker, ifdh_op_msg &mbuf, int maxtries, std::string unlink_on_error, bool dash_d_warning) {
+ifdh::retry_system(const char *cmd_str, int error_expected,  ifdh_op_msg &mbuf, int maxtries, std::string unlink_on_error, bool dash_d_warning) {
     int res = 1;
     int tries = 0;
     int delay;
-    int dolock = locker.locked();
     std::string cmd_str_string;
     std::string line;
     if (maxtries == -1) {
@@ -1257,8 +1130,6 @@ ifdh::retry_system(const char *cmd_str, int error_expected, cpn_lock &locker, if
 
 	ifdh::_debug && std::cerr << "program: " << cmd_str << "exited status " << res << "\n";
         if (res != 0 && tries < maxtries - 1) {
-            if (dolock)
-                locker.free();
             std::cerr << (time(&gt)?ctime(&gt):"") << " ";
             std::cerr << "program: " << cmd_str << "exited status " << res << "\n";
             log(_errortxt);
@@ -1283,8 +1154,6 @@ ifdh::retry_system(const char *cmd_str, int error_expected, cpn_lock &locker, if
             log("retrying...");
             std::cerr << (time(&gt)?ctime(&gt):"") << " ";
             std::cerr << "retrying...\n";
-            if (dolock)
-                locker.lock();
         }
         tries++;
     }
@@ -1371,7 +1240,7 @@ ifdh::dstpath(CpPair &cpp) {
 }
 
 int
-ifdh::do_cp(CpPair &cpp, bool intermed_file_flag, bool recursive, cpn_lock &cpn, ifdh_op_msg &mbuf) {
+ifdh::do_cp(CpPair &cpp, bool intermed_file_flag, bool recursive,  ifdh_op_msg &mbuf) {
     int res1, res2, pid;
 
 
@@ -1380,21 +1249,21 @@ ifdh::do_cp(CpPair &cpp, bool intermed_file_flag, bool recursive, cpn_lock &cpn,
 	IFile iftmp = get_intermed(intermed_file_flag);
 	CpPair cp1(cpp.src, iftmp, cpp.proto), cp2(iftmp, cpp.dst, cpp.proto2);
 	if (intermed_file_flag) {
-	   res1 = do_cp(cp1, intermed_file_flag, recursive, cpn, mbuf); 
+	   res1 = do_cp(cp1, intermed_file_flag, recursive,  mbuf); 
            if (res1 != 0) {
                unlink(iftmp.path.c_str());
                return res1;
            }
-	   res2 = do_cp(cp2, intermed_file_flag, recursive, cpn, mbuf);
+	   res2 = do_cp(cp2, intermed_file_flag, recursive,  mbuf);
 	   unlink(iftmp.path.c_str());
 	   return res2;
 	} else {
            // disable retries in background copy..
            char envbuf[] = "IFDH_CP_MAXRETRIES=0";
            putenv(envbuf);
-	   pid = do_cp_bg(cp1, intermed_file_flag, recursive, cpn, mbuf);
+	   pid = do_cp_bg(cp1, intermed_file_flag, recursive,  mbuf);
            if (pid > 0) {
-	       res2 = do_cp(cp2, intermed_file_flag, recursive, cpn, mbuf);
+	       res2 = do_cp(cp2, intermed_file_flag, recursive,  mbuf);
 	       (void)waitpid(pid, &res1, 0);
                unlink(iftmp.path.c_str());
                return res2;
@@ -1458,7 +1327,7 @@ ifdh::do_cp(CpPair &cpp, bool intermed_file_flag, bool recursive, cpn_lock &cpn,
             unlink_this_on_error = dstpath(cpp); 
         }
         
-        return retry_system(cp_cmd.c_str(), err_expected, cpn, mbuf, -1, unlink_this_on_error, true);
+        return retry_system(cp_cmd.c_str(), err_expected,  mbuf, -1, unlink_this_on_error, true);
     }
 }
 
@@ -1466,13 +1335,13 @@ ifdh::do_cp(CpPair &cpp, bool intermed_file_flag, bool recursive, cpn_lock &cpn,
 // do a copy in background, return the pid or -1
 //
 int
-ifdh::do_cp_bg(CpPair &cpp, bool intermed_file_flag, bool recursive, cpn_lock &cpn, ifdh_op_msg &mbuf ) {
+ifdh::do_cp_bg(CpPair &cpp, bool intermed_file_flag, bool recursive,  ifdh_op_msg &mbuf ) {
     ifdh::_debug && std::cerr << "do_cp_bg: starting...\n";
     int res2 = fork();
     if (res2 == 0) {
 
        ifdh::_debug && std::cerr << "do_cp_bg: in child, about to call do_cp\n";
-       int res = do_cp(cpp, intermed_file_flag, recursive, cpn, mbuf);
+       int res = do_cp(cpp, intermed_file_flag, recursive,  mbuf);
        ifdh::_debug && std::cerr << "do_cp_bg: in child, to return "<< res << "\n";
        if (res != 0 ) {
            sleep(5);
@@ -1639,14 +1508,6 @@ ifdh::handle_args( std::vector<std::string> args, std::vector<std::string>::size
                lastslot = res.size();
            }
        } 
-       if (_config.getint("location " + l.location, "need_cpn_lock") ) {
-           if( res.size()-1 < lock_low ) {
-               lock_low = res.size()-1;
-           }
-           if( res.size()-1 > lock_hi ) {
-               lock_hi = res.size()-1;
-           }
-       }
    }
    return res;
 }
@@ -1666,7 +1527,6 @@ ifdh::cp( std::vector<std::string> args ) {
     long int xfersize=0;
     struct stat *sbp;
     size_t lock_low, lock_hi;
-    cpn_lock cpn;
     ifdh_op_msg mbuf("cp", *this);
     struct timeval time_before, time_after;
 
@@ -1709,13 +1569,8 @@ ifdh::cp( std::vector<std::string> args ) {
     curarg = 0;
     for (std::vector<CpPair>::iterator cpp = cplist.begin();  cpp != cplist.end(); cpp++) {
 
-        // take  a lock if needed
-        if (curarg == lock_low) {
-            cpn.lock();
-        }
-
         // actually do the copy
-        res = do_cp(*cpp, intermed_file_flag, recursive, cpn, mbuf);
+        res = do_cp(*cpp, intermed_file_flag, recursive,  mbuf);
 
 	if (0 != (sbp =  cache_stat(locpath(cpp->src, "file:")))) {
                 xfersize = sbp->st_size;
@@ -1724,12 +1579,6 @@ ifdh::cp( std::vector<std::string> args ) {
                 xfersize = sbp->st_size;
         }
         mbuf.count = xfersize;
-
-        // release lock if needed
-        if (curarg == lock_hi && lock_hi >= lock_low) {
-            cpn.free();
-        }
-
 
         // update overall success
         if (res != 0 && rres == 0) {
@@ -1929,8 +1778,7 @@ ifdh::ll( std::string loc, int recursion_depth, std::string force) {
     _debug && std::cerr << "ifdh ll: running: " << cmd << endl;
 
     ifdh_op_msg mbuf("ll", *this);
-    cpn_lock locker;
-    int status = retry_system(cmd.c_str(), 0, locker,mbuf,1);
+    int status = retry_system(cmd.c_str(), 0, mbuf,1);
 
     if (WIFSIGNALED(status)) {
         mbuf.log_failure();
@@ -2311,8 +2159,7 @@ ifdh::mkdir(string loc, string force ) {
     } else {
         retries = 1;
     }
-    cpn_lock locker;
-    int status = retry_system(cmd.c_str(), 0, locker,mbuf,retries+1);
+    int status = retry_system(cmd.c_str(), 0, mbuf,retries+1);
 
     if (WIFSIGNALED(status)) {
       mbuf.log_failure();
@@ -2342,8 +2189,7 @@ ifdh::rm(string loc, string force) {
 
     _debug && std::cerr << "running: " << cmd << endl;
 
-    cpn_lock locker;
-    int status = retry_system(cmd.c_str(), 0, locker,mbuf,1);
+    int status = retry_system(cmd.c_str(), 0, mbuf,1);
     if (WIFSIGNALED(status)) {
        mbuf.log_failure();
        throw( std::logic_error("signalled while doing rm"));
@@ -2374,8 +2220,7 @@ ifdh::rmdir(string loc, string force) {
 
     _debug && std::cerr << "running: " << cmd << endl;
 
-    cpn_lock locker;
-    int status = retry_system(cmd.c_str(), 0, locker,mbuf,1);
+    int status = retry_system(cmd.c_str(), 0, mbuf,1);
     if (WIFSIGNALED(status)){
        mbuf.log_failure();
        throw( std::logic_error("signalled while doing rm"));
@@ -2455,8 +2300,7 @@ ifdh::chmod(string mode, string loc, string force) {
 
     _debug && std::cerr << "running: " << cmd << endl;
 
-    cpn_lock locker;
-    int status = retry_system(cmd.c_str(), 0, locker,mbuf,1);
+    int status = retry_system(cmd.c_str(), 0, mbuf,1);
 
     if (WIFSIGNALED(status)) {
        mbuf.log_failure();
@@ -2498,8 +2342,7 @@ ifdh::rename(string loc, string loc2, string force) {
 
     _debug && cerr << "running: " << cmd << endl;
 
-    cpn_lock locker;
-    int status = retry_system(cmd.c_str(), 0, locker,mbuf,1);
+    int status = retry_system(cmd.c_str(), 0, mbuf,1);
 
     if (WIFSIGNALED(status)) {
        mbuf.log_failure();

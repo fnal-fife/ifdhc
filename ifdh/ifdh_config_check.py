@@ -181,7 +181,7 @@ def check_locations(cp, locations):
     for l in locations:
         s = 'location %s' % l
 
-        for t in ['need_cpn_lock','protocols'] + ['prefix_%s'%x[:-1] for x in cp.get3(s,'protocols','').split(' ')]:
+        for t in ['protocols'] + ['prefix_%s'%x[:-1] for x in cp.get3(s,'protocols','').split(' ')]:
             if t == 'prefix_':
                 continue
             verify(cp.get3(s,t,None) != None, 'Location missing tag', s, t)

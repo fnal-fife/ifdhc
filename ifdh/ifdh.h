@@ -17,18 +17,6 @@ namespace ifdh_ns {
 struct IFile;
 struct CpPair;
 
-class cpn_lock {
-private:
-    int _heartbeat_pid;
-    int _locked;
-public:
-    int locked();
-    void lock();
-    void free();
-    cpn_lock();
-    ~cpn_lock();
-};
-
 class ifdh;
 
 typedef std::pair<std::string,long> ifdh_lss_pair;
@@ -54,7 +42,7 @@ class ifdh {
 
         void set_base_uri(std::string baseuri);
 
-        // general file copy using cpn locks dd, gridftp, or srmcp
+        // general file copy using dd, gfal-copy, or xrdcp...
         // supports:
         //
         // * ifdh cp src1 dest1 [';' src2 dest2 [';'...]]                     
@@ -65,7 +53,7 @@ class ifdh {
         // _     -- copies to dest. directory
         // * ifdh cp -f file_with_src_space_dest_lines                        
         // _     -- copies to a list file
-        // * any of the above can take --force={cpn,gsiftp,srm,s3,...}
+        // * any of the above can take --force={https,rootd,gsiftp,srm,s3,...}
         // * any of the file/dest arguments can be URIs
         // ---
         int cp(std::vector<std::string> args);
@@ -79,7 +67,7 @@ class ifdh {
 	// add output file to set
 	int addOutputFile(std::string filename);
 
-	// copy output file set to destination with cpn or srmcp
+	// copy output file set to destination directory dest_dir
 	int copyBackOutput(std::string dest_dir, int hash = 0);
 
 	// logging
@@ -130,7 +118,7 @@ class ifdh {
         int cleanup();
         // give output files reported with addOutputFile a unique name
         int renameOutput(std::string how);
-        // general file rename using mvn or srmcp
+        // general file rename
         int mv(std::vector<std::string> args);
         // Get a list of directory contents, or check existence of files
         // use recursion_depth== 0 to check directory without contents
@@ -163,8 +151,7 @@ class ifdh {
         std::string checksum(std::string loc);
         // make a directory with intervening directories
         int mkdir_p(std::string loc, std::string force = "", int depth = -1);
-        // get a grid proxy for the current experiment if needed, 
-        // return the path
+        // get a grid proxy and return the path -- deprecated
         std::string getProxy();
         // declare file metadata
 	int declareFile( std::string json_metadata);
@@ -231,11 +218,11 @@ class ifdh {
     private:
         IFile lookup_loc(std::string url) ;
         std::string locpath(IFile loc, std::string proto) ;
-        int retry_system(const char *cmd_str, int error_expected,  cpn_lock &locker, ifdh_op_msg &mbuf, int maxtries = -1, std::string unlink_on_error = "", bool dash_d_warning = false);
+        int retry_system(const char *cmd_str, int error_expected,  ifdh_op_msg &mbuf, int maxtries = -1, std::string unlink_on_error = "", bool dash_d_warning = false);
         std::string srcpath(CpPair &cpp) ;
         std::string dstpath(CpPair &cpp) ;
-        int do_cp_bg(CpPair &cpp, bool intermed_file_flag, bool recursive, cpn_lock &cpn,  ifdh_op_msg &mbuf);
-        int do_cp(CpPair &cpp,  bool intermed_file_flag, bool recursive, cpn_lock &cpn, ifdh_op_msg &mbuf) ;
+        int do_cp_bg(CpPair &cpp, bool intermed_file_flag, bool recursive,   ifdh_op_msg &mbuf);
+        int do_cp(CpPair &cpp,  bool intermed_file_flag, bool recursive,  ifdh_op_msg &mbuf) ;
 	void pick_proto(CpPair &p, std::string force) ;
         std::vector<CpPair> handle_args( std::vector<std::string> args, std::vector<std::string>::size_type curarg, bool dest_is_dir,  size_t &lock_low, size_t &lock_hi, std::string &force);
         bool have_stage_subdirs(std::string uri);

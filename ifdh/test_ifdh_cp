@@ -59,16 +59,6 @@ run_test 4  "$good_exp_out" ifdh cp --force=exp /tmp/extras.fcl $out_dir/out2.fc
 
 rm -f /tmp/extras.fcl
 
-if [ -d $exp_dir ]
-then
-  run_test 5  "$good_cpn_in" ifdh cp $exp_dir/extras.fcl /tmp/extras.fcl
-  run_test 6  "$good_cpn_out" ifdh cp /tmp/extras.fcl $out_dir/out2.fcl
-  echo "This test run with $exp_dir mounted, also run without"
-else
-  run_test 5  "$good_bestman_in" ifdh cp $exp_dir/extras.fcl /tmp/extras.fcl
-  run_test 6  "$good_exp_out" ifdh cp /tmp/extras.fcl $out_dir/out2.fcl
-  echo "This test run with $exp_dir not mounted, also run with"
-fi
 
 rm -f /tmp/extras.fcl
 # XXX need batch mode tests.

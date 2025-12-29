@@ -614,7 +614,7 @@ get_grid_credentials_if_needed() {
     bool found = false;
     int res;
 
-    ifdh::_debug && std::cerr << "Checking for proxy cert..."<< endl;
+    ifdh::_debug && std::cerr << "Checking for grid credentials..."<< endl;
 
     int proxies_enabled = ifdh::_config.getint("proxies","enabled");
     int tokens_enabled = ifdh::_config.getint("tokens","enabled");
@@ -631,8 +631,11 @@ get_grid_credentials_if_needed() {
     }
 
     if( (getenv("IFDH_NO_PROXY") && 0 != strlen(getenv("IFDH_NO_PROXY"))) || 
-           (!proxies_enabled && !tokens_enabled) )
+           (!proxies_enabled && !tokens_enabled) ) {
+        
+        ifdh::_debug && std::cerr << "...checks disabled by IFDH_NO_PROXY/--no_proxy" << endl;
         return;
+    }
    
     // define strings for things we need...
     string role;

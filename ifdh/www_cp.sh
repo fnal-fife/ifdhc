@@ -1,10 +1,9 @@
 #!/bin/bash
 
-# token support isn't there on sl6, so just chop it off at the knees here
+# token support isn't in gfal2 on sl6, but we *can* do it with curl, so
 if grep -q release.6 /etc/system-release
 then
-    unset BEARER_TOKEN_FILE
-    unset BEARER_TOKEN
+    IFDH_HTTP_CMD="curl"
 fi
 
 # "cp" style utility for web locations, uses curl or gfal...

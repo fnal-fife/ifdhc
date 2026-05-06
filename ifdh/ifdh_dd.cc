@@ -161,6 +161,8 @@ ifdh::metacat_query( std::string query, bool meta, bool provenance ) {
     url += (meta ? "yes" : "no");
     url += "&with_provenance=";
     url +=  (provenance ? "yes" : "no");
+    url += "&trimquery=";
+    url += query.substr(0,255);
 
      if (_dd_mc_session_tok == "" ) {
          dd_mc_authenticate();

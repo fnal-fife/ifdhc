@@ -661,8 +661,6 @@ Common:
     endif ( test `uname` = "Darwin" )
     ExeActionOptional(ExtraSetup)
     SetupOptional(ifdhc_config)
-    # cpn is no longer used...
-    #SetupOptional(cpn)
     SetupOptional(ifdh_platform_pkgs) 
     SetupOptional(kx509) 
     # get the Amazon S3 client if possible

@@ -3,7 +3,7 @@ SRCDIR=../../ifdh/
 VPATH=$(SRCDIR)
 
 #
-# Note: set PYTHON=python3 and PYMAJOR=3 to build a system python3 version
+# Note: set PYTHON=python3 PYMAJOR=3 PYTHON_INCLUDE=/usr/includ/python3.9 to build a system python3 version
 #       set PYTHON_INCLUDE, PYTHON_LIB, and PYMAJOR to use non-system python.
 #
 

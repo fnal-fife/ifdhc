@@ -9,13 +9,11 @@ esac
 done
 export watchpid=$PPID
 
-# get initial token & proxy
+# get initial token 
 
 export IFDH_TOKEN_ENABLE=1
-export IFDH_PROXY_ENABLE=1
 
 ifdh getToken
-ifdh getProxy
 
 # check/refresh every 15 minutes in background until
 # our parent process exits
@@ -25,7 +23,6 @@ ifdh getProxy
       # check every 15 minutes
       sleep 900
       ifdh getToken 
-      ifdh getProxy
    done
 ) > /dev/null &
 

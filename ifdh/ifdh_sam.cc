@@ -397,8 +397,7 @@ ifdh::renameOutput(std::string how) {
 
         _debug && std::cerr << "running: " << perlcmd.str() << "\n";
 
-        cpn_lock locker;
-        int res = retry_system(perlcmd.str().c_str(), 0, locker,mbuf,1);
+        int res = retry_system(perlcmd.str().c_str(), 0, mbuf,1);
         mbuf.log_success();
         return res;
     } else if (how[0] == 'e') {
@@ -408,8 +407,7 @@ ifdh::renameOutput(std::string how) {
 
         _debug && std::cerr << "running: " << cmd << "\n";
 
-        cpn_lock locker;
-        return retry_system(cmd.c_str(), 0, locker,mbuf,1);
+        return retry_system(cmd.c_str(), 0, mbuf,1);
 
     } else if (how[0] == 'u') {
 

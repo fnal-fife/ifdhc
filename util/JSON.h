@@ -18,6 +18,8 @@ class json_dict;
 
 
 class json_storage {
+  // abstract base class for storing different types of JSON blobs:
+  // subclassed later for numbers, strings, lists and dictionaries
   public:
     virtual json & operator[]( int );
     virtual json & operator[]( json );
@@ -53,6 +55,7 @@ class json {
     json & operator[]( int );
     json & operator[]( json );
     json & operator[]( const char *cs ) { return (*this)[json(cs)]; }
+    json & operator[]( std::string s ) { return (*this)[json(s.c_str())]; }
     bool operator < (const json);
     operator std::string(); 
     operator double(); 

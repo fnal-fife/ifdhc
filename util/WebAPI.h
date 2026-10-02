@@ -7,11 +7,6 @@
 #include <stdexcept>
 #include <map>
 
-#if __cplusplus >= 201103L
-#include <thread>
-#include <mutex>
-#endif
-
 namespace ifdh_util_ns {
 
 class WebAPIException : public std::logic_error {
@@ -22,17 +17,20 @@ public:
    //virtual const char *what () const throw ();
 };
 
-class WebAPI {
-    std::fstream _tosite, _fromsite;
-    int _tositefd, _fromsitefd;
-    int _status;
-    long int _pid;
-    int _timeout; // timeout for web actions as per poll()
+//
+// The response body is read completely into memory, and handed
+// back as a stringstream.  close() is a no-op kept so code written
+// for the older fstream based interface still compiles.
+//
+class WebAPIStream : public std::stringstream {
+public:
+    void close() {;}
+};
 
-#if __cplusplus >= 201103L
-    static std::mutex _fd_mutex;
-#endif
-    void sockattach( std::fstream &fstr,  int &sitefd, int s, std::fstream::openmode mode);
+class WebAPI {
+    WebAPIStream _fromsite;
+    int _status;
+    int _timeout; // overall timeout for web actions in milliseconds
 
 public:
     static int _debug;
@@ -40,7 +38,7 @@ public:
     WebAPI(std::string url, int postflag = 0, std::string postdata = "", int maxretries = 10, int timeout = -1, std::string http_proxy = "", std::string auth_header=""); // throw(WebAPIException)
     ~WebAPI();
     int getStatus();
-    std::fstream &data() { return _fromsite; }
+    WebAPIStream &data() { return _fromsite; }
 
     static std::string encode(std::string);
 

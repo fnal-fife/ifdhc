@@ -1,20 +1,22 @@
 #include "WebAPI.h"
-#include <fstream>
 #include <iostream>
-#include <stdarg.h> 
+#include <chrono>
+#include <memory>
+#include <vector>
 #include <stdio.h>
-#include <errno.h>
-#include <iomanip>
 #include <string.h>
+#include <strings.h>
 #include <stdlib.h>
-#include <sys/types.h>
-#include <poll.h>
 #include <unistd.h>
-#include "utils.h"
-#include <pwd.h>
-#include "ifdh_version.h"
-#include <sys/wait.h>
 #include <fcntl.h>
+#include <pwd.h>
+#include "utils.h"
+#include "ifdh_version.h"
+
+// header-only http(s) client from https://github.com/yhirose/cpp-httplib
+// fetched by the Makefile.
+#define CPPHTTPLIB_OPENSSL_SUPPORT 1
+#include "httplib.h"
 
 
 namespace ifdh_util_ns {
@@ -36,7 +38,7 @@ std::string
 WebAPI::encode(std::string s) {
     std::string res("");
     static char digits[] = "0123456789abcdef";
-    
+
     for(size_t i = 0; i < s.length(); i++) {
         if (
               (s[i] >= 'a' && s[i] <= 'z') ||
@@ -50,7 +52,7 @@ WebAPI::encode(std::string s) {
          }
     }
     return res;
-}	
+}
 
 static char *get_bearer_token() {
     static char tokenbuf[8192];
@@ -69,12 +71,13 @@ static char *get_bearer_token() {
         fd = open(getenv("BEARER_TOKEN_FILE"),O_RDONLY);
 
         if (fd >= 0) {
-            res = read(fd, tokenbuf, 8192);
+            res = read(fd, tokenbuf, 8191);
             close(fd);
             if (res > 512) {
                 // BEARER_TOKEN_FILE gave us an actual file that's
                 // a reasonable size, so go with it.
-                
+                tokenbuf[res] = 0;
+
                 // trim trailing newline...
                 if (tokenbuf[res-1] == '\n') {
                    tokenbuf[res-1] = 0;
@@ -82,7 +85,7 @@ static char *get_bearer_token() {
                 return tokenbuf;
             }
         }
-    } 
+    }
     return 0;
 }
 
@@ -91,176 +94,218 @@ test_encode() {
     std::string s="testing(again'for'me)";
     std::cout << "converting: " << s << " to: " << WebAPI::encode(s) << "\n";
 }
-// parseurl(url)
-//   parse a url into 
-//   * type/protocol, 
-//   * host
-//   * port
-//   * path
-//   so that it can be fetched directly
 
-WebAPI::parsed_url 
-WebAPI::parseurl(std::string url, std::string http_proxy) {
-     int i, j;                // string indexes
+// split_url(url)
+//   split a url into type/protocol, host, port and path
+//   without any proxy considerations
+static WebAPI::parsed_url
+split_url(std::string url) {
+     size_t i, j;             // string indexes
      WebAPI::parsed_url res;  // resulting pieces
      std::string part;        // partial url
 
-     i = url.find_first_of(':');
-     if (url[i+1] == '/' and url[i+2] == '/') {
-        res.type  = url.substr(0,i);
-     } else {
+     i = url.find("://");
+     if (i == std::string::npos || i == 0) {
         throw(WebAPIException(url,"BadURL: has no slashes, must be full URL"));
      }
-     if (http_proxy == "" && getenv("http_proxy")) {
-         http_proxy = getenv("http_proxy");
-     }
+     res.type = url.substr(0,i);
      if (res.type != "http" && res.type != "https" ) {
         throw(WebAPIException(url,"BadURL: only http: and https: supported"));
+     }
+     part = url.substr(i+3);
+     j = part.find_first_of("/?");
+     i = part.find_first_of(':');
+     if( i == std::string::npos || i > j) {
+         // no port number listed, default to 80 or 443
+         res.host = part.substr(0,j);
+         res.port = (res.type == "http") ?  80 : 443;
+     } else {
+         res.host = part.substr(0,i);
+         res.port = atol(part.substr(i+1,j-i-1).c_str());
+     }
+     if (j == std::string::npos) {
+         res.path = "/";
+     } else if (part[j] == '?') {
+         res.path = "/" + part.substr(j);
+     } else {
+         res.path = part.substr(j);
+     }
+     return res;
+}
+
+// parse a proxy setting like "host:port" or "http://host:port/"
+// into its host and port.
+static void
+split_proxy(std::string proxy, std::string &host, int &port) {
+     size_t i;
+
+     i = proxy.find("://");
+     if (i != std::string::npos) {
+         proxy = proxy.substr(i+3);
+     }
+     i = proxy.find('/');
+     if (i != std::string::npos) {
+         proxy = proxy.substr(0,i);
+     }
+     i = proxy.find(':');
+     if (i == std::string::npos) {
+         host = proxy;
+         port = 8080;
+     } else {
+         host = proxy.substr(0,i);
+         port = atol(proxy.substr(i+1).c_str());
+     }
+}
+
+// parseurl(url)
+//   parse a url into
+//   * type/protocol,
+//   * host
+//   * port
+//   * path
+//   so that it can be fetched directly; for http: urls with a proxy
+//   the host and port are the proxy, and the path is the whole url.
+
+WebAPI::parsed_url
+WebAPI::parseurl(std::string url, std::string http_proxy) {
+     WebAPI::parsed_url res;  // resulting pieces
+
+     res = split_url(url);
+     if (http_proxy == "" && getenv("http_proxy")) {
+         http_proxy = getenv("http_proxy");
      }
      if (res.type == "http" && http_proxy != "") {
         // if we have a proxy, we connect to the proxy server, and
         // give the whole url for the path..
         res.path = url;
-        i = http_proxy.find_first_of(':');
-        if ( i < 0 ) {
-             res.host = http_proxy;
-             res.port = 8080;
-        } else {
-             res.host = http_proxy.substr(0,i);
-             res.port = atol(http_proxy.substr(i+1,http_proxy.length()).c_str());
-        }
-     } else {
-         part = url.substr(i+3);
-         i = part.find_first_of(':');
-         j = part.find_first_of('/');
-         if( i < 0 || i > j) {
-             // no port number listed, dedault to 80 or 443
-             res.host = part.substr(0,j);
-             res.port = (res.type == "http") ?  80 : 443;
-         } else {
-             res.host = part.substr(0,i);
-             res.port = atol(part.substr(i+1,j-i).c_str());
-        }
-        res.path = part.substr(j);
-    }
+        split_proxy(http_proxy, res.host, res.port);
+     }
     _debug && std::cerr << "parseurl: host " << res.host << " port: " << res.port << " path " << res.path << std::endl;
     _debug && std::cerr.flush();
     return res;
 }
 
-// we need lots of system network bits
-// to make a network connection...
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <netdb.h>
-
-#if __cplusplus >= 201103L
-std::mutex WebAPI::_fd_mutex;
-#endif
-//
-// use underlying fd behavior to open a stream to a socket.o
-//
-void 
-WebAPI::sockattach( std::fstream &fstr,  int &sitefd, int s, std::fstream::openmode mode)  {
-#if __cplusplus >= 201103L
-     // use RAII lock_guard to protect this subroutine region with a mutex
-     // this should mean the while loop/retry below is unneccesary, 
-     // but we only have it when building in a newer stdc++11 or 
-     // later environment...
-     std::lock_guard<std::mutex> lock(_fd_mutex);
-#endif
-     int sretries = 0;
-     int fdhack = -2, fdnext, fdchk;  
-     sitefd = -1;
-     //
-     // there is some chance that another stream interferes with this,
-     // so try up to three times..
-     //
-     while(sitefd != fdhack && sretries++ < 3) {
-         // dup the socket just to find the "next" file descriptor
-         // then close it to free it up
-         fdhack = dup(s);
-         if (fdhack == -1) {
-             std::cerr << "fdhack: " << fdhack << "\n";
-             throw(WebAPIException("Error:","sockattach: Couldn't plumb file descriptors"));
-         }
-         fdnext = dup(s);
-         if (fdnext == -1) {
-             close(fdhack);
-             std::cerr << "fdnext: " << fdnext << "\n";
-             throw(WebAPIException("Error:","sockattach: Couldn't plumb file descriptors"));
-         }
-         close(fdnext);
-         close(fdhack);
-         fstr.open("/dev/null",mode);
-         fdchk = dup(s);
-         close(fdchk);
-         if (fdchk == fdnext) {
-             // now the fstream should have that file descriptor..
-             // close it again behind its back
-             close(fdhack);
-             // now the sitefd should be that file descriptor
-             sitefd = dup(s);
-         }
-         if (sitefd != fdhack) {
-             // didn't get the same fd, so who knows what happened...
-             // close things to go around again
-             close(sitefd);
-             fstr.close();
-         }
-     }
-     if (sitefd != fdhack) {
-         std::cerr << "fdhack: " << fdhack << " sitefd: " << sitefd << "\n";
-         throw(WebAPIException("Error:","sockattach: Couldn't plumb file descriptors"));
-     }
+// remove "." and ".." segments from a path, as per RFC 3986 5.2.4
+static std::string
+remove_dot_segments(std::string path) {
+    std::string query;
+    size_t q = path.find('?');
+    if (q != std::string::npos) {
+        query = path.substr(q);
+        path = path.substr(0, q);
+    }
+    std::vector<std::string> segs;
+    size_t pos = 1;
+    while (pos <= path.size()) {
+        size_t next = path.find('/', pos);
+        if (next == std::string::npos) next = path.size();
+        std::string seg = path.substr(pos, next - pos);
+        bool last = (next == path.size());
+        if (seg == "..") {
+            if (!segs.empty()) segs.pop_back();
+            if (last) segs.push_back("");
+        } else if (seg == ".") {
+            if (last) segs.push_back("");
+        } else {
+            segs.push_back(seg);
+        }
+        pos = next + 1;
+    }
+    std::string res;
+    for (auto &seg : segs) {
+        res += "/" + seg;
+    }
+    return (res.empty() ? "/" : res) + query;
 }
 
-// fetch a URL, opening a filestream to the content
-// we do klugy looking things here to directly return
-// the network connection, rather than saving he data
-// in a file and returning that.
+// figure out where a Location: header sends us, relative to
+// the url we just fetched
+static std::string
+redirect_url(const WebAPI::parsed_url &pu, std::string loc) {
+    if (loc.find("://") != std::string::npos) {
+        // full url
+        return loc;
+    }
+    std::string base = pu.type + "://" + pu.host + ":" + std::to_string(pu.port);
+    if (loc[0] == '/') {
+        // absolute path on the same server
+        return base + remove_dot_segments(loc);
+    }
+    // relative path, replace after the last / of the path
+    std::string path = pu.path.substr(0, pu.path.find('?'));
+    return base + remove_dot_segments(path.substr(0, path.rfind('/') + 1) + loc);
+}
+
+// fetch a URL, reading the content into the data() stream.
+//
+// retries (which include redirects) are done on connection failures,
+// 50x errors, and 202 responses with a Retry-After header.
 
 WebAPI::WebAPI(std::string url, int postflag, std::string postdata, int maxretries, int timeout, std::string http_proxy, std::string auth_header)  {
-     int s = -1;		// unix socket file descriptor
+     typedef std::chrono::steady_clock clock;
+     clock::time_point start = clock::now();
      WebAPI::parsed_url pu;     // parsed url.
-     // struct sockaddr_storage server; // connection address struct
-     struct addrinfo *addrp;   // getaddrinfo() result
-     struct addrinfo *addrf;   // getaddrinfo() result, to free later
-     static char buf[1024];      // buffer for header lines
-     int optval, optlen;
-     int retries;
-     int res;
-     int retryafter = -1;
-     int redirect_or_retry_flag = 1;
-     int hcount;
-     int connected;
-     int totaltime = 0;
-     char *tok;
-     char *https_proxy = 0;
-     const char *opensslcmd = 0;
-     std::string loc;
+     httplib::Headers headers;  // headers we send
+     std::string body;          // response body
+     std::string user;
+     std::string auth_name, auth_value;
+     struct passwd *ppasswd = getpwuid(getuid());
+     char hostbuf[512];
+     const char *x509_proxy;
+     const char *tok;
+     int retries = 0;
+     int retryafter;
+     long remaining = -1;
+     std::string lasterr;       // reason for the last retry, for timeout messages
+
+     // sleep before a retry, but not past our timeout
+     auto nap = [&](long secs) {
+         if (_timeout > 0) {
+             long left = _timeout - std::chrono::duration_cast<std::chrono::milliseconds>(clock::now() - start).count();
+             if (secs * 1000 > left) {
+                 throw(WebAPIException(url, ": Timeout exceeded" + lasterr));
+             }
+         }
+         sleep(secs);
+     };
+
+     _status = 500;
      _timeout = timeout;
-
+     if (_timeout == -1 && getenv("IFDH_WEB_TIMEOUT")) {
+          _timeout = atoi(getenv("IFDH_WEB_TIMEOUT")) * 1000;
+     }
      _timeout != -1 && _debug && std::cerr << "timeout: " << _timeout << "\n";
-
-     _pid = 0;
-     std::string method(postflag?"POST ":"GET ");
 
      _debug && std::cerr << "fetchurl: " << url << std::endl;
      _debug && std::cerr.flush();
-     retries = 0;
 
-     if (_timeout == -1 && getenv("IFDH_WEB_TIMEOUT")) { 
-          _timeout = atoi(getenv("IFDH_WEB_TIMEOUT")) * 1000; 
+     if (getenv("GRID_USER"))
+        user = getenv("GRID_USER");
+     else if (getenv("USER"))
+        user = getenv("USER");
+     else if(ppasswd)
+        user = ppasswd->pw_name;
+     else
+        user = "unknown_user";
+
+     gethostname(hostbuf, sizeof(hostbuf));
+     hostbuf[sizeof(hostbuf)-1] = 0;
+
+     if (!auth_header.empty()) {
+          size_t colon = auth_header.find(':');
+          if (colon == std::string::npos) {
+              throw(WebAPIException(auth_header, ": BadHeader: expected 'Name: value'"));
+          }
+          auth_name = auth_header.substr(0, colon);
+          size_t vstart = auth_header.find_first_not_of(" \t", colon + 1);
+          auth_value = (vstart == std::string::npos) ? "" : auth_header.substr(vstart);
      }
 
-     while( redirect_or_retry_flag ) {
-         hcount = 0;
-         _status = 500;
+     while( true ) {
+
          retries++;
 
-         // note that this retry limit includes 303 redirects, 503 errors, DNS fails, and connect errors...
+         // note that this retry limit includes 30x redirects, 50x errors, DNS fails, and connect errors...
 	 if (retries > maxretries+1) {
              // don't lose debug messages..
              std::cerr << "retries " << retries << " maxretries " << maxretries << "\n";
@@ -268,372 +313,194 @@ WebAPI::WebAPI(std::string url, int postflag, std::string postdata, int maxretri
 	     throw(WebAPIException(url,"FetchError: Retry count exceeded"));
 	 }
 
-         pu = parseurl(url, http_proxy);
-
-         if (pu.type == "http") {
-             struct addrinfo hints; 
-             char portbuf[10];
-
-             memset(&hints, 0, sizeof(hints));
-             hints.ai_socktype = SOCK_STREAM;
-             hints.ai_family = AF_UNSPEC;
-             hints.ai_flags = AI_CANONNAME;
-             sprintf( portbuf, "%d", pu.port);
-             // connect directly
-             res = getaddrinfo(pu.host.c_str(), portbuf, &hints, &addrp);
-             addrf = addrp;
-	     if (res != 0) {
-		 _debug && std::cerr << "getaddrinfo failed , waiting ..." << retries << std::endl;
-		 _debug && std::cerr.flush();
-		 sleep(retries);
-                 totaltime += retries;
-		 continue;
-	     }
-
-             connected = 0;
-	     while ( addrp && !connected) {
-
-		 _debug && std::cerr << "looking up host " << pu.host << " got " << (addrp->ai_canonname?addrp->ai_canonname:"(null)") <<  " type: " << addrp->ai_family << "\n";
-		 _debug && std::cerr.flush();
-
-		 s = socket(addrp->ai_family, addrp->ai_socktype,0);
-
-                 // turn on keepalive, so we know if we lose the
-                 // other end...
-                 optval = 1;
-                 optlen = sizeof(optval);
-                 setsockopt(s, SOL_SOCKET, SO_KEEPALIVE, &optval, optlen);
-
-		 if (connect(s, addrp->ai_addr,addrp->ai_addrlen) < 0) {
-                     _debug && std::cerr << "connect failed: errno = " << errno << "\n";
-		     addrp = addrp->ai_next;
-                     close(s);
-		 } else {
-                     _debug && std::cerr << "connect succeeded\n";
-		     connected = 1;
-		 }
-
-	     }
-             freeaddrinfo(addrf);
-
-             if (!connected) {
-		 _debug && std::cerr << " all connects failed , waiting ...";
-                 _debug && std::cerr.flush();
-		 sleep(5 << retries);
-                 totaltime += 5 << retries;
-		 _debug && std::cerr << "retrying ...\n";
-                continue;
-	     }
-
-	     
-             sockattach(_fromsite, _fromsitefd, s, std::fstream::in|std::fstream::binary);
-             sockattach(_tosite, _tositefd, s, std::fstream::out|std::fstream::binary);
-
-             if (s != -1) {
-	        close(s);	     // don't need original dd anymore...
+         if ( _timeout > 0 ) {
+             remaining = _timeout - std::chrono::duration_cast<std::chrono::milliseconds>(clock::now() - start).count();
+             if ( remaining <= 0 ) {
+                 throw(WebAPIException(url, ": Timeout exceeded" + lasterr));
              }
-         } else if (pu.type == "https") {
+         }
 
-            // XXX How do we detect/retry https fails?
+         pu = split_url(url);
 
-            // make sure we have openssl
-            if (access("/usr/bin/openssl",X_OK) == 0) {
-               opensslcmd = "openssl";
-            }
-            if (access("/usr/bin/openssl11",X_OK) == 0) {
-               opensslcmd = "openssl11";
-            }
-            if (opensslcmd) {
-               // okay so its not in /usr/bin, is it anywhere in PATH?
-               char cmdbuf[64];
-               sprintf(cmdbuf, "%s version > /dev/null", opensslcmd);
-               if(_debug) { std::cerr << "cmdbuf: " << cmdbuf << "\n"; }
-               res = system(cmdbuf);
-               if ( !(WIFEXITED(res) && 0 == WEXITSTATUS(res)) ) {
-                   throw(WebAPIException(url,"1 No openssl executable, cannot do https: calls in this environment"));
-               }
-            } else {
-               throw(WebAPIException(url,"2 No openssl executable, cannot do https: calls in this environment"));
-            }
+         std::string base = pu.type + "://" + pu.host + ":" + std::to_string(pu.port);
+         std::unique_ptr<httplib::Client> cli;
 
-
-            int inp[2], outp[2], pid;
-            pipe(inp);
-            pipe(outp);
-            std::cerr.flush();
-            std::cout.flush();
-            if (0 == (pid = fork())) {
-                // child -- run openssl s_client
-                const char *proxy = getenv("X509_USER_PROXY");
-                std::stringstream hostport;
-
-                hostport << pu.host << ":" << pu.port;
-
-                _debug && std::cerr << "command:" << opensslcmd << ' ' << "s_client"<< ' ' << " -CApath /etc/grid-security/certificates" << ' ' << "-connect"<< ' ' << hostport.str().c_str() << " -quiet"; 
-
-                if (0 != getenv("https_proxy")) {
-                    https_proxy = getenv("https_proxy");
-                }
-                if (proxy && _debug) {
-                     // from https://wiki.nikhef.nl/grid/How_to_handle_OpenSSL_and_not_get_hurt_using_the_CLI#Using_proxy_certificates_and_s_client
-		    std::cerr << " -key " << proxy << " -cert "<< proxy << " -CAfile " << proxy ;
-                }
-
-                _debug && std::cerr.flush();
-
-                // fixup file descriptors so our in/out are pipes
-                close(0);      
-                dup(inp[0]);   
-                close(1);
-                dup(outp[1]);
-                // send stderr to /dev/null -- get rid of annoying
-                // validation messages.  Might lose some real errors,
-                // but...
-                if ( !_debug ) { 
-                   close(2);
-                   open("/dev/null",O_RDONLY);
-                }
-
-                close(inp[0]); close(inp[1]); 
-                close(outp[0]);close(outp[1]);
-
-                // run openssl...
-                if (https_proxy && proxy) {
-                    _debug && std::cout << "case 11\n";
-                    execlp(opensslcmd, "s_client", "-CApath", "/etc/grid-security/certificates/",  "-connect", hostport.str().c_str(), "-proxy", https_proxy, "-quiet",  "-cert", proxy, "-key", proxy, "-CAfile", proxy,  (char *)0);
-                } else if (https_proxy && !proxy ){
-                    _debug && std::cout << "case 10\n";
-                    execlp(opensslcmd, "s_client", "-CApath", "/etc/grid-security/certificates/", "-connect", hostport.str().c_str(), "-proxy", https_proxy, "-quiet",  (char *)0);
-                } else if (!https_proxy && proxy ) {
-                    _debug && std::cout << "case 01\n";
-                    execlp(opensslcmd, "s_client", "-CApath", "/etc/grid-security/certificates/",  "-connect", hostport.str().c_str(),  "-quiet",  "-cert", proxy, "-key", proxy, "-CAfile", proxy,  (char *)0);
-                } else if (!https_proxy && !proxy) {
-                    _debug && std::cout << "case 00\n";
-                    execlp(opensslcmd, "s_client", "-CApath", "/etc/grid-security/certificates/", "-connect", hostport.str().c_str(),  "-quiet",  (char *)0);
-                }
-                close(0);
-                close(1);
-                exit(-1);
-            } else {
-                // parent, fix up pipes, make streams
-                _pid = pid;
-                close(inp[0]);  
-                close(outp[1]);  
-                sockattach(_fromsite, _fromsitefd, outp[0], std::fstream::in|std::fstream::binary);
-                close(outp[0]);
-                sockattach(_tosite, _tositefd, inp[1], std::fstream::out|std::fstream::binary);
-                close(inp[1]);      
-            }
+         x509_proxy = getenv("X509_USER_PROXY");
+         if (pu.type == "https" && x509_proxy && 0 == access(x509_proxy, R_OK)) {
+             // grid proxy file holds both the certificate (chain) and key
+             _debug && std::cerr << "using client certificate: " << x509_proxy << "\n";
+             cli.reset(new httplib::Client(base, x509_proxy, x509_proxy));
          } else {
-            throw(WebAPIException(url,"BadURL: only http: and https: supported"));
+             cli.reset(new httplib::Client(base));
+         }
+         if (!cli->is_valid()) {
+             throw(WebAPIException(url, ": Unable to setup http client (bad client certificate?)"));
          }
 
-         std::string user;
-         struct passwd *ppasswd = getpwuid(getuid());
+         // callers have already encoded urls with encode() ...
+         cli->set_path_encode(false);
+         cli->set_follow_location(false);
+         cli->set_socket_options([](socket_t sock) {
+             // turn on keepalive, so we know if we lose the other end...
+             int optval = 1;
+             setsockopt(sock, SOL_SOCKET, SO_KEEPALIVE, &optval, sizeof(optval));
+         });
 
-         if (getenv("GRID_USER"))
-            user = getenv("GRID_USER");
-         else if (getenv("USER"))
-            user = getenv("USER");
-         else if(ppasswd) 
-            user = ppasswd->pw_name;
-         else
-            user = "unknown_user";
-
-         char hostbuf[512];
-         gethostname(hostbuf, 512);
-
-         //XXX here we need a poll with timeout before writing
-         if ( _timeout > 0 && totaltime > (_timeout / 1000) ) {
-            throw(WebAPIException(url, ": Timeout exceeded (1)"));
+         if (remaining > 0) {
+             cli->set_max_timeout(remaining);
+             cli->set_connection_timeout(remaining / 1000, (remaining % 1000) * 1000);
          }
-         if (_timeout > 0)  {
-             time_t t1, t2;
-             struct pollfd pf = { _tositefd, POLLOUT, 0 };
-             t1 = time(0);
-             res = poll(&pf, 1, _timeout - totaltime * 1000);
-             t2 = time(0);
-             if (0 == res) {
-                throw(WebAPIException(url, ": Timeout exceeded (2)"));
+
+         if (pu.type == "https") {
+             // check against the grid CA's as well as the system ones
+             std::string cadir(getenv("X509_CERT_DIR") ? getenv("X509_CERT_DIR") : "/etc/grid-security/certificates");
+             if (0 == access(cadir.c_str(), R_OK|X_OK)) {
+                 cli->set_ca_cert_path("", cadir);
              }
-             totaltime = totaltime + (t2 - t1);
+             cli->enable_system_ca(true);
+             if (getenv("IFDH_WEB_NO_VERIFY")) {
+                 _debug && std::cerr << "IFDH_WEB_NO_VERIFY set, not verifying server certificate\n";
+                 cli->enable_server_certificate_verification(false);
+             }
+             if (getenv("https_proxy")) {
+                 std::string phost;
+                 int pport;
+                 split_proxy(getenv("https_proxy"), phost, pport);
+                 _debug && std::cerr << "using https proxy: " << phost << ":" << pport << "\n";
+                 cli->set_proxy(phost, pport);
+             }
+         } else {
+             std::string proxy(http_proxy);
+             if (proxy == "" && getenv("http_proxy")) {
+                 proxy = getenv("http_proxy");
+             }
+             if (proxy != "") {
+                 std::string phost;
+                 int pport;
+                 split_proxy(proxy, phost, pport);
+                 _debug && std::cerr << "using http proxy: " << phost << ":" << pport << "\n";
+                 cli->set_proxy(phost, pport);
+             }
          }
 
-	 // now some basic http protocol
-	 _tosite << method << pu.path << " HTTP/1.0\r\n";
-	 _debug && std::cerr << "sending: "<< method << pu.path << " HTTP/1.0\r\n";
-	 _tosite << "Host: " << pu.host << ":" << pu.port <<"\r\n";
-	 _debug && std::cerr << "sending header: " << "Host: " << pu.host << ":" << pu.port <<"\r\n";
-	 _tosite << "From: " << user << "@" << hostbuf  <<"\r\n";
-	 _debug && std::cerr << "sending header: " << "From: " << ppasswd->pw_name << "@" << hostbuf << "\r\n";
-	 _tosite << "User-Agent: " << "WebAPI/" << IFDH_VERSION << "/Experiment/" << getexperiment() << "\r\n";
-	 _debug && std::cerr << "sending header: " << "User-Agent: " << "WebAPI/" << IFDH_VERSION << "/Experiment/" << getexperiment() << "\r\n";
-
-         if (0 != (tok = get_bearer_token()) && pu.type == "https") {
-              _tosite << "Authorization: Bearer " << tok << "\r\n";
-	      _debug && std::cerr << "sending header: " << "Authorization: Bearer " << tok << "\r\n";
+         headers.clear();
+         headers.emplace("From", user + "@" + hostbuf);
+         headers.emplace("User-Agent", std::string("WebAPI/") + IFDH_VERSION + "/Experiment/" + getexperiment());
+         if (pu.type == "https" && strcasecmp(auth_name.c_str(), "Authorization") != 0 && 0 != (tok = get_bearer_token())) {
+             headers.emplace("Authorization", std::string("Bearer ") + tok);
          }
-         if (!auth_header.empty()) {
-              _tosite << auth_header << "\r\n";
-	      _debug && std::cerr << "sending header: " << auth_header << "\r\n";
+         if (!auth_name.empty()) {
+             headers.emplace(auth_name, auth_value);
          }
 
+         if (_debug) {
+             std::cerr << "sending: " << (postflag ? "POST " : "GET ") << base << pu.path << "\n";
+             for (auto &h : headers) {
+                 std::cerr << "sending header: " << h.first << ": " << (strcasecmp(h.first.c_str(), "Authorization") ? h.second : h.second.substr(0,16) + "...") << "\n";
+             }
+             std::cerr.flush();
+         }
+
+         httplib::Result res;
          if (postflag) {
-
+             const char *content_type;
              if ( postflag == 1) {
-                  _debug && std::cerr << "sending header:" << "Content-Type: application/x-www-form-urlencoded\r\n";
-                 _tosite << "Content-Type: application/x-www-form-urlencoded\r\n";
+                 content_type = "application/x-www-form-urlencoded";
              } else if ( postflag == 2) {
-                  _debug && std::cerr << "sending header:" <<  "Content-Type: application/json\r\n";
-                 _tosite << "Content-Type: application/json\r\n";
+                 content_type = "application/json";
              } else {
-                  _debug && std::cerr << "sending header:" << "Content-Type: text/plain\r\n";
-                 _tosite << "Content-Type: text/plain\r\n";
+                 content_type = "text/plain";
              }
-	      _debug && std::cerr << "sending header:"<< "Content-Length: " << postdata.length() << "\r\n";
-             _tosite << "Content-Length: " << postdata.length() << "\r\n";
-             _debug && std::cerr << "sending post data: " << postdata << "\n" << "length: " << postdata.length() << "\n"; 
-	     _tosite << "\r\n";
-             _tosite << postdata;
+             _debug && std::cerr << "sending header: Content-Type: " << content_type << "\n";
+             _debug && std::cerr << "sending post data: " << postdata << "\n" << "length: " << postdata.length() << "\n";
+             res = cli->Post(pu.path, headers, postdata, content_type);
          } else {
-	     _tosite << "\r\n";
+             res = cli->Get(pu.path, headers);
          }
-	 _tosite.flush();
 
-         _debug && std::cerr << "sent request\n";
+         if (!res) {
+             httplib::Error err = res.error();
+             std::string msg = ": FetchError: " + httplib::to_string(err);
 
-	 do {
+             _debug && std::cerr << "request failed: " << httplib::to_string(err) << "\n";
+             lasterr = " (last error: " + httplib::to_string(err) + ")";
 
-            //XXX here we need a poll with timeout before reading...
-             if ( _timeout > 0 && totaltime > (_timeout / 1000) ) {
-                throw(WebAPIException(url, ": Timeout exceeded (3)"));
-             }
-             if (_timeout > 0)  {
-                 time_t t1, t2;
-                 struct pollfd pf = { _fromsitefd, POLLIN, 0 };
-                 t1 = time(0);
-                 res = poll(&pf, 1, _timeout - totaltime * 1000);
-                 t2 = time(0);
-                 if (0 == res) {
-                    throw(WebAPIException(url, ": Timeout exceeded (4)"));
+             switch (err) {
+             case httplib::Error::SSLLoadingCerts:
+             case httplib::Error::SSLServerVerification:
+             case httplib::Error::SSLServerHostnameVerification:
+                 // retrying will not help these
+                 throw(WebAPIException(url, msg));
+             case httplib::Error::ConnectionTimeout:
+             case httplib::Error::Timeout:
+                 if ( _timeout > 0 ) {
+                     throw(WebAPIException(url, ": Timeout exceeded"));
                  }
-                 totaltime = totaltime + (t2 - t1);
+                 break;
+             default:
+                 break;
              }
-           
-	    _fromsite.getline(buf, 1024);
-            hcount++;
+	     _debug && std::cerr << " connect failed , waiting ...\n";
+             _debug && std::cerr.flush();
+	     nap(5 << retries);
+             continue;
+         }
 
-	    _debug && std::cerr << "got header line " << buf << "\n";
- 
-            char *cp = strchr(buf, ':');
-            if ( cp ) {
-                std::string hname(buf, cp-buf);
-                std::string hval(cp+2, strlen(cp)-3);
-                _rcv_headers.insert(std::pair<std::string, std::string> ( hname, hval));
-            }
-
-	    if (strncmp(buf,"HTTP/1.", 7) == 0) {
-		_status = atol(buf + 8);
-	    }
-
-	    if (strncmp(buf, "Retry-After: ", 13) == 0) {
-                retryafter = atol(buf + 13);
-            }
-
-	    if (strncmp(buf, "Location: ", 10) == 0) {
-	        _debug && std::cerr << "reading full Location header...\n";
-                loc = "";
-                loc += buf;
-                while (buf[strlen(buf)-1] != '\r' && strlen(buf) && !_fromsite.eof() ) {
-	            _fromsite.getline(buf, 1024);
-	            _debug && std::cerr << "no end of line yet loc: ..." << loc << "\n";
-	            _debug && std::cerr << "buf: " << buf << "\n";
-
-                    loc += buf;
-                }
-
-                _debug && std::cerr << " loc[10] " << loc[10] << "loc[11] " << loc[11] << " loc[12] " << loc[12];
-
-                if (buf[strlen(buf)-1] == '\r' )
-                    loc = loc.substr(0,loc.size()-1);
-
-                if (loc.substr(10).find(':') == std::string::npos) {
-                    int spos;
-                    if (loc[10] == '/') {  // absolute path, no protocol, replace after :
-                       spos = url.find(':');
-                    } else {
-                        spos = url.rfind('/'); // relative path, replace after last /
-                    }
-                    url = url.substr(0,spos+1) + loc.substr(10);
-                    _debug && std::cerr << "Relative path case: url: " << url <<  "\n";
-                } else {
-                    url = loc.c_str() + 10;
-                }
-	        _debug && std::cerr << "Location header: url: " << url <<  "\n";
-	    }
-
-	 } while (_fromsite.gcount() > 2 || hcount < 3); // end of headers is a blank line
-
+         _status = res->status;
+         body = std::move(res->body);
 	 _debug && std::cerr << "http status: " << _status << std::endl;
 
-	 _tosite.close();
+         _rcv_headers.clear();
+         for (auto &h : res->headers) {
+             _debug && std::cerr << "got header line " << h.first << ": " << h.second << "\n";
+             _rcv_headers.insert(std::pair<std::string, std::string>(h.first, h.second));
+         }
+
+         retryafter = atol(res->get_header_value("Retry-After").c_str());
 
          if (_status == 202 && retryafter > 0) {
-            sleep(retryafter);
-            totaltime += retryafter;
+            nap(retryafter);
             retries--;          // it doesnt count if they told us to...
+            continue;
          }
 
          if (_status >= 500) {
+            lasterr = " (last error: HTTP status " + std::to_string(_status) + ")";
             if (_debug) {
-                std::string line;
 	        std::cerr << "50x error:\n=-=-=-=-=-=-=-=-=-=\n";
-                while(!_fromsite.eof()) {
-                     getline(_fromsite, line);
-                     std::cerr << line;
-                }
+                std::cerr << body;
 	        std::cerr << "\n=-=-=-=-=-=-=-=-=-=\nwaiting ...";
                 std::cerr.flush();
             }
-            retryafter = random() % (5 << retries);
-            sleep(retryafter);
-            totaltime += retryafter;
-         }
-         if (_status == 303) {
-            //redirected, but to a GET...
-            postdata = "";
-            postflag = 0;
+            nap(random() % (5 << retries));
+            continue;
          }
 
-         if ((_status < 301 || _status > 309) && _status < 500 && _status != 202 ) {
-            redirect_or_retry_flag = 0;
-	 } else {
-	     int wstatus;
-	     if (_pid) {
-	        (void) waitpid(_pid,&wstatus,0);
-	        _pid = 0;
-	     }
-	     // we're going to redirect/retry again, so close the _fromsite side
-	     _fromsite.close();
-             
+         if (_status >= 301 && _status <= 309 && res->has_header("Location")) {
+            url = redirect_url(pu, res->get_header_value("Location"));
+	    _debug && std::cerr << "Location header: url: " << url <<  "\n";
+            if (_status == 303) {
+               //redirected, but to a GET...
+               postdata = "";
+               postflag = 0;
+            }
+            continue;
          }
 
-         if ( _timeout > 0 && totaltime > (_timeout / 1000) ) {
-            throw(WebAPIException(url, ": Timeout exceeded"));
-         }
+         break;
      }
 
      if (_status <  200 || _status >  209) {
         std::stringstream message;
         message << "\nHTTP-Status: " << _status << "\n";
         message << "Error text is:\n";
-        while (_fromsite.getline(buf, 1024).gcount() > 0) {
-	    message << buf << "\n";
-        }
+        message << body << "\n";
         message << "\n-----\n";
         _debug && std::cerr << "throwing exception, message: " << message.str() << "\n";
         throw(WebAPIException(url,message.str()));
      }
+
+     _fromsite.str(body);
 }
 
 int
@@ -642,13 +509,6 @@ WebAPI::getStatus() {
 }
 
 WebAPI::~WebAPI() {
-    int wstatus;
-    if (_pid) {
-        (void) waitpid(_pid,&wstatus,0);
-        (void) waitpid(-1,&wstatus,WNOHANG);
-    }
-    _tosite.close();
-    _fromsite.close();
 }
 
 void

@@ -61,4 +61,4 @@ utils-test: utils.cc WimpyConfigParser.o
 	${CXX} -c -o $@  $(CXXFLAGS) $< 
 
 utils.o: utils.cc utils.h 
-WebAPI.o: WebAPI.cc WebAPI.h $(HTTPLIB_DIR)/httplib.h 
+WebAPI.o: WebAPI.cc WebAPI.h httplib.h 

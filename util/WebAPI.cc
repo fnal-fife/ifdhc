@@ -197,8 +197,12 @@ WebAPI::WebAPI(std::string url, int postflag, std::string postdata, int maxretri
 
          retries++;
          
+         int retryafter = -1;
+         time_t t1, t2;
+
          cli.set_default_headers(headers);
 
+         t1 = time(0);
          if (postflag) {
              if ( postflag == 1) {
                   content_type =  "application/x-www-form-urlencoded";
@@ -211,7 +215,11 @@ WebAPI::WebAPI(std::string url, int postflag, std::string postdata, int maxretri
         } else {
              res = cli.Get(url);
         }
+        t2 = time(0);
+        totaltime = totaltime + (t2 - t1);
+
         _status = res->status;
+
         if ( _status > 300 && _status < 305 ) {
             _debug && std::cerr << "Redirected: got back " << _status << ", Location:" << res->get_header_value("Location") << "\n";
             url =  res->get_header_value("Location");
@@ -220,10 +228,14 @@ WebAPI::WebAPI(std::string url, int postflag, std::string postdata, int maxretri
             _debug && std::cerr << "Retrying after delay..";
         }           
 
-         if (_status == 202 && retryafter > 0) {
-            sleep(retryafter);
-            totaltime += retryafter;
-            retries--;          // it doesnt count if they told us to...
+         if (_status == 202 ) {
+             std::string rabuf(res->get_header_value("Retry-after"));
+             retryafter = atol(rabuf.c_str());
+             if (_status == 202 && retryafter > 0) {
+                sleep(retryafter);
+                totaltime += retryafter;
+                retries--;          // it doesnt count if they told us to...
+             }
          }
 
          if (_status >= 500) {
@@ -251,8 +263,7 @@ WebAPI::WebAPI(std::string url, int postflag, std::string postdata, int maxretri
      if (_status <  200 || _status >  209) {
         std::stringstream message;
         message << "\nHTTP-Status: " << _status << "\n";
-        message << "Error text is:\n";
-        while (_fromsite.getline(buf, 1024).gcount() > 0) {
+        message << "Error text is:\n" << res->body;
     }
     _data.str(res->body);
 }

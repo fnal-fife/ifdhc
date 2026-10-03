@@ -22,6 +22,9 @@ CFLAGS=-pedantic-errors -Wall -Wextra -fPIC -g $(DEFS) $(ARCH) -I../../util --st
 
 all: $(HTTPLIB_DIR)/httplib.h $(GEN) $(OBJ) $(TST)
 
+httplib.h: $(HTTPLIB_DIR)/httplib.h  
+	cp $(HTTPLIB_DIR)/httplib.h  httplib.h
+
 clean:
 	rm -f $(OBJ) *.a
 

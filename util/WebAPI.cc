@@ -177,8 +177,6 @@ WebAPI::WebAPI(std::string url, int postflag, std::string postdata, int maxretri
         
      const char *content_type;
 
-     maxretries++;
-
      cli.set_ca_cert_path("/etc/grid-security/certificates");
      cli.enable_server_certificate_verification(false);
      cli.set_max_timeout((time_t)( timeout * 1000));
@@ -192,21 +190,32 @@ WebAPI::WebAPI(std::string url, int postflag, std::string postdata, int maxretri
          headers.emplace("Authorization", std::string("Bearer ") + tok);
      }
 
-     cli.set_default_headers(headers);
+    _status = 0;
+    while( maxretries > -1 && ( _status < 200 || (_status > 205 && _status < 500))) {
 
-     if (postflag) {
-         if ( postflag == 1) {
-              content_type =  "application/x-www-form-urlencoded";
-         } else if ( postflag == 2) {
-              content_type =  "application/json";
-         } else {
-              content_type =  "text/plain";
-         }
-         res = cli.Post(url, postdata, content_type );
-    } else {
-         res = cli.Get(url);
+         maxretries --;
+         
+         cli.set_default_headers(headers);
+
+         if (postflag) {
+             if ( postflag == 1) {
+                  content_type =  "application/x-www-form-urlencoded";
+             } else if ( postflag == 2) {
+                  content_type =  "application/json";
+             } else {
+                  content_type =  "text/plain";
+             }
+             res = cli.Post(url, postdata, content_type );
+        } else {
+             res = cli.Get(url);
+        }
+        _status = res->status;
+        if ( _status > 300 && _status < 305 ) {
+            std::cerr << "Redirected: got back " << _status << ", Location:" << res->get_header_value("Location") << "\n";
+            url =  res->get_header_value("Location");
+        }
+
     }
-    _status = res->status;
     _data.str(res->body);
 }
 

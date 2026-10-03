@@ -173,7 +173,6 @@ ifdh::metacat_query( std::string query, bool meta, bool provenance ) {
     WebAPI wa1(url, 1, query, 3, -1, "", auth_header);
     
     res = json::load(wa1.data());
-    wa1.data().close();
     return res;
 }
 
@@ -281,7 +280,6 @@ ifdh::dd_next_file_json(int project_id, std::string cpu_site, std::string worker
             if ( wa.getStatus() == 200 ) {
                  res = json::load(wa.data());
                  retry = false;
-                 wa.data().close();
 
                  if ((bool)res[json("retry")]) {
                      retry = true;

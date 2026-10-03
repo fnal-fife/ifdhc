@@ -167,19 +167,46 @@ WebAPI::parseurl(std::string url, std::string http_proxy) {
 // in a file and returning that.
 
 WebAPI::WebAPI(std::string url, int postflag, std::string postdata, int maxretries, int timeout, std::string http_proxy, std::string auth_header)  {
-     httplib::Client cli(url);
+     const char *proxy_env = getenv("X509_USER_PROXY");  
+     std::string proxy;
+     if( proxy_env )
+          proxy = proxy_env;
+     else
+          proxy = "";
+     httplib::Client cli(url, proxy, proxy);
      httplib::Result res;
+     char hostbuf[512];
+     gethostname(hostbuf, 512);
+
+     std::string user;
+     struct passwd *ppasswd = getpwuid(getuid());
+
+     if (getenv("GRID_USER"))
+        user = getenv("GRID_USER");
+     else if (getenv("USER"))
+        user = getenv("USER");
+     else if(ppasswd) 
+        user = ppasswd->pw_name;
+     else
+        user = "unknown_user";
+
+     std::string frombits = user + "@" + hostbuf; 
+     std::string ua("WebAPI");
+
+     ua = ua + "/" + IFDH_VERSION + "/Experiment/" + getexperiment();
+
      httplib::Headers headers = {
         {"Accept", "application/json"},
-        {"User-Agent", "my-app/1.0"},
+        {"From", frombits},
+        {"User-Agent", ua},
      };
      char *tok;
-        
      const char *content_type;
 
-     cli.set_ca_cert_path("/etc/grid-security/certificates");
+     cli.set_ca_cert_path("", "/etc/grid-security/certificates");
      cli.enable_server_certificate_verification(false);
      cli.set_max_timeout((time_t)( timeout * 1000));
+
      if ( http_proxy != "" ) {
          cli.set_proxy(http_proxy, 0 );
      }
@@ -218,12 +245,16 @@ WebAPI::WebAPI(std::string url, int postflag, std::string postdata, int maxretri
         t2 = time(0);
         totaltime = totaltime + (t2 - t1);
 
-        _status = res->status;
+        if (res) {
+            _status = res->status;
+        } else {
+            _status = 500;
+        }
 
-        if ( _status > 300 && _status < 305 ) {
+        if ( _status > 300 && _status < 305 && res ) {
             _debug && std::cerr << "Redirected: got back " << _status << ", Location:" << res->get_header_value("Location") << "\n";
             url =  res->get_header_value("Location");
-        } else if ( _status < 200 || _status > 205 ) {
+        } else if ( (_status < 200 || _status > 205)  && res) {
             _debug && std::cerr << "Error got back " << _status << ", Location:" << res->get_header_value("Location") << "\n";
             _debug && std::cerr << "Retrying after delay..";
         }           
@@ -241,7 +272,7 @@ WebAPI::WebAPI(std::string url, int postflag, std::string postdata, int maxretri
          if (_status >= 500) {
             if (_debug) {
 	        std::cerr << "50x error:\n=-=-=-=-=-=-=-=-=-=\n";
-                std::cerr << res->body;
+                res && std::cerr << res->body;
 	        std::cerr << "\n=-=-=-=-=-=-=-=-=-=\nwaiting ...";
                 std::cerr.flush();
             }
@@ -263,7 +294,7 @@ WebAPI::WebAPI(std::string url, int postflag, std::string postdata, int maxretri
      if (_status <  200 || _status >  209) {
         std::stringstream message;
         message << "\nHTTP-Status: " << _status << "\n";
-        message << "Error text is:\n" << res->body;
+        res && message << "Error text is:\n" << res->body;
     }
     _data.str(res->body);
 }

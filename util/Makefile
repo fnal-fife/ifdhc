@@ -16,8 +16,8 @@ HTTPLIB_URL=https://raw.githubusercontent.com/yhirose/cpp-httplib/$(HTTPLIB_VERS
 HTTPLIB_LIBS=-lssl -lcrypto
 
 TESTDEFS=-DUNITTEST
-CXXFLAGS=-pedantic-errors -Wall -Wextra -Werror -fPIC -g $(DEFS) -std=c++11  -I../../util -isystem $(HTTPLIB_DIR) $(ARCH)
-CFLAGS=-pedantic-errors -Wall -Wextra -fPIC -g $(DEFS) $(ARCH) -I../../util --std=c99
+CXXFLAGS=-pedantic-errors -Wall -Wextra -Werror -fPIC -g $(DEFS) -std=c++11  -I../../util -isystem $(HTTPLIB_DIR) $(ARCH) $(HTTPLIB_LIBS)
+CFLAGS=-pedantic-errors -Wall -Wextra -fPIC -g $(DEFS) $(ARCH) -I../../util --std=c99 
 
 
 all: $(HTTPLIB_DIR)/httplib.h $(GEN) $(OBJ) $(TST)

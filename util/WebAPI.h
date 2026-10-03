@@ -6,6 +6,13 @@
 #include <sstream>
 #include <stdexcept>
 #include <map>
+#define CPPHTTPLIB_OPENSSL_SUPPORT
+#include <httplib.h>
+
+#if __cplusplus >= 201103L
+#include <thread>
+#include <mutex>
+#endif
 
 namespace ifdh_util_ns {
 
@@ -17,20 +24,10 @@ public:
    //virtual const char *what () const throw ();
 };
 
-//
-// The response body is read completely into memory, and handed
-// back as a stringstream.  close() is a no-op kept so code written
-// for the older fstream based interface still compiles.
-//
-class WebAPIStream : public std::stringstream {
-public:
-    void close() {;}
-};
-
 class WebAPI {
-    WebAPIStream _fromsite;
+    std::istringstream _data;
     int _status;
-    int _timeout; // overall timeout for web actions in milliseconds
+    int _timeout; // timeout for web actions as per poll()
 
 public:
     static int _debug;
@@ -38,7 +35,7 @@ public:
     WebAPI(std::string url, int postflag = 0, std::string postdata = "", int maxretries = 10, int timeout = -1, std::string http_proxy = "", std::string auth_header=""); // throw(WebAPIException)
     ~WebAPI();
     int getStatus();
-    WebAPIStream &data() { return _fromsite; }
+    std::istringstream &data() { return _data; }
 
     static std::string encode(std::string);
 

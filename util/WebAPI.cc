@@ -191,9 +191,11 @@ WebAPI::WebAPI(std::string url, int postflag, std::string postdata, int maxretri
      }
 
     _status = 0;
-    while( maxretries > -1 && ( _status < 200 || (_status > 205 && _status < 500))) {
+    int retries = 0;
+    int totaltime = 0;
+    while( retries < maxretries && ( _status < 200 || (_status > 205 && _status < 500))) {
 
-         maxretries --;
+         retries++;
          
          cli.set_default_headers(headers);
 
@@ -211,10 +213,46 @@ WebAPI::WebAPI(std::string url, int postflag, std::string postdata, int maxretri
         }
         _status = res->status;
         if ( _status > 300 && _status < 305 ) {
-            std::cerr << "Redirected: got back " << _status << ", Location:" << res->get_header_value("Location") << "\n";
+            _debug && std::cerr << "Redirected: got back " << _status << ", Location:" << res->get_header_value("Location") << "\n";
             url =  res->get_header_value("Location");
-        }
+        } else if ( _status < 200 || _status > 205 ) {
+            _debug && std::cerr << "Error got back " << _status << ", Location:" << res->get_header_value("Location") << "\n";
+            _debug && std::cerr << "Retrying after delay..";
+        }           
 
+         if (_status == 202 && retryafter > 0) {
+            sleep(retryafter);
+            totaltime += retryafter;
+            retries--;          // it doesnt count if they told us to...
+         }
+
+         if (_status >= 500) {
+            if (_debug) {
+	        std::cerr << "50x error:\n=-=-=-=-=-=-=-=-=-=\n";
+                std::cerr << res->body;
+	        std::cerr << "\n=-=-=-=-=-=-=-=-=-=\nwaiting ...";
+                std::cerr.flush();
+            }
+            retryafter = random() % (5 << retries);
+            sleep(retryafter);
+            totaltime += retryafter;
+         }
+         if (_status == 303) {
+            //redirected, but to a GET...
+            postdata = "";
+            postflag = 0;
+         }
+
+         if ( _timeout > 0 && totaltime > (_timeout / 1000) ) {
+            throw(WebAPIException(url, ": Timeout exceeded"));
+         }
+     }
+
+     if (_status <  200 || _status >  209) {
+        std::stringstream message;
+        message << "\nHTTP-Status: " << _status << "\n";
+        message << "Error text is:\n";
+        while (_fromsite.getline(buf, 1024).gcount() > 0) {
     }
     _data.str(res->body);
 }

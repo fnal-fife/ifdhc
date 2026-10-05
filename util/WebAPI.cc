@@ -122,6 +122,8 @@ WebAPI::WebAPI(std::string url, int postflag, std::string postdata, int maxretri
      char hostbuf[512];
      gethostname(hostbuf, 512);
 
+     // ZZZ maybe use cli.setlogger() if debug is on? -- mengel
+
      std::string user;
      struct passwd *ppasswd = getpwuid(getuid());
 
@@ -140,7 +142,7 @@ WebAPI::WebAPI(std::string url, int postflag, std::string postdata, int maxretri
      ua = ua + "/" + IFDH_VERSION + "/Experiment/" + getexperiment();
 
      httplib::Headers headers = {
-        {"Accept", "application/json"},
+        {"Accept", "application/json, text/plain"},
         {"From", frombits},
         {"User-Agent", ua},
      };

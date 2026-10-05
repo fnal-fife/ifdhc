@@ -97,62 +97,6 @@ test_encode() {
     std::string s="testing(again'for'me)";
     std::cout << "converting: " << s << " to: " << WebAPI::encode(s) << "\n";
 }
-// parseurl(url)
-//   parse a url into 
-//   * type/protocol, 
-//   * host
-//   * port
-//   * path
-//   so that it can be fetched directly
-
-WebAPI::parsed_url 
-WebAPI::parseurl(std::string url, std::string http_proxy) {
-     int i, j;                // string indexes
-     WebAPI::parsed_url res;  // resulting pieces
-     std::string part;        // partial url
-
-     i = url.find_first_of(':');
-     if (url[i+1] == '/' and url[i+2] == '/') {
-        res.type  = url.substr(0,i);
-     } else {
-        throw(WebAPIException(url,"BadURL: has no slashes, must be full URL"));
-     }
-     if (http_proxy == "" && getenv("http_proxy")) {
-         http_proxy = getenv("http_proxy");
-     }
-     if (res.type != "http" && res.type != "https" ) {
-        throw(WebAPIException(url,"BadURL: only http: and https: supported"));
-     }
-     if (res.type == "http" && http_proxy != "") {
-        // if we have a proxy, we connect to the proxy server, and
-        // give the whole url for the path..
-        res.path = url;
-        i = http_proxy.find_first_of(':');
-        if ( i < 0 ) {
-             res.host = http_proxy;
-             res.port = 8080;
-        } else {
-             res.host = http_proxy.substr(0,i);
-             res.port = atol(http_proxy.substr(i+1,http_proxy.length()).c_str());
-        }
-     } else {
-         part = url.substr(i+3);
-         i = part.find_first_of(':');
-         j = part.find_first_of('/');
-         if( i < 0 || i > j) {
-             // no port number listed, dedault to 80 or 443
-             res.host = part.substr(0,j);
-             res.port = (res.type == "http") ?  80 : 443;
-         } else {
-             res.host = part.substr(0,i);
-             res.port = atol(part.substr(i+1,j-i).c_str());
-        }
-        res.path = part.substr(j);
-    }
-    _debug && std::cerr << "parseurl: host " << res.host << " port: " << res.port << " path " << res.path << std::endl;
-    _debug && std::cerr.flush();
-    return res;
-}
 
 // we need lots of system network bits
 // to make a network connection...

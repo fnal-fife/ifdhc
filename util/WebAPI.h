@@ -38,15 +38,6 @@ public:
     std::istringstream &data() { return _data; }
 
     static std::string encode(std::string);
-
-    struct parsed_url {
-	 std::string type;
-	 std::string host;
-	 int port;
-	 std::string path;
-    };
-    static parsed_url parseurl(std::string url, std::string http_proxy = ""); // throw(WebAPIException)
-
 };
 
 }

@@ -35,6 +35,8 @@ distclean: clean
 $(HTTPLIB_DIR)/httplib.h:
 	mkdir -p $(HTTPLIB_DIR)
 	curl -sSfL --retry 3 -o $@.new $(HTTPLIB_URL)
+	curl -sSfL --retry 3 -o $(HTTPLIB_DIR)/LICENSE `echo $(HTTPLIB_URL) | sed -e s/httplib.h/LICENSE/`
+	curl -sSfL --retry 3 -o $(HTTPLIB_DIR)/README.md `echo $(HTTPLIB_URL) | sed -e s/httplib.h/README.md/`
 	echo "$(HTTPLIB_SHA256)  $@.new" | (sha256sum -c - 2>/dev/null || shasum -a 256 -c -)
 	mv $@.new $@
 

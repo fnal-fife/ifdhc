@@ -105,6 +105,21 @@ test_encode() {
 #include <arpa/inet.h>
 #include <netdb.h>
 
+
+void web_logger(const httplib::Request &req, const httplib::Response &rsp) {
+    std::cerr << "WebAPI: " << req.method << " " << req.path << " HTTP/1.1\n";
+    for( auto it = req.headers.begin(); it != req.headers.end(); it++) {
+        std::cerr << "WebAPI: " << it->first << ": " << it->second << "\n";
+    }
+    std::cerr << "=-=-=-=-=\n";
+    for( auto it = rsp.headers.begin(); it != rsp.headers.end(); it++) {
+        std::cerr << "WebAPI: " << it->first << ": " << it->second << "\n";
+    }
+    std::cerr << "WebAPI status: " << rsp.status <<"\n";
+    std::cerr << "WebAPI body:\n" << rsp.body <<"\n";
+    std::cerr << "=-=-=-=-=\n";
+}
+
 // fetch a URL, opening a filestream to the content
 // we do klugy looking things here to directly return
 // the network connection, rather than saving he data
@@ -122,7 +137,9 @@ WebAPI::WebAPI(std::string url, int postflag, std::string postdata, int maxretri
      char hostbuf[512];
      gethostname(hostbuf, 512);
 
-     // ZZZ maybe use cli.setlogger() if debug is on? -- mengel
+     if ( _debug ) {
+         cli.set_logger(httplib::Logger(web_logger));
+     }
 
      std::string user;
      struct passwd *ppasswd = getpwuid(getuid());

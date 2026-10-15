@@ -34,9 +34,9 @@ genSRC=ifdh_main.cc
 #genSRC=ifdh_pybindgen.cc ifdh_main.cc
 PYMOD_OBJS=$(ALL_OBJS) ifdh_pybindgen.o
 ifeq ($(UNAME),Darwin)
-LDLIBS=-lz -lcrypto
+LDLIBS=-lz -lssl -lcrypto
 else
-LDLIBS=-lz -luuid
+LDLIBS=-lz -luuid -lssl -lcrypto
 endif
 DIRS=python
 ALL=ifdh python/ifdh.$(SHLIB) libifdh.$(SHLIB) libifdh.a
@@ -118,4 +118,4 @@ ifdh_sam.o: ifdh_sam.cc ifdh.h ../util/WebAPI.h ../util/../numsg/numsg.h ../util
 
 
 ifdh_dd_test: ifdh_dd.cc ../util/WebAPI.o $(LIB)
-	g++ -g  $(CXXFLAGS) -I../util -DUNITTEST -o ifdh_dd_test ifdh_dd.cc ../util/WebAPI.o  $(LIB)
+	g++ -g  $(CXXFLAGS) -I../util -DUNITTEST -o ifdh_dd_test ifdh_dd.cc ../util/WebAPI.o  $(LIB) $(LDLIBS)

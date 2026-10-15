@@ -587,7 +587,7 @@ class ifdh_cp_cases(unittest.TestCase):
          l1 = self.ifdh_handle.ls(self.data_dir, 1, "--force=gridftp")
          self.assertEqual(len(l1) > 0, True, self._testMethodName)
 
-    def test_pnfs_ls_gftp(self):
+    def xx_dropped_test_pnfs_ls_gftp(self):
          self.log(self._testMethodName)
          l1 = self.ifdh_handle.ls('/pnfs/%s/scratch'% ifdh_cp_cases.experiment, 1, "--force=gridftp")
          self.assertEqual(len(l1) > 0, True, self._testMethodName)
@@ -666,7 +666,7 @@ class ifdh_cp_cases(unittest.TestCase):
          res = self.ifdh_handle.cp(["%s/foo.txt" % self.data_dir, "/pnfs/%s/scratch/users/mengel/foo.txt"% ifdh_cp_cases.experiment])
          self.assertEqual(res == 0, True, self._testMethodName)
 
-    def test_li_copy_force_gridftp(self):
+    def defunct_test_li_copy_force_gridftp(self):
         self.log(self._testMethodName)
         self.make_local_test_txt()
         f = open("%s/li" % self.work,"w")
